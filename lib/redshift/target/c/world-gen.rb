@@ -149,8 +149,12 @@ class World
                     var->rk_level < rk_level &&
                     !var->algebraic)
                   (*var->flow)((ComponentShadow *)comp_shdw);
-                if (rk_level == 4)
-                  var->d_tick = 0;      //# for next step_discrete
+                if (rk_level == 4) {
+                  if (var->rk_level == 4)
+                    var->d_tick = 1;
+                  else
+                    var->d_tick = 0;
+                }
               }
               var++;
             }

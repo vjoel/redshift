@@ -105,6 +105,30 @@ class Flow_AlgUpdate_Assignment < FlowTestComponent
   end
 end
 
+# Test that a diff flow that refers to an alg flow updates it during c.u. and
+# that the updated value is used in the next d.u. This is related to the 
+# var->d_tick assignment in step_continuous(). We're testing that the
+# optimization doesn't *prevent* the evaluation of y.
+class Flow_AlgDiff < FlowTestComponent
+  flow {
+    alg  " x = 3*y "
+    diff " y' = x  "
+  }
+  state :S1
+  default {self.y = 1}
+  transition Enter => S1 do
+    guard "y > 5"
+    action {@x = x; @y = y}
+  end
+  
+  def assert_consistent test
+    if @x
+      test.assert_in_delta(3*@y, @x, 1E-10)
+      @x = @y = nil
+    end
+  end
+end
+
 ## TO DO ##
 =begin
  

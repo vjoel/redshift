@@ -186,6 +186,37 @@ class D2 < Component
   end
 end
 
+# test that lazily evaluated alg exprs get evaled correctly on demand
+class Lazy < TestComponent
+  strictly_continuous :x, :y
+  # z is not strict, so that the second test below is meaningful
+  state :Test1, :Test2, :Test3
+
+  flow Test1, Test2 do
+    diff " x' = 1 "
+    alg  " y  = 2*x "
+    alg  " z  = y "
+  end
+  
+  transition Test1 => Test2 do
+    guard "x >= 0.5"
+    action {@x = x; @test = y}
+  end
+
+  transition Test2 => Test3 do
+    guard "x >= 0.7"
+    action {@x = x; @test = z}
+      # indirect eval of y from z's alg expr is different from
+      # using the y reader method.
+  end
+
+  def assert_consistent(test)
+    case state
+    when Test1, Test2
+      test.assert_in_delta(2 * @x, @test, 1.0E-10)
+    end
+  end
+end
 
 #-----#
 

@@ -266,9 +266,6 @@ Implementation
   optimization: weaken "strict" so that resets can apply at end of
     discrete update, but still get all the optimizations (see bench/discrete.rb)
   
-  optimizations: record strictness for alg exprs; they only need to be
-    re-evaluated  if (not strict) and (d_tick has changed)
-
   Allow c-coded actions:
   
     transition do

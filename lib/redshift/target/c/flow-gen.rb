@@ -52,22 +52,26 @@ class Flow
             var_cname = "var_#{var}"
             sh_cname = "shadow"
             cs_cname = "cont_state"
+            cont_var = "#{cs_cname}->#{var}"
             translation[var] = var_cname
 
             flow_fn.declare var_cname => "double    #{var_cname}"
             flow_fn.setup var_cname => %{
-              if (#{cs_cname}->#{var}.algebraic) {
-                if (#{cs_cname}->#{var}.rk_level < rk_level ||
-                   (rk_level == 0 && #{cs_cname}->#{var}.d_tick != d_tick))
-                  (*#{cs_cname}->#{var}.flow)((ComponentShadow *)#{sh_cname});
+              if (#{cont_var}.algebraic) {
+                if (#{cont_var}.rk_level < rk_level ||
+                   (rk_level == 0 &&
+                    (#{cont_var}.strict ? !#{cont_var}.d_tick :
+                     #{cont_var}.d_tick != d_tick)
+                    ))
+                  (*#{cont_var}.flow)((ComponentShadow *)#{sh_cname});
               }
               else {
-                #{cs_cname}->#{var}.d_tick = d_tick;
+                #{cont_var}.d_tick = d_tick;
               }
             }
             # The d_tick assignment is explained in component-gen.rb.
             setup << %{
-              #{var_cname} = #{cs_cname}->#{var}.value_#{rk_level};
+              #{var_cname} = #{cont_var}.value_#{rk_level};
             }.tabto(0).split("\n")
           
           elsif /\A[eE]\z/ =~ var
@@ -176,7 +180,10 @@ class Flow
             #{cs_cname} = (#{link_cs_ssn} *)ct->#{link_cname}->cont_state;
             if (#{cont_var}.algebraic) {
               if (#{cont_var}.rk_level < rk_level ||
-                 (rk_level == 0 && #{cont_var}.d_tick != d_tick))
+                 (rk_level == 0 &&
+                  (#{cont_var}.strict ? !#{cont_var}.d_tick :
+                   #{cont_var}.d_tick != d_tick)
+                 ))
                 (*#{cont_var}.flow)((ComponentShadow *)ct->#{link_cname});
             }
             else {

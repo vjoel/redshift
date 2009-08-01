@@ -235,7 +235,7 @@ module TransitionSyntax
         when Symbol;  guard << arg            # :method
         else          raise SyntaxError
         end
-        ## should define, for each link, a class method which returns
+        ## should define, for each link, a TransitionParser method which returns
         ## a dummy link object that responds to #event and returns
         ## a dummy event that responds to #==(value) so that you can write
         ##

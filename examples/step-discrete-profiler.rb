@@ -10,8 +10,8 @@ include RedShift
 # Note that ruby's profiler.rb can be used to profile the ruby methods, it just
 # doesn't give any results _within_ World#step_discrete.
 
-n_components = 100
-n_seconds = 100
+n_components = 1000
+n_seconds = 1000
 
 class ProfilingExample < Component
   continuous :x
@@ -85,7 +85,7 @@ n_components.times do
   w.create(ProfilingExample)
 end
 
-w.age n_seconds
+w.evolve n_seconds
 
 x = n_components * n_seconds
 puts "Times are averages per component, per second of simulation."

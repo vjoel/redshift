@@ -212,6 +212,9 @@ Semantics
   exceptions
     catch them if they arise in action
     pass them on to handler where?
+  
+  might be better not to raise or rb_raise, but to call redshift_error on the
+  world class, which the class could override as needed
 
 Implementation
 
@@ -269,3 +272,6 @@ Tools
     use this in ZenoDebugger, too
     
     can this be a mixin for World
+
+  general vis interface using TkCanvas
+  

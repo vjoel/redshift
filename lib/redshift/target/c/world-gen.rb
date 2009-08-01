@@ -556,7 +556,9 @@ class World
             }
           }
         }
+        //%% hook_leave_reset_phase();
 
+        //%% hook_begin_parallel_assign();
         //# Clear old event values from previous step.
         //#   (As of v1.1.32, considered as part of reset phase)
         EACH_COMP_DO(shadow->prev_active_E) {
@@ -581,7 +583,7 @@ class World
         }
         d_tick++;   //# resets may invalidate algebraic flows
         //## optimization: don't incr if no resets? Change name of d_tick!
-        //%% hook_leave_reset_phase();
+        //%% hook_end_parallel_assign();
       }
       
       move_all_comps(shadow->curr_G, shadow->strict_sleep);

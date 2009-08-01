@@ -66,10 +66,10 @@ class Component
     end
 
     __set__world world
+    self.var_count = type.var_count
     
     restore {
       @start_state = Enter
-      self.type_data = type.type_data
       self.cont_state = type.cont_state_class.new
       
       do_defaults
@@ -133,7 +133,7 @@ class Component
   
   ## move to C
   def do_resets resets
-#          var_count = shadow->type_data->var_count;
+#          var_count = shadow->var_count;
 #          vars = (ContVar *)(&shadow->cont_state->begin_vars);
 #          for (i = 0; i < var_count; i++)
 #            if (vars[i].algebraic)
@@ -235,53 +235,6 @@ class Component
     @tag = "Guard"
   end
 
-  # one subclass and one instance per component class
-  # the flow hash contains flows contributed (not inherited) by this class
-  # the flow table is the cumulative hash (by state) of arrays (by var) of flows
-  class TypeData < SingletonShadowClass
-    ## does it need to be a shadow?
-    shadow_attr_accessor :flow_table => Hash  ## can be ordinary ruby attr
-    shadow_attr_accessor :var_count  => "long var_count"
-    protected :flow_table=, :var_count=
-
-    class << self
-      attr_reader :flow_hash, :component_class
-      
-      def make_subclass_for component_class
-        if component_class == Component
-          cl = TypeData
-        else
-          cl = Class.new(component_class.superclass.type_data_class)
-          component_class.const_set("TypeData", cl)
-        end
-        cl.instance_eval do
-          @component_class = component_class
-          @flow_hash = {}
-        end
-        cl
-      end
-      
-      def add_flow h      # [state, var] => flow_wrapper_subclass, ...
-        @flow_hash.update h
-      end
-    end
-    
-    def initialize
-      cc = type.component_class
-      self.var_count  = cc.cont_state_class.cumulative_var_count
-      self.flow_table = ft = {}
-      unless cc == Component
-        type.superclass.instance.flow_table.each do |k, v|
-          ft[k] = v.dup
-        end
-      end
-
-      for (state, var), flow_class in type.flow_hash
-        (ft[state] ||= [])[var.index] = flow_class.instance
-      end
-    end
-  end
-  
   # one per variable, shared by subclasses which inherit it
   # not a run-time object, except for introspection
   class ContVar   ## name shouldn't be same as C class
@@ -373,12 +326,15 @@ class Component
   library.setup :rk_level => "rk_level = 0"
   library.setup :d_tick   => "d_tick   = 1"  # alg flows need to be recalculated
   
-  shadow_attr_accessor :type_data    => [TypeData]
   shadow_attr_accessor :cont_state   => [ContState]
-  protected :type_data, :type_data=, :cont_state, :cont_state=
+  protected :cont_state, :cont_state=
   
   shadow_attr_accessor :state        => State
   protected :state=
+  
+  shadow_attr_accessor :var_count    => "long var_count"
+    ## needn't be persistent
+  protected :var_count=
   
   shadow_attr_reader :nonpersistent, :outgoing     => Array
   shadow_attr_reader :nonpersistent, :trans        => Transition
@@ -391,12 +347,37 @@ class Component
   
   class << self
   
-    def type_data
-      @type_data ||= type_data_class.instance
+    # The flow hash contains flows contributed (not inherited) by this
+    # class. The flow table is the cumulative hash (by state) of arrays
+    # (by var) of flows.
+
+    def flow_hash
+      @flow_hash ||= {}
     end
     
-    def type_data_class 
-      @type_data_class ||= TypeData.make_subclass_for(self)
+    def add_flow h      # [state, var] => flow_wrapper_subclass, ...
+      flow_hash.update h
+    end
+
+    def flow_table
+      unless @flow_table
+        assert committed?
+        ft = {}
+        if defined? superclass.flow_table
+          for k, v in superclass.flow_table
+            ft[k] = v.dup
+          end
+        end
+        for (state, var), flow_class in flow_hash
+          (ft[state] ||= [])[var.index] = flow_class.instance
+        end
+        @flow_table = ft
+      end
+      @flow_table
+    end
+    
+    def var_count
+      @var_count ||= cont_state_class.cumulative_var_count
     end
     
     def cont_state_class
@@ -472,7 +453,7 @@ class Component
                          #{declare_symbol :outgoing_transitions}, 0);
       
       //# Cache flows.
-      var_count = shadow->type_data->var_count;
+      var_count = shadow->var_count;
       vars = (ContVar *)(&shadow->cont_state->begin_vars);
       
       for (i = 0; i < var_count; i++) {
@@ -481,7 +462,9 @@ class Component
         vars[i].d_tick = 0;
       }
       
-      flow_table = shadow->type_data->flow_table;
+      flow_table = rb_funcall(rb_obj_class(shadow->self),
+                   #{declare_symbol :flow_table}, 0);
+        //## could use after_commit to cache this method call
       flow_array = rb_hash_aref(flow_table, shadow->state);
       
       if (flow_array != Qnil) {

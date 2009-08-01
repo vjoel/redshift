@@ -250,8 +250,6 @@ class World_7 < World
     test.assert_equal(Thing::C, thing.state)
     
     other_thing = create Thing
-    test.assert_equal(thing.send(:type_data), other_thing.send(:type_data))
-    test.assert_equal(thing.send(:type_data), @t0_copy.thing.send(:type_data))
     
     test.assert_equal(thing.x_start, @t0_copy.thing.x_start)
     test.assert_equal(thing.x_start, @t1_copy.thing.x_start)

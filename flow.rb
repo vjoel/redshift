@@ -113,7 +113,7 @@ class Flow    ## rename to equation?
   
   def attach cl, state
     cont_var = cl.continuous(@var)[0]
-    cl.type_data_class.add_flow [state, cont_var] => flow_wrapper(cl, state)
+    cl.add_flow [state, cont_var] => flow_wrapper(cl, state)
   end
   
   class NilLinkError < StandardError; end

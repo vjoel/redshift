@@ -27,7 +27,7 @@ class World
       for (rk_level = 0; rk_level <= 4; rk_level++) { //# assign global
         for (ci = 0; ci < len; ci++) {
           Data_Get_Struct(comp_ary[ci], ComponentShadow, comp_shdw);
-          var_count = comp_shdw->type_data->var_count;
+          var_count = comp_shdw->var_count;
           var = (ContVar *)(&comp_shdw->cont_state->begin_vars);
           end_var = &var[var_count];
 

@@ -49,12 +49,12 @@ class World
   end
   
   def do_setup
+    type.do_setup self
     if @setup_procs
       for pr in @setup_procs
         instance_eval(&pr)
       end
     end
-    type.do_setup self
   end
   private :do_setup
   

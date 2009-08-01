@@ -3,6 +3,8 @@ To do
 
 Syntax
 
+  resets and even assignment to cont-vars can use '<=' or '[]='
+
   check for symbol conflicts
     user attributes may conflict with Component's attrs
     ditto for flows and other methods defined in subclasses
@@ -178,6 +180,10 @@ Metasimualtion layer
   method to send message to object(s)
 
 Implementation
+
+  is it possible to give a hint/declaration to the effect that a guard
+    refers only to continuous values, so only needs to be checked once
+    per time-step?
 
   use eval %{ ... } instead of eval <<END ... END
   

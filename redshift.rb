@@ -1,4 +1,4 @@
-# Copyright (c) 2001, Joel VanderWerf
+# Copyright (c) 2001-2, Joel VanderWerf
 # Distributed under the Ruby license. See www.ruby-lang.org.
 
 require 'mathn'

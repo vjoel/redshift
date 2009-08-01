@@ -1,14 +1,17 @@
+# Copyright (c) 2001, Joel VanderWerf
+# Distributed under the Ruby license. See www.ruby-lang.org.
+
+require 'world.rb'
+require 'component.rb'
+
 module RedShift
 
-def run *args
+def run(*args)
 	if @@world
-		@@world.run *args
+		@@world.run(*args)
 	else
 		raise "No world specified."
 	end
 end
-
-require 'world.rb'
-require 'component.rb'
 
 end # module RedShift

@@ -2,21 +2,32 @@ module RedShift
 
 class Flow
 
-	attr_reader :state, :setter, :derivative
+	attr_reader :setter, :formula
 	
-	def initialize st, s, d
-		@state, @setter, @derivative = st, s, d
-	end
-
-	def update component, time_step
-		# for now, use a very simple integrator
-	
-		v_dot = @derivative.call
-		delta = v_dot * time_step
-		component.send @setter, delta
-	
+	def initialize s, f
+		@setter, @formula = s, f
 	end
 	
 end # class Flow
+
+
+class AlgebraicFlow < Flow
+
+	def update c, dt
+    result = @formula.feval c
+  	c.send @setter, result
+	end
+	
+end # class AlgebraicFlow
+
+
+class EulerDifferentialFlow < Flow
+
+	def update c, dt
+		f = @formula.feval c
+		c.send @setter, f * dt
+	end
+	
+end # class EulerDifferentialFlow
 
 end # module RedShift

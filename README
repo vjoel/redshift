@@ -1,0 +1,49 @@
+To do
+=====
+
+Syntax
+
+  defining and creating components
+  input, output, connect
+
+Semantics
+
+  inheritance
+    explicit, calculated before run, cached
+    implicit, based on ruby inheritance
+    Exit transition
+
+  math
+    complex numbers
+    matrices
+  
+  metaclasses
+
+  
+Implementation
+
+  optimization
+    profiling
+    integration method
+    flows
+    guards
+    dual mode
+
+  math
+    runge-kutta 4
+    symbolic integration
+
+  debugging, logging
+    use AspectR
+  
+  unit tests
+
+User interface
+
+  command-line debugger
+    inspect methods
+    
+  gui debugger
+  output to gnuplot
+
+Documentation

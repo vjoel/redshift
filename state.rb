@@ -2,10 +2,10 @@ module RedShift
 
 class State
 
-	attr_reader :flow, :transition
+	attr_reader :name, :flows, :transitions
 	
-	def initialize f, t
-		@flow, @transition = f, t
+	def initialize n, f, t
+		@name, @flows, @transitions = n, f, t
 	end
 
 end # class State

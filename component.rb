@@ -1,88 +1,81 @@
 module RedShift
 
-require 'input.rb'
+require 'formula.rb'
+require 'event.rb'
+require 'transition.rb'
+require 'flow.rb'
+require 'state.rb'
+#require 'variable.rb'
+#require 'input.rb'
+
 
 class Component
 
+#  @@states = {Component => [Enter, Exit]}
+
+  Enter = State.new "Enter", nil, nil
+  Exit = State.new "Exit", nil, nil
+  
 	attr_reader :world
 	attr_reader :state
-	attr_reader :event		# {:event_name => value, ...}
-	attr_reader :enabled_transition
+	attr_reader :active_transition
 
-	@inits			# key is var_name, value is init_spec
-	
-	@@input_specs	# hash mapping subclasses of Component to instances of InputSpecSet
 
-public
+	def initialize(world, &block)
 
-	def initialize(world, initializer_hash = {}, &block)
 		@world = world
-		
-		# do all default initialization provided by the variable definitions,
-		# except for keys in the hash (** TO DO **)
-		
-		input_specs
-
-		initializer_hash.each { |key, value|
-
-			eval "@#{key.to_s} = #{value}"
-
-				# Slow but effective. What we really
-				# need is 'set :var-name, value'
-
-		}
+    @state = Enter
+    @active_transition = nil
+    
+    set_defaults
 		
 		if block
 			instance_eval(&block)
 		end
+    
+    setup
 
 	end
-	
-	def enable t
-		@enabled_transition = t
-		@event = t.event
-	end
-	
-	def disable
-		@enabled_transition = nil
-		@event = {}
-	end
-	
-	# each input is :name or [:name, init-value]
-	# semantic problem: not evaluated at component-creation time
-	def Component.input *vars
-	
-		h = @@input_specs[self.name]
-	
-		vars.each { |var_spec|
-		
-			if var_spec.type == Symbol
-			
-				attr_reader var_spec
-				
-			else
-			
-				unless var_spec.type == Array
-			 		raise "Must be symbol or array: #{var_spec}"
-				end
-			
-				unless var_spec.length == 2
-					raise "Array must be of length 2: #{var_spec}"
-				end
-				
-				unless var_spec[0].type == Symbol
-					raise "Array must begin with symbol: #{var_spec}"
-				end
-				
-				attr_reader var_spec[0]
-				
-				inits[var_spec[0]] = var_spec[1]
-			
-			end
-			
-		}
-	
-	end
+  
+  
+  def set_defaults
+  end
+  
+  def setup
+  end
+  
+  
+  def step_continuous dt
+  
+    for f in @state.flows
+      f.update self, dt
+    end
+    
+  end
+  
+  
+  def step_discrete
+  
+    dormant = true
+
+    if @active_transition
+      dormant = false
+      @state = @active_transition.finish self
+      @active_transition = nil
+    end
+
+    for t in @state.transitions
+      if t.enabled? self
+        dormant = false
+        @active_transition = t
+        t.start self
+        break
+      end
+    end
+    
+    return dormant
+
+  end
 		
 end # class Component
 

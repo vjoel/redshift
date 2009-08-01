@@ -39,6 +39,7 @@ files = %w{
   examples/vehicle.rb
   examples/zeno.rb
   install.rb
+  lib/accessible-index.rb
   lib/redshift.rb
   lib/redshift/component.rb
   lib/redshift/meta.rb

@@ -297,6 +297,23 @@ module TransitionSyntax
     
     def name(*n); n.empty? ? @name : @name = n.first; end
     
+    def wait(*args)
+      guard = Component::GuardPhase.new
+      
+      args.each do |arg|
+        case arg
+        when Hash
+          guard.concat(arg.sort_by {|q,m| q.to_s}.map{|q,m| 
+            Component::QMatch[q.to_sym,*m]})
+                                 # { :queue => match }
+        when Symbol
+          guard << Component::QMatch[arg]   # :queue
+        else raise SyntaxError
+        end
+      end
+      @parts << guard
+    end
+    
     def guard(*args, &block)
       guard = Component::GuardPhase.new
       

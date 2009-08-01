@@ -5,10 +5,11 @@ class Component
   class_superhash2 :flows
   class_superhash :exported_events      # :event => index
   class_superhash :states
-  class_superhash :continuous_variables, :constant_variables ## bad name
+  class_superhash :continuous_variables, :constant_variables
   class_superhash :link_variables       # :link_name => [type, strictness]
   class_superhash :input_variables      # :var_name => :piecewise | :strict
-  
+  class_superhash :queues
+    
   @subclasses = []
 
   class << self
@@ -28,6 +29,18 @@ class Component
       end
     end
 
+    def queue(*var_names)
+      var_names.each do |var_name|
+        next if queues[var_name]
+        queues[var_name] = true
+        class_eval %{
+          def #{var_name}
+            @#{var_name} ||= Queue.new(self)
+          end
+        }
+      end
+    end
+    
     def attach_link vars, strictness
       unless not strictness or strictness == :strict
         raise ArgumentError, "Strictness must be false or :strict"

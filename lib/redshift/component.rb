@@ -3,6 +3,8 @@ require 'superhash'
 require 'accessible-index'
 require 'redshift/state'
 require 'redshift/meta'
+require 'redshift/port'
+require 'redshift/queue'
 
 module RedShift
 
@@ -126,6 +128,7 @@ class Component
       "<ResetPhase: #{value_map.inspect}>"
     end
   end
+  class QMatch < XArray; end
   
   class PhaseItem < XArray; extend AccessibleIndex; end
   
@@ -340,64 +343,11 @@ class Component
       end
     end
   end
-  
-  class Port
-    attr_reader :component, :variable, :connectable
-    
-    def initialize component, variable, connectable
-      @component, @variable, @connectable = component, variable, connectable
-    end
-    
-    # Convenience method to get source port rather than component/var pair.
-    def source
-      source_component && source_component.port(source_variable)
-    end
-    
-    def check_connectable
-      unless connectable
-        raise TypeError, "Not an input: #{variable} in #{component.class}"
-      end
-    end
-    
-    def connect port
-      check_connectable
-      component.connect(variable, port && port.component, port && port.variable)
-    end
-    
-    def <<(other)
-      connect(other)
-      return other
-    end
-    
-    def >>(other)
-      other.connect(self)
-      return other
-    end
-    
-    def disconnect
-      connect nil
-    end
-    
-    def source_component
-      check_connectable
-      component.source_component_for(variable)
-    end
-    
-    def source_variable
-      check_connectable
-      component.source_variable_for(variable)
-    end
-    
-    def value
-      component.send variable
-    end
-  end
-  
-end # class Component
+end
 
 # The asymmetry between these two states is that components in Enter are active
 # in the continuous and discrete updates. Components in Exit do not evolve.
 Enter = Component::Enter
 Exit = Component::Exit
 
-end # module RedShift
+end

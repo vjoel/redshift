@@ -683,6 +683,9 @@ module RedShift
           when GuardPhaseItem, Symbol
             # already saw this guard, as in: transition [S, T] => U
             g
+           
+          when QMatch
+            g
           
           when Proc
             if HAVE_DEFINE_METHOD

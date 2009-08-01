@@ -228,6 +228,7 @@ class World
     parent.declare :static_locals => %{
       static VALUE      ExitState, GuardWrapperClass, ExprWrapperClass;
       static VALUE      ActionClass, EventClass, ResetClass, GuardClass;
+      static VALUE      GuardPhaseItemClass, QMatchClass;
       static VALUE      PostClass, DynamicEventClass;
     }.tabto(0)
     
@@ -333,6 +334,7 @@ class World
                                       int discrete_step)
       {
         int i;
+        VALUE kl;
         assert(BUILTIN_TYPE(guards) == T_ARRAY);
         for (i = 0; i < RARRAY(guards)->len; i++) {
           VALUE guard = RARRAY(guards)->ptr[i];
@@ -356,8 +358,25 @@ class World
               break;
 
             case T_ARRAY:
-              if (discrete_step == 0 || !test_event_guard(comp, guard))
-                return 0;
+              kl = RBASIC(guard)->klass;
+              if (kl == GuardPhaseItemClass) {
+                if (discrete_step == 0 || !test_event_guard(comp, guard))
+                  return 0;
+              }
+              else if (kl == QMatchClass) {
+                int len = RARRAY(guard)->len;
+                VALUE *ptr = RARRAY(guard)->ptr;
+                assert(len > 0);
+                VALUE queue_name = ptr[0];
+                VALUE queue = rb_funcall(comp, SYM2ID(queue_name), 0);
+                if (!RTEST(rb_funcall2(queue, #{declare_symbol :head_matches},
+                    len-1, &ptr[1])))
+                  return 0;
+              }
+              else {
+                rb_raise(#{declare_class StandardError},
+                  "Bad array class in guard_enabled().");
+              }
               break;
 
             case T_CLASS:
@@ -800,6 +819,9 @@ class World
       EventClass    = #{get_const[:EventPhase]};
       ResetClass    = #{get_const[:ResetPhase]};
       GuardClass    = #{get_const[:GuardPhase]};
+      GuardPhaseItemClass
+                    = #{get_const[:GuardPhaseItem]};
+      QMatchClass   = #{get_const[:QMatch]};
       GuardWrapperClass = #{get_const[:GuardWrapper]};
       ExprWrapperClass  = #{get_const[:ExprWrapper]};
       DynamicEventClass = #{get_const[:DynamicEventValue]};

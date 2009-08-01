@@ -36,7 +36,7 @@ module RedShift; class DelayFlow
           struct #{cont_state_ssn} *cont_state;
           #{world_ssn} *world_shadow;
           
-          ContVar   *var, *target_var;
+          ContVar   *var;
           double    *ptr;
           long      i, len, offset, steps;
           double    delay, fill;
@@ -49,7 +49,6 @@ module RedShift; class DelayFlow
           shadow = (#{ssn} *)comp_shdw;
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;
           var = &cont_state->#{var_name};
-          target_var = &cont_state->#{flow.formula};
         }
         setup :rk_level => %{
           rk_level--;
@@ -93,7 +92,7 @@ module RedShift; class DelayFlow
               len = steps*4;
 
               if (!ptr) {
-                #{flow.translate(self, "fill", 0, cl, flow.formula.dup).join("
+                #{flow.translate(self, "fill", 0, cl).join("
                 ")};
 
                 ptr = ALLOC_N(double, len);

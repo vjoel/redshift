@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 1.2 14)
-(Parent-Version redshift 1.2 13)
+(Project-Version redshift 1.2 15)
+(Parent-Version redshift 1.2 14)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Sat, 15 Mar 2008 16:35:00 -0700")
+(Checkin-Time "Sat, 15 Mar 2008 21:24:34 -0700")
 (Checkin-Login vjoel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -304,7 +304,7 @@
 ;; Files added by populate at Thu, 16 May 2002 00:16:02 -0700,
 ;; to version 1.0.7(w), by tercel:
 
-  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.37 644))
+  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.38 644))
 
 ;; Files added by populate at Thu, 16 May 2002 00:16:26 -0700,
 ;; to version 1.0.7(w), by tercel:
@@ -360,7 +360,7 @@
 ;; Files added by populate at Sun, 16 May 2004 11:11:34 -0700,
 ;; to version 1.0.23(w), by vjoel:
 
-  (doc/goals.txt (redshift/b/26_goals.txt 1.2 644))
+  (doc/goals.txt (redshift/b/26_goals.txt 1.3 644))
   (doc/flow.txt (redshift/b/27_flow.txt 1.2 644))
   (doc/FAQ.txt (redshift/b/28_FAQ.txt 1.1 644))
 
@@ -391,7 +391,7 @@
   (lib/redshift/target/c/library.rb (redshift/b/34_library.rb 1.5 644))
   (lib/redshift/target/c/flow-gen.rb (redshift/b/35_flow-gen.r 1.17 644))
   (lib/redshift/target/c/component-gen.rb (redshift/b/36_component- 1.35 644))
-  (lib/redshift/syntax.rb (redshift/b/37_syntax.rb 1.24 644))
+  (lib/redshift/syntax.rb (redshift/b/37_syntax.rb 1.25 644))
   (lib/redshift/state.rb (redshift/b/38_state.rb 1.1 644))
   (lib/redshift/redshift.rb (redshift/b/39_redshift.r 1.10 644))
   (lib/redshift/meta.rb (redshift/b/40_meta.rb 1.13 644))
@@ -508,7 +508,7 @@
 ;; Files added by populate at Sun, 02 Mar 2008 22:52:45 -0800,
 ;; to version 1.2.6(w), by vjoel:
 
-  (examples/derivative.rb (redshift/c/16_derivative 1.2 644))
+  (examples/derivative.rb (redshift/c/16_derivative 1.3 644))
   (examples/pid.rb (redshift/c/17_pid.rb 1.2 644))
 
 ;; Files added by populate at Tue, 04 Mar 2008 19:17:39 -0800,
@@ -530,7 +530,7 @@
 ;; Files added by populate at Wed, 05 Mar 2008 22:08:24 -0800,
 ;; to version 1.2.7(w), by vjoel:
 
-  (test/test_derivative.rb (redshift/c/22_test_deriv 1.1 644))
+  (test/test_derivative.rb (redshift/c/22_test_deriv 1.2 644))
 
 ;; Files added by populate at Fri, 07 Mar 2008 22:47:56 -0800,
 ;; to version 1.2.8(w), by vjoel:
@@ -544,8 +544,8 @@
   (lib/redshift/target/c/flow/rk4.rb (redshift/c/25_rk4.rb 1.2 644))
   (lib/redshift/target/c/flow/expr.rb (redshift/c/26_expr.rb 1.2 644))
   (lib/redshift/target/c/flow/euler.rb (redshift/c/27_euler.rb 1.2 644))
-  (lib/redshift/target/c/flow/derivative.rb (redshift/c/28_derivative 1.2 644))
-  (lib/redshift/target/c/flow/delay.rb (redshift/c/29_delay.rb 1.4 644))
+  (lib/redshift/target/c/flow/derivative.rb (redshift/c/28_derivative 1.3 644))
+  (lib/redshift/target/c/flow/delay.rb (redshift/c/29_delay.rb 1.5 644))
   (lib/redshift/target/c/flow/buffer.rb (redshift/c/30_buffer.rb 1.2 644))
   (lib/redshift/target/c/flow/algebraic.rb (redshift/c/31_algebraic. 1.2 644))
   (examples/delay.rb (redshift/c/32_delay.rb 1.4 644))

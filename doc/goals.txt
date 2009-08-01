@@ -19,3 +19,6 @@ These are the goals that drive the design of the discrete and continuous update 
   
   Reason for non-blocking events.
   
+5. Integrator step is observed by all flows.
+
+ E.g. derivative (and maybe delay) flow is more accurate than in simulink.

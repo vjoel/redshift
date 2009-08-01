@@ -211,7 +211,7 @@ module FlowSyntax
     
     def derive(*equations)
       for equation in equations
-        unless equation =~ /^\s*(\w+)\s*=\s*(\w+)\s*'\s*\z/m
+        unless equation =~ /^\s*(\w+)\s*=\s*(.+)'\s*\z/m
           raise SyntaxError, "parse error in\n\t#{equation}."
         end
         @flows << DerivativeFlow.new($1.intern, $2.strip)

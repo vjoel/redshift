@@ -13,18 +13,25 @@ module RedShift; class DerivativeFlow
       # We need the struct
       shadow_library_source_file.include(cl.shadow_library_include_file)
       
+      # Make sure we have a scratch var (other flows on this var can use it).
+      scratch_name = "#{var_name}_scratch"
+      cl.class_eval do
+        shadow_attr :nonpersistent, scratch_name => "double #{scratch_name}"
+      end
+      
       shadow_library_source_file.define(flow_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"
         declare :shadow => %{
           struct #{ssn} *shadow;
           struct #{cont_state_ssn} *cont_state;
           ContVar  *var;
-          double    antiddt_#{var_name};
+          double    antiddt, *scratch;
         }
         setup :shadow => %{
           shadow = (#{ssn} *)comp_shdw;
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;
           var = &cont_state->#{var_name};
+          scratch = &shadow->#{scratch_name};
         }
         setup :rk_level => %{
           rk_level--;
@@ -32,29 +39,30 @@ module RedShift; class DerivativeFlow
         body %{
           switch (rk_level) {
           case 0:
-            #{flow.translate(self, "antiddt_#{var_name}", 0, cl).join("
+            #{flow.translate(self, "antiddt", 0, cl).join("
             ")};
             var->value_1 = var->value_0;
-            var->value_2 = antiddt_#{var_name};
+            *scratch = antiddt;
             break;
             
           case 1:
-            #{flow.translate(self, "antiddt_#{var_name}", 1, cl).join("
+            #{flow.translate(self, "antiddt", 1, cl).join("
             ")};
-            var->value_2 = (antiddt_#{var_name} - var->value_2) / (time_step/2);
-            var->value_1 = antiddt_#{var_name};
+            var->value_2 = (antiddt - *scratch) / (time_step/2);
+            *scratch = antiddt;
             break;
             
           case 2:
-            #{flow.translate(self, "antiddt_#{var_name}", 2, cl).join("
+            #{flow.translate(self, "antiddt", 2, cl).join("
             ")};
-            var->value_3 = (antiddt_#{var_name} - var->value_1) / (time_step/2);
+            var->value_3 = (antiddt - *scratch) / (time_step/2);
+            //# *scratch = antiddt; (worse)
             break;
             
           case 3:
-            #{flow.translate(self, "antiddt_#{var_name}", 3, cl).join("
+            #{flow.translate(self, "antiddt", 3, cl).join("
             ")};
-            var->value_0 = (antiddt_#{var_name} - var->value_1) / (time_step/2);
+            var->value_0 = (antiddt - *scratch) / (time_step/2);
             break;
             
           default:

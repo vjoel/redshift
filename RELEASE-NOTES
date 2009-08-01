@@ -1,3 +1,9 @@
+redshift 1.2.15
+
+- Derivative flows can be arbitrary expressions.
+
+- Improved accuracy of numerical differentiation.
+
 redshift 1.2.14
 
 - Delay flows can be arbitrary expressions (as can the delay term).

@@ -5,7 +5,7 @@ Publishing RedShift
 
     fix zeno debugger and example
     queues and sleep
-    unambiguous sync
+    unambiguous [determinate] sync
     transition local vars
     action %{ pseudo-c-code }
     record trajectory in vector of doubles (like delay)
@@ -38,7 +38,7 @@ Publishing RedShift
   - http://path.berkeley.edu/shift/
     (this is still the first google hit for "hybrid system simulation")
   - ruby-talk, sciruby
-  - public simulation lists/ngs/bbs/etc
+  - comp.simulation, comp.soft-sys.(matlab|ptolemy), scs.org
   - paper?
 
   funding
@@ -126,6 +126,12 @@ Syntax
     matches on name of states
 
 Semantics
+
+  option to initialize all float vars to NaN?
+
+  ideas from Verilog?
+  
+  ideas from DEVS? (http://moncs.cs.mcgill.ca/people/tfeng/thesis/node12.html)
   
   "Buffer" could be used for: 
   
@@ -140,6 +146,16 @@ Semantics
       (  record  " expr " => file ? )
       
       Use NArray of doubles for this?
+      
+      Better: array of ptr to 1K blocks of float/double
+      
+      Per state syntax:
+      
+        some_state.record var => "expr"
+        
+        var refers to array of bocks of raw data
+        
+        expr is evaled after discrete update
     
     - need a language for piping data streams:
     
@@ -285,6 +301,10 @@ Semantics
   
   might be better not to raise or rb_raise, but to call redshift_error on the
   world class, which the class could override as needed
+  
+  Component#teardown called after exit
+    maybe #setup should only be called at last moment before running,
+    so that setup clauses can be added later
 
 Implementation
 

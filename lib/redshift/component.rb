@@ -355,7 +355,7 @@ class Component
     
     def check_connectable
       unless connectable
-        raise TypeError, "Not connectable: #{variable} in #{component.class}"
+        raise TypeError, "Not an input: #{variable} in #{component.class}"
       end
     end
     
@@ -366,12 +366,12 @@ class Component
     
     def <<(other)
       connect(other)
-      ##return other
+      return other
     end
     
     def >>(other)
       other.connect(self)
-      ##return other
+      return other
     end
     
     def disconnect

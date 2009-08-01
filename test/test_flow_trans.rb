@@ -1,12 +1,47 @@
 #!/usr/bin/env ruby
 
 require 'redshift'
-require 'nr/random'
+require 'sci/random'
+require 'isaac'
+
+# Adaptor class to use ISAAC with sci/random distributions.
+class ISAACGenerator < ISAAC
+  def initialize(*seeds)
+    super()
+    if seeds.compact.empty?
+      seeds = [Random::Sequence.random_seed]
+    end
+    @seeds = seeds
+    srand(seeds)
+  end
+  
+  attr_reader :seeds
+
+  alias next rand
+end
 
 include RedShift
 
 class FlowTestComponent < Component
   def finish test
+  end
+end
+
+# Shows that despite lazy eval of alg flows, they do get evaled before
+# changing states.
+
+class Flow_Transition_Alg_To_Other < FlowTestComponent
+  state :A, :B
+  start A
+  flow A do
+    alg "x=42"
+  end
+  transition A => B
+  
+  def assert_consistent test
+    if state == B
+      test.assert_equal(42, x)
+    end
   end
 end
 
@@ -34,10 +69,12 @@ class Flow_Transition < FlowTestComponent
   setup do
     self.x = 0
     @alarm_time = 0
-    @alarm_seq = NR::Random::Exponential.new \
+    @alarm_seq = Random::Exponential.new \
+      :generator => ISAACGenerator,
       :seed => nil, # 614822716,
       :mean => 0.5
-    @state_seq = NR::Random::Discrete.new \
+    @state_seq = Random::Discrete.new \
+      :generator => ISAACGenerator,
       :seed => nil, # 3871653669,
       :distrib =>
         {
@@ -47,19 +84,19 @@ class Flow_Transition < FlowTestComponent
           Empty => 100
         }
     puts "\n\n  Flow_Transition used the following seeds:"
-    puts "  alarm seed = #{@alarm_seq.seed}"
-    puts "  state seed = #{@state_seq.seed}"
+    puts "  alarm seed = #{@alarm_seq.generator.seeds}"
+    puts "  state seed = #{@state_seq.generator.seeds}"
   end
   
-  transition Enter => Switch
-  
-  transition Alg   => Switch, Diff  => Switch,
+  transition Enter => Switch,
+             Alg   => Switch, Diff  => Switch,
              Euler => Switch, Empty => Switch do
     guard { t >= @alarm_time }
     action {
 #      puts "Switching to #{@state_seq.next} at #{@alarm_time} sec."
 #      puts "x = #{x}, t = #{t}."
       @alarm_time += @alarm_seq.next
+      @current = @state_seq.next
 #      puts "  Next switch at #{@alarm_time} sec.\n\n"
       ## unless we eval x here, the alg flow for x might not be up to date.
       if (state == Empty)
@@ -70,16 +107,16 @@ class Flow_Transition < FlowTestComponent
   end
   
   transition Switch => Alg do
-    guard { @state_seq.current == Alg }
+    guard { @current == Alg }
   end
   transition Switch => Diff do
-    guard { @state_seq.current == Diff }
+    guard { @current == Diff }
   end
   transition Switch => Euler do
-    guard { @state_seq.current == Euler }
+    guard { @current == Euler }
   end
   transition Switch => Empty do
-    guard { @state_seq.current == Empty }
+    guard { @current == Empty }
   end
   
   transition Empty => Empty do

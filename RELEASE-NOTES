@@ -1,3 +1,7 @@
+redshift 1.2.35
+
+- Replaced nr.random with sci/random and isaac in tests.
+
 redshift 1.2.34
 
 - Added examples/ports.rb.

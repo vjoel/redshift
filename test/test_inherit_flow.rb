@@ -9,7 +9,7 @@ include RedShift
 class FlowTestComponent < Component
   def initialize(*args)
     super
-    @start_time = @world.clock
+    @start_time = world.clock
   end
 end
 
@@ -52,7 +52,7 @@ class Flow_2_1 < Flow_2
   defaults { @x = 0 }
   flow { diff "x' = 1" }
   def assert_consistent test
-    test.assert_equal_float(@world.clock - @start_time, x, 0.00001)
+    test.assert_equal_float(world.clock - @start_time, x, 0.00001)
   end
 end
 

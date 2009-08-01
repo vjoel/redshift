@@ -223,6 +223,8 @@ Implementation
   abstract hash-inheritance and use it in meta.rb and option-block.rb
 
   optimization
+    don't use Data_Get_Struct in flow fns, use simple casts like in
+      step_discrete inlines
     profiling
     compare with shift, matlab
     integration method

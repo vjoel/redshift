@@ -2,6 +2,8 @@ module RedShift
   
 class Component
 
+  ## Simplify all this with SuperHash
+  
   @@flows = {}
   @@transitions = {}
 
@@ -11,7 +13,7 @@ class Component
   @@cached_transitions_values = {}
   
   @@cached_states = {}
-  @@cached_events = {}
+###  @@cached_events = {}
   
   @@caching_in_use = false    # refers to per-instance cache
 
@@ -20,26 +22,16 @@ class Component
   end
   
   def Component.attach states, features
-  
     if features.type != Array
       features = [features]
     end
     
     case states
-      
-      when State
-        attach_flows [states], features
-      
-      when Array
-        attach_flows states, features
-      
-      when Hash
-        attach_transitions states, features
-      
-      else
-        raise "Bad state list: #{states.inspect}"
+      when State;  attach_flows [states], features
+      when Array;  attach_flows states, features
+      when Hash;   attach_transitions states, features
+      else         raise "Bad state list: #{states.inspect}"
     end
-    
   end
   
 
@@ -95,9 +87,9 @@ class Component
       
       for t in new_transitions
         transitions[src][t.name] = [t, dest]
-        for e in t.events
-          e.attach self
-        end
+###        for e in t.events
+###          e.attach self
+###        end
       end
       
       for cl, in @@transitions
@@ -106,7 +98,7 @@ class Component
             @@cached_transitions[cl][src] = nil
           end
           @@cached_states[cl] = nil
-          @@cached_events[cl] = nil
+###          @@cached_events[cl] = nil
         end
       end
       
@@ -209,42 +201,51 @@ class Component
   end
   
     
-  def Component.events cl, state
-    if not @@cached_events[cl] or
-       not @@cached_events[cl][state]
-      @@cached_events[cl] ||= {}
-      @@cached_events[cl][state] = []
-      for t, d in transitions cl, state
-        @@cached_events[cl][state] |= t.events
-      end
-    end
-    
-    @@cached_events[cl][state]
-  end
+###  def Component.events cl, state
+###    if not @@cached_events[cl] or
+###       not @@cached_events[cl][state]
+###      @@cached_events[cl] ||= {}
+###      @@cached_events[cl][state] = []
+###      for t, d in transitions cl, state
+###        @@cached_events[cl][state] |= t.events
+###      end
+###    end
+###    
+###    @@cached_events[cl][state]
+###  end
   
   
   # Caching a reference to the computed flows and transitions
   # in the component itself improves speed by about 15%, with
   # a small cost when adding new flows/transitions.
   #
-  def flows state = @state
-    if @flow_cache_state == state
+  def flows s = state
+    if @flow_cache_state == s
       @flow_cache
     else
       @@caching_in_use = true
-      @flow_cache_state = state
-      @flow_cache = Component.flows type, state
+      @flow_cache_state = s
+      @flow_cache = Component.flows type, s
     end
   end
   
-  def transitions state = @state
-    if @trans_cache_state == state
+  def transitions s = state
+    if @trans_cache_state == s
       @cache_transitions
     else
       @@caching_in_use = true
-      @trans_cache_state = state
-      @cache_transitions = Component.transitions type, state
+      @trans_cache_state = s
+      @cache_transitions = Component.transitions type, s
     end
+  end
+  
+  ## move into C code in __update_cache?
+  def outgoing_transitions
+    ary = []
+    for t, d in transitions
+      ary << t << d << t.phases << t.guard
+    end
+    ary
   end
   
   def clear_flow_cache state_changed
@@ -260,9 +261,9 @@ class Component
     Component.states type    
   end
   
-  def events state = @state
-    Component.events type, state
-  end
+###  def events s = state
+###    Component.events type, s
+###  end
   
 end # class Component
 

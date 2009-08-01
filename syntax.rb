@@ -20,12 +20,14 @@ end
 
 
 class Component
+  class AlreadyStarted < StandardError; end
+  
   def create(*args, &block)
-    @world.create(*args, &block)
+    world.create(*args, &block)
   end
   
   def start s
-    raise RuntimeError if @state
+    raise AlreadyStarted if state
     @start_state = s
   end
 end
@@ -83,9 +85,9 @@ def Component.state(*state_names)
 end
 
 
-class Flow
+module FlowSyntax
 
-  def Flow.parse block
+  def self.parse block
     FlowParser.new(block).flows
   end
   
@@ -135,58 +137,133 @@ class Flow
 
   end
 	
-end # class Flow
+end # module FlowSyntax
 
 
-class Transition
+module TransitionSyntax
 
-  def Transition.parse block
+  def self.parse block
     parser = TransitionParser.new(block)
-    Transition.new parser.n, parser.g, parser.es, parser.a
+    Transition.new parser.n, parser.g, parser.p
   end
   
-  class TransitionParser
-    attr_reader :n, :g, :es, :a
+  class EventBlockParser
+    attr_reader :events
     
-    def initialize block
-      @n = @g = @a = nil
-      @es = []
-      instance_eval(&block)
-    end
-    
-    def name n;     @n = n; end
-    def guard(g1=nil,&g2); @g = g1 || g2; end
-    def action(a1=nil,&a2); @a = a1 || a2; end
-    
-    def events(*es)
-      for e in es
-        case e
-        when Symbol
-          @es << Event.new(e)
-        when String
-          @es << Event.new(e.intern)
-        when Event
-          @es << e
-        else
-          raise "unknown event specifier #{e}, use Symbol, String, or Event."
-        end
+    ## should we undef some of the standard methods?
+
+    def method_missing meth, *args, &bl
+      if args.size > 1 or (args.size == 1 and bl)
+        raise SyntaxError, "Too many arguments"
+      end
+      if bl
+        @events << [meth, Component::DynamicEventValue.new &bl]
+      elsif args.size > 0
+        @events << [meth, args[0]]
+      else
+        @events << [meth, true]
       end
     end
     
-    alias event events
-    alias watch guard
-    alias on guard
+    def initialize(block)
+      @events = []
+      instance_eval(&block)
+    end
+  end
+  
+  class TransitionParser
+    attr_reader :n, :g, :p
+    
+    def initialize block
+      @n = @g = nil
+      @p = []
+      instance_eval(&block)
+    end
+    
+    def name n; @n = n; end
+    
+    def guard(*args, &block)
+      guard = Component::Guard.new
+      for arg in args
+        case arg
+        when Hash;    guard.concat arg.to_a   # { :link => :event }
+        when Array;   guard << arg            # [:link, :event]
+                                                       ### , value] ?
+        when String;  raise NotImplementedError ### # "c expr"
+        when Proc;    guard << arg            # proc { ... }
+        else          raise SyntaxError
+        end
+      end
+      guard << block if block
+      if @g
+        raise NotImplementedError ###
+        @p << guard
+      else
+        @g = guard
+      end
+    end
+    
+    def action(*args, &bl)
+      actions = Component::Action.new
+      actions.concat args
+      actions << bl if bl
+      @p << actions
+    end
+    
+    def pass
+      action
+    end
+    
+    def reset(*arg, &bl)
+      raise NotImplementedError ###
+    end
+    
+    def clear(*args)
+      events = Component::Event.new
+      for arg in args
+        events << [arg, nil]
+      end
+      @p << events
+    end
+    
+    def event(*args, &bl)
+      events = Component::Event.new
+      for arg in args
+        case arg
+        when Symbol, String
+          events << [arg, true]
+        when Hash
+          for e, v in arg
+            events << [e, v]
+          end
+        else
+          raise SyntaxError, "unrecognized event specifier #{arg}."
+        end
+      end
+      if bl
+        eb = EventBlockParser.new(bl)
+        events.concat eb.events
+      end
+      @p << events
+    end
+    
+    alias events    event
+    alias export    event
+    alias unexport  clear
+    alias watch     guard
+    alias on        guard
+    alias assign    reset
   
   end
 
-end # class Transition
+end # module TransitionSyntax
 
 
 def Component.flow(*states, &block)
   raise "no flows specified. Put { on same line!" unless block  
   states = Enter if states == []
   
-  attach states, Flow.parse(block)
+  attach states, FlowSyntax.parse(block)
 end
 
 
@@ -196,7 +273,23 @@ def Component.transition(edges = {}, &block)
     if edges == {}
       edges = {Enter => Enter}
     end
-    t = Transition.parse(block)
+    t = TransitionSyntax.parse(block)
+    exported = {}
+    for phase in t.phases
+      if phase.is_a? Component::Event
+        for ev_pair in phase
+          export ev_pair[0]
+          writer = "#{ev_pair[0]}=".intern
+          ev_pair[0] = writer
+          exported[writer] = ev_pair[1]
+        end
+      end
+    end
+    final = Component::Event.new
+    for event, value in exported
+      final << [event, false] if value
+    end
+    t.phases << final unless final == []
   else
     if edges == {}
       raise "No transition specified."

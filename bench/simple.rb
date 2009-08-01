@@ -1,5 +1,7 @@
 require 'redshift/redshift'
 
+RedShift::CLib.show_build_times
+
 class Thing < RedShift::Component
   flow {
     diff "w' = 1"
@@ -20,6 +22,13 @@ class Base < RedShift::Component
   flow {
     diff "x' = 1"
   }
+  def inspect data = nil
+    d = "; #{data}" if data
+    vars = [
+      "x = #{x}"
+    ]
+    super "#{vars.join(", ")}#{d}"
+  end
 end
 
 class Tester < Base
@@ -34,7 +43,6 @@ class Tester < Base
   def inspect data = nil
     d = "; #{data}" if data
     vars = [
-      "x = #{x}",
       "xx = #{xx}",
       "y = #{y}",
       "z = #{z}"
@@ -52,15 +60,16 @@ end
 w = nil
 $steps = [
   ["commit", proc { w = RedShift::World.new { time_step 0.05 } }],
-  ["create", proc { 10.times do w.create Tester end }],
+  ["create", proc { 2.times do w.create Tester end }],
   ["run",    proc { w.run 1000 }]
 ]
 
-#END {
-##  puts "time_step = #{w.time_step}"
-#  t = w.find { |c| c.is_a? Tester }
-#  p t
-#}
+END {
+  puts "time_step = #{w.time_step}"
+  puts "clock = #{w.clock}"
+  t = w.find { |c| c.is_a? Tester }
+  p t
+}
 
 
 __END__

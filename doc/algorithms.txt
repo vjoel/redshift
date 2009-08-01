@@ -36,32 +36,36 @@
   step_discrete:
   
   0 clear active_comp, prev_active_comp arrays:
-      set length = 0 (use null termination?)
-      make sure actual size is at least that of comp array
   
-  1 each comp:
+  1 each prev_active_comp:
+      enter dest state
+        update cache if state changed
+          cache [ [g,t,d], ... ] in component(**)
+          cache flows
+  
+1.5 each comp:
       check guards(*) of transitions from the current state
       if guard of (trans, dest) is true
-        put (comp, trans, dest) in active_comp array
+        put comp in active_comp array
+        record trans, dest in comp
   
   2 each prev_active_comp:
       unexport its events
-      enter dest state
-        cache [ [g,t,d], ... ] in component(**)
-        cache flows
+      ### how will other see its value, except in guards?
+      ### move this to end of cycle?
   
   3 if no active_comps, done
   3'if no active_comps AND no prev_active_comps, done (***)
   
   4 each active_comp:
-      export events (stored in shadow_attr :exp_evts => Array)
+      export events
       if d != state, update alg vars
   
   5 each active_comp:
-      do actions of trans until reset found
+      do actions of trans (until reset found
       (actions should not change cont vars)
   
-  6 each active_comp:
+ (6 each active_comp:
       each var:
         if t has reset for var (before next set of actions)
           compute reset
@@ -69,13 +73,16 @@
         else
           copy from value_0 to value_1
   
-  7 incr d_tick if there was a reset (to invalidate cached alg flows)
+ (7 incr d_tick if there was a reset (to invalidate cached alg flows)
   
-  8 each active_comp:
+ (8 each active_comp:
       each var:
         copy from value_1 to value_0
   
-  9 repeat 5-8 until no more actions or resets
+ (9 repeat 5-8 until no more actions or resets
+  
+ 10.5 each active_comp:
+    export events
   
  10 move active_comp array to prev_active_comp
   
@@ -92,6 +99,63 @@ Notes:
      nonstandard. This behavior is costly, so it is a runtime option.)
      if prev_active_comps but no active comps, can skip 4-10 and go back to 1
   
+-------------
+
+discrete_update:
+
+  A period of discrete evolution consists of a sequence of steps. Each step 
+  has four phases. Each component acts during just one phase of each step. The
+  d_tick counter is incremented once during each step, but out of phase with
+  the step sequence itself.
   
+  A phase consists of the actions of all components which act in that phase
+  during the current step. The order of actions is not defined, but, with
+  proper coding techniques, it should not be significant except possibly in
+  phase A. The phase order is:
+  
+    A - perform procedural actions (arb. ruby code, including emitting events)
+  
+    R - reset variables (all components in parallel)
+  
+    * increment d_tick (because resets may invalidate algebraic flows)
+  
+    E - emit or clear events (clear is just emit :e => nil/false)
+  
+    G - check all guards, possibly starting a transition
+  
+  A component can act in A, R, E only if it is taking a transition.
+  
+  A component can act in G whether or not it is taking a transition. While
+  taking a transition, a false guard aborts the transition.
+  
+  A transition is a sequence of phased actions starting with G. If events
+  are emitted during the transition, but not explicitly cleared, an E phase
+  is added to the end of the transition. A transition can be as short as <G>. 
+  
+  Immediately after the last phase of a transition (A, R, E, or G), the
+  component finishes the transition, changing state and exiting if the new
+  state is Exit.
+  
+  The discrete_update ends after the first step in which no components are
+  taking or starting transitions--in other words, in which all components
+  start and end in G--in other words, all relevant guards are checked and all
+  are false.
+
+Notes:
+
+  The first step can begin with the guard phase.
+  
+  Guards are last so that the condition which triggered a transition will still
+  be true on the next step. Also, emitting events or changing variables will
+  trigger transitions to start on the same step, so components can sync on
+  the second step. Also, components newly created in A can check their guards on
+  the same step.
+  
+  Preceding resets by actions is necessary so that guards are still true for
+  passive information gathering and for creating components.
+  
+  Preceding guards by events is necessary so that events will be visible for at
+  least one cycle of actions and resets after detection. (This is in case events
+  have values that are used in actions and resets.)
 
 =end

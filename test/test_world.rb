@@ -94,38 +94,42 @@ end
 
 # test create and remove
 
-class World_3 < World
-  setup do @x = create(Component) end
-  def run
-    super
-    remove @x
-  end
-  
-  def assert_consistent_after test
-    test.assert_equal(0, size)
+if World.methods.include? :remove
+  class World_3 < World
+    setup do @x = create(Component) end
+    def run
+      super
+      remove @x
+    end
+
+    def assert_consistent_after test
+      test.assert_equal(0, size)
+    end
   end
 end
 
 # test garbage collection
 
-class World_4 < World
-  setup do
-    @x = create(Component)
-    5.times do create(Component) end
-  end
-  
-  def run
-    super
-    @before_size = size
-    garbage_collect
-    @after_size = size
-  end
-  
-  def assert_consistent_after test
-    test.assert_equal(6, @before_size)
-    test.assert((1..2).include? @after_size)
-    ## After coding World::step_continuous in C, the last created component
-    ## is still reachable for some reason.
+if World.methods.include? :remove
+  class World_4 < World
+    setup do
+      @x = create(Component)
+      5.times do create(Component) end
+    end
+
+    def run
+      super
+      @before_size = size
+      garbage_collect
+      @after_size = size
+    end
+
+    def assert_consistent_after test
+      test.assert_equal(6, @before_size)
+      test.assert((1..2).include? @after_size)
+      ## After coding World::step_continuous in C, the last created component
+      ## is still reachable for some reason.
+    end
   end
 end
 
@@ -196,77 +200,77 @@ end
 
 # test persistence
 
-class World_7 < World
-  def make_copy
-    filename = "test_world_persist.dat"
-    save filename
-    World.open filename   # copy of world (with the same name)
-  ensure
-    File.delete filename rescue SystemCallError
-  end
-  
-  class Thing < Component
-    attr_reader :x_start
-    state :A, :B, :C; default {start A}
-    setup do
-      @x_start = self.x = 123
-    end
-    transition A => B
-    transition B => C do
-      guard { x > 200 }
-    end
-    flow B, C do
-      diff "x' = 1"
-    end
-  end
-  
-  attr_accessor :thing
-  
-  setup do
-    @thing = create Thing
-  end
-  
-  def run n = nil
-    if n
-      super n
-    else
-      @start_copy = make_copy
-      super 0               # do_setup and step_discrete
-      @t0_copy = make_copy
-      super 1               # run the same world after saving
-      @t1_copy = make_copy
-      super 999
-      @t1000_copy = make_copy
-    end
-  end
-
-  def assert_consistent_after test
-    test.assert_equal(nil, @start_copy.thing)
-    test.assert_equal(Thing::B, @t0_copy.thing.state)
-    test.assert_equal(Thing::B, @t1_copy.thing.state)
-    test.assert_equal(Thing::C, @t1000_copy.thing.state)
-    test.assert_equal(Thing::C, thing.state)
-    
-    test.assert_equal(thing.x_start, @t0_copy.thing.x_start)
-    test.assert_equal(thing.x_start, @t1_copy.thing.x_start)
-    test.assert_equal(thing.x_start, @t1000_copy.thing.x_start)
-    test.assert_equal(thing.x_start, thing.x_start)
-    
-    x_t0    = thing.x_start
-    x_t1    = thing.x_start + time_step
-    x_t1000 = thing.x_start + 1000 * time_step  
-    
-    test.assert_equal_float(x_t0,     @t0_copy.thing.x, 1E-10)
-    test.assert_equal_float(x_t1,     @t1_copy.thing.x, 1E-10)
-    test.assert_equal_float(x_t1000,  @t1000_copy.thing.x, 1E-10)
-    test.assert_equal_float(x_t1000,  thing.x, 1E-10)
-    
-    # continue running with @t1_copy
-    @t1_copy.run 999
-    test.assert_equal(Thing::C, @t1_copy.thing.state)
-    test.assert_equal_float(x_t1000, @t1_copy.thing.x, 1E-10)
-  end
-end
+#class World_7 < World
+#  def make_copy
+#    filename = "test_world_persist.dat"
+#    save filename
+#    World.open filename   # copy of world (with the same name)
+#  ensure
+#    File.delete filename rescue SystemCallError
+#  end
+#  
+#  class Thing < Component
+#    attr_reader :x_start
+#    state :A, :B, :C; default {start A}
+#    setup do
+#      @x_start = self.x = 123
+#    end
+#    transition A => B
+#    transition B => C do
+#      guard { x > 200 }
+#    end
+#    flow B, C do
+#      diff "x' = 1"
+#    end
+#  end
+#  
+#  attr_accessor :thing
+#  
+#  setup do
+#    @thing = create Thing
+#  end
+#  
+#  def run n = nil
+#    if n
+#      super n
+#    else
+#      @start_copy = make_copy
+#      super 0               # do_setup and step_discrete
+#      @t0_copy = make_copy
+#      super 1               # run the same world after saving
+#      @t1_copy = make_copy
+#      super 999
+#      @t1000_copy = make_copy
+#    end
+#  end
+#
+#  def assert_consistent_after test
+#    test.assert_equal(nil, @start_copy.thing)
+#    test.assert_equal(Thing::B, @t0_copy.thing.state)
+#    test.assert_equal(Thing::B, @t1_copy.thing.state)
+#    test.assert_equal(Thing::C, @t1000_copy.thing.state)
+#    test.assert_equal(Thing::C, thing.state)
+#    
+#    test.assert_equal(thing.x_start, @t0_copy.thing.x_start)
+#    test.assert_equal(thing.x_start, @t1_copy.thing.x_start)
+#    test.assert_equal(thing.x_start, @t1000_copy.thing.x_start)
+#    test.assert_equal(thing.x_start, thing.x_start)
+#    
+#    x_t0    = thing.x_start
+#    x_t1    = thing.x_start + time_step
+#    x_t1000 = thing.x_start + 1000 * time_step  
+#    
+#    test.assert_equal_float(x_t0,     @t0_copy.thing.x, 1E-10)
+#    test.assert_equal_float(x_t1,     @t1_copy.thing.x, 1E-10)
+#    test.assert_equal_float(x_t1000,  @t1000_copy.thing.x, 1E-10)
+#    test.assert_equal_float(x_t1000,  thing.x, 1E-10)
+#    
+#    # continue running with @t1_copy
+#    @t1_copy.run 999
+#    test.assert_equal(Thing::C, @t1_copy.thing.state)
+#    test.assert_equal_float(x_t1000, @t1_copy.thing.x, 1E-10)
+#  end
+#end
 
 =begin
 

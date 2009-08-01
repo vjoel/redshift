@@ -9,7 +9,7 @@ include RedShift
 class TransTestComponent < Component
   def initialize(*args)
     super
-    @t = @world.clock
+    @t = world.clock
   end
 end
 
@@ -92,10 +92,7 @@ end
 class Trans_3 < TransTestComponent
   state :A
   transition Enter => A do
-    event :e
-  end
-  def e
-    "fred"
+    event :e => "fred"
   end
 end
 

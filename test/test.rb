@@ -7,13 +7,16 @@ else
   $DEBUG = true
 end
 
-# run all test_XXX.rb in this dir
+tests = ARGV.empty? ? Dir["test_*.rb"] : ARGV
+tests.sort!
+tests.delete_if {|f| /\.rb\z/ !~ f}
 
-Dir["test_*.rb"].sort.each do |file|
+tests.each do |file|
   puts "_"*50 + "\nStarting #{file}...\n"
   pid = fork {
 system "ruby #{file}"
 ###    load file ### Why does this spew exceptions?
   }
   Process.waitpid(pid)
+  ### should trap SIGINT and kill child process
 end

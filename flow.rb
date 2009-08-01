@@ -398,4 +398,8 @@ class RK4DifferentialFlow < Flow
 end # class RK4DifferentialFlow
 
 
+class CexprGuard
+
+end
+
 end # module RedShift

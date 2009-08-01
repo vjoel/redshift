@@ -4,23 +4,20 @@
 require 'mathn'
 require 'cgen/cshadow'
 
+# Read some environment variables
+$DEBUG = ENV["REDSHIFT_DEBUG"]
+$REDSHIFT_BUILD_TIMES = ENV["REDSHIFT_BUILD_TIMES"]
+
+if $DEBUG
+  puts "  ----------------------------------------------------------------- "
+  puts " |RedShift debugging information enabled by env var REDSHIFT_DEBUG.|"
+  puts " |    Please ignore error messages that do not halt the progam.    |"
+  puts "  ----------------------------------------------------------------- "
+end
+
 class Object
   def pp arg  # for debugging :)
     p arg; arg
-  end
-  
-  @@ptime = Time.times
-  @@rtime = Time.now.to_f
-
-  def show_times str
-    ptime = Time.times
-    rtime = Time.now.to_f
-    printf "%20s %6.2f %6.2f %6.2f %6.2f %7.3f\n", str,
-      ptime.utime - @@ptime.utime, ptime.stime - @@ptime.stime,
-      ptime.cutime - @@ptime.cutime, ptime.cstime - @@ptime.cstime,
-      rtime - @@rtime
-    @@ptime = ptime
-    @@rtime = rtime
   end
 
   class AssertionFailure < StandardError; end
@@ -75,8 +72,12 @@ module RedShift
       # other symbols will be caught in CGenerate::Library#initialize.
     CLibName << '_clib'
   end
-
+  
   class Library < CGenerator::Library
+    def show_build_times flag = true
+      @@show_times = flag
+    end
+
     def update_file f, template
 #      template_str = template.to_s
 #      file_data = f.gets(nil)
@@ -93,8 +94,16 @@ module RedShift
   end
 
   CLib = Library.new CLibName
-  CLib.include '<math.h>'
   CLib.purge_source_dir = :delete
+  CLib.show_build_times $REDSHIFT_BUILD_TIMES
+
+  if $DEBUG
+    CLib.include_file.include "<assert.h>"
+  else
+    CLib.include_file.declare :assert => %{#define assert(cond) 0}
+  end
+
+  CLib.include_file.include '<math.h>'
 
 #  class Warning < Exception; end
 #  
@@ -111,6 +120,5 @@ module RedShift
 
 end # module RedShift
 
-require 'redshift/component'
 require 'redshift/world'
 require 'redshift/syntax'

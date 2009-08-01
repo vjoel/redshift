@@ -1,6 +1,5 @@
 require 'singleton'
-require 'redshift/event'
-require 'redshift/transition'
+require 'superhash'
 require 'redshift/flow'
 require 'redshift/state'
 require 'redshift/meta'
@@ -15,43 +14,42 @@ marshalling: write out enough metadata to check for differing version of compone
 
 module RedShift
 
-Enter = State.new :Enter, RedShift
-Exit = State.new :Exit, RedShift
-Always = Transition.new :Always, nil, [], nil
-
 class AlgebraicAssignmentError < StandardError; end
   
+class Transition
+  attr_reader :name, :guard, :phases
+  def initialize n, g, p
+    @name = n || "[transition #{id}]".intern
+    @guard, @phases = g, p
+  end
+end
+
+Enter = State.new :Enter, RedShift
+Exit = State.new :Exit, RedShift
+Always = Transition.new :Always, nil, []
+
+class World; end
+
 class Component
   include CShadow
   shadow_library CLib
   
-  attr_reader :world
-  attr_reader :state
-  attr_reader :active_transition
   attr_reader :start_state
 
   Enter = RedShift::Enter
   Exit = RedShift::Exit
 
-  attach({Exit => Exit}, Transition.new :exit, nil, [],
-    proc {
-      begin
-#puts "In Exit => Exit. Trying to remove #{inspect} from #{world}."
-        world.remove self
-      rescue NameError => e
-        if e.message == "undefined method `remove' for :removed:Symbol"
-          $stderr.puts "Attempted to remove #{inspect} twice."
-        else
-          raise
-        end
-      else
-        @world = :removed
-      end
-    })
+  # Phase classes
+  class Action < Array; end
+  class Reset  < Array; end
+  class Event  < Array; end
+  class Guard  < Array; end
+
+  class DynamicEventValue < Proc; end
   
   def inspect data = nil
     n = " #{@name}" if @name
-    s = ": #{@state}" if @state
+    s = ": #{state}" if state
     d = "; #{data}" if data
     "<#{type}#{n}#{s}#{d}>"
   end
@@ -67,7 +65,7 @@ class Component
       end
     end
 
-    @world = world
+    __set__world world
     
     restore {
       @start_state = Enter
@@ -78,27 +76,16 @@ class Component
       instance_eval(&block) if block
       do_setup
       
-      raise RuntimeError if @state
-      @state = @start_state
+      raise RuntimeError if state
+      self.state = @start_state
     }
   end
 
   def restore
-    for s in states
-      for e in events s
-        e.unexport self
-      end
-    end
-    
     yield if block_given?
-    
-    arrive
+    update_cache
   end
 
-  def arrive
-    update_cached_flows @state
-  end  
-  
   def do_defaults
     type.do_defaults self
   end
@@ -129,33 +116,42 @@ class Component
     end
   end
   
-  def step_discrete
+  ## move to C
+  # is it right to return false when link is nil?
+  def test_event link_sym, event
+    link = send link_sym
+    link && link.send(event)
+  end
   
-    dormant = true
-
-    if @active_transition
-      dormant = false
-      @active_transition.finish self
-      increment_d_tick
-      unless @state == @active_transition_dest
-        @state = @active_transition_dest
-        arrive
-      end
-      @active_transition = nil
+  ## move to C
+  def do_events events
+    for writer, value in events  
+      v = value.is_a?(DynamicEventValue) ? instance_eval(&value) : value
+      send writer, v
     end
-
-    for t, d in transitions
-      if t.enabled? self
-        dormant = false
-        @active_transition = t
-        @active_transition_dest = d
-        t.start self
-        break
-      end
-    end
-    
-    return dormant
-
+  end
+  
+  ## move to C
+  def do_resets resets
+#          var_count = shadow->type_data->var_count;
+#          vars = (ContVar *)(&shadow->cont_state->begin_vars);
+#          for (i = 0; i < var_count; i++)
+#            if (vars[i].algebraic)
+#              (*vars[i].flow)(shadow);
+#        for each comp on curr_R
+#          if reset
+#            for each var in comp
+#              error if algebraic
+#              if var is reset
+#                compute reset
+#                store in value_1 of var
+#              else
+#                copy from value_0 to value_1
+  end
+  
+  ## shouldn't be necessary
+  def insteval_proc pr
+    instance_eval &pr
   end
   
   #-- CLib stuff -----------------------------------------------#
@@ -165,12 +161,6 @@ class Component
   def self.inherited sub
     file_name = CGenerator.make_c_name(sub.name).to_s
     sub.shadow_library_file file_name
-  end
-  
-  if $DEBUG
-    CLib.include "<assert.h>"
-  else
-    CLib.include_file.declare :assert => %{#define assert(cond) 0}
   end
   
   CLib.declare_extern :typedefs => %{
@@ -209,9 +199,8 @@ class Component
   class FlowWrapper
     include Singleton
     include CShadow; shadow_library Component
-    shadow_attr \
-      :flow => "Flow flow",
-      :algebraic => "int algebraic"
+    shadow_attr :flow => "Flow flow"
+    shadow_attr :algebraic => "int algebraic"
     def initialize
       calc_function_pointer
     end
@@ -245,9 +234,8 @@ class Component
   class TypeData
     include Singleton
     include CShadow; shadow_library Component  ## does it need to be?
-    shadow_attr_accessor \
-      :flow_table => Hash,  ## can be ordinary ruby attr
-      :var_count  => "long var_count"
+    shadow_attr_accessor :flow_table => Hash  ## can be ordinary ruby attr
+    shadow_attr_accessor :var_count  => "long var_count"
     protected :flow_table=, :var_count=
     
     class << self
@@ -358,28 +346,34 @@ class Component
   end
   
   # global rk_level, time_step (not used outside continuous update)
-  CLib.declare \
-    :rk_level   => "long    rk_level",
-    :time_step  => "double  time_step"
-  CLib.include_file.declare \
-    :rk_level   => "extern long     rk_level",
-    :time_step  => "extern double   time_step"
+  CLib.declare :rk_level   => "long    rk_level"
+  CLib.declare :time_step  => "double  time_step"
+  CLib.include_file.declare :rk_level   => "extern long     rk_level"
+  CLib.include_file.declare :time_step  => "extern double   time_step"
 
   # global d_tick (used only outside continuous update)
   CLib.declare :d_tick => "long d_tick"
   CLib.include_file.declare :d_tick => "extern long d_tick"
   
-  CLib.setup \
-    :rk_level => "rk_level = 0",
-    :d_tick   => "d_tick   = 1"  # alg flows need to be recalculated
+  CLib.setup :rk_level => "rk_level = 0"
+  CLib.setup :d_tick   => "d_tick   = 1"  # alg flows need to be recalculated
   
-  shadow_attr_accessor \
-    :type_data    => [TypeData],
-    :cont_state   => [ContState]
-  protected \
-    :type_data, :type_data=,
-    :cont_state, :cont_state=
-    
+  shadow_attr_accessor :type_data    => [TypeData]
+  shadow_attr_accessor :cont_state   => [ContState]
+  protected :type_data, :type_data=, :cont_state, :cont_state=
+  
+  shadow_attr_accessor :state        => State
+  protected :state=
+  
+  shadow_attr_reader :outgoing     => Array
+  shadow_attr_reader :trans        => Transition
+  shadow_attr_reader :phases       => Array
+  shadow_attr_reader :dest         => State
+  
+  def active_transition; trans; end
+  
+  shadow_attr :cur_ph => "long cur_ph"
+  
   class << self
   
     def type_data
@@ -449,21 +443,39 @@ class Component
       else        const_get t
       end
     end
-  end
-  
-  def update_cached_flows state
-    copy_flow_array type_data.flow_table[state]
-  end
-  
-  define_method :copy_flow_array do
-    arguments :flow_array
     
+    def exported_events
+      @exported_events ||= 
+        if self == Component
+          Hash.new
+        else
+          SuperHash.new(superclass.exported_events)
+        end
+    end
+    
+    def export(*events)
+      for event in events
+        unless exported_events[event]
+          shadow_attr_accessor event => Object
+          protected "#{event}=".intern
+          exported_events[event] = true
+        end
+      end
+    end
+  end
+  
+  define_method :update_cache do body "__update_cache(shadow)" end
+  
+  CLib.define(:__update_cache).instance_eval do
     flow_wrapper_type = RedShift::Component::FlowWrapper.shadow_struct.name
+    arguments "#{RedShift::Component.shadow_struct.name} *shadow"
     declare :locals => %{
       #{flow_wrapper_type} *flow_wrapper;
 
+      VALUE       flow_table;       // Hash
+      VALUE       flow_array;       // Array
+      VALUE       outgoing;
       long        var_count;
-      VALUE       flows_rb_ary;     // Array
       ContVar    *vars;
       long        i;
       long        count;
@@ -471,6 +483,11 @@ class Component
     }.tabto(0)
     
     body %{
+      //# Cache outgoing transitions as [t, g, [phase0, phase1, ...], dest, ...]
+      shadow->outgoing = rb_funcall(shadow->self,
+                         #{declare_symbol :outgoing_transitions}, 0);
+      
+      //# Cache flows.
       var_count = shadow->type_data->var_count;
       vars = (ContVar *)(&shadow->cont_state->begin_vars);
       
@@ -479,6 +496,9 @@ class Component
         vars[i].algebraic = 0;
         vars[i].d_tick = 0;
       }
+      
+      flow_table = shadow->type_data->flow_table;
+      flow_array = rb_hash_aref(flow_table, shadow->state);
       
       if (flow_array != Qnil) {
         Check_Type(flow_array, T_ARRAY);
@@ -500,6 +520,15 @@ class Component
     }
   end
 
+  shadow_attr_reader :world => World
+    
+  define_method :__set__world do
+    arguments :world
+    body "shadow->world = world"
+  end
+  protected :__set__world
+  
+#if false
 #  define_method :recalc_alg_flows do ### need this?
 #    declare :locals => %{
 #      ContVar    *vars;
@@ -512,13 +541,15 @@ class Component
 #      vars = (ContVar *)(&shadow->cont_state->begin_vars);
 #      for (i = 0; i < var_count; i++)
 #        if (vars[i].algebraic)
+## also check d_tick
 #          (*vars[i].flow)(shadow);
 #    }
 #  end
-
-  define_method :increment_d_tick do
-    body "d_tick++"
-  end
+#
+#  define_method :increment_d_tick do
+#    body "d_tick++"
+#  end
+#end
 end # class Component
 
 end # module RedShift

@@ -1,4 +1,4 @@
-require 'my-profile.rb'
+require 'my-profile'
 
 $strict = (ARGV[0] =~ /^-s/)
 
@@ -8,7 +8,7 @@ else
   $REDSHIFT_CLIB_NAME = "strictness-off"
 end
 
-require 'redshift/redshift'
+require 'redshift'
 include RedShift
 
 class SimpleComponent < Component

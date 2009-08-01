@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require 'redshift/redshift'
+require 'redshift'
 require 'nr/random'
 
 include RedShift

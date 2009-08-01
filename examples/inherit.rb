@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-require 'redshift/redshift.rb'
+require 'redshift'
 require 'plot/plot'
 
 include RedShift

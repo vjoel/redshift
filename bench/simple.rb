@@ -1,4 +1,4 @@
-require 'redshift/redshift'
+require 'redshift'
 
 class Thing < RedShift::Component
   flow {

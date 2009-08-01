@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
-require 'redshift/redshift.rb'
-require 'plot/plot.rb'
+require 'redshift'
+require 'plot/plot'
 require 'complex'
 
 include RedShift

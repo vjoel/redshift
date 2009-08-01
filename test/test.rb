@@ -19,7 +19,7 @@ end
 $REDSHIFT_DEBUG=3 ## what should this be?
 
 ### have to fix the CLIB_NAME problem before can do this
-### require 'redshift/redshift' ## all the tests will need this anyway
+### require 'redshift' ## all the tests will need this anyway
 
 pat = ARGV.join("|")
 tests = Dir["test_*.rb"].grep(/#{pat}/)
@@ -35,7 +35,7 @@ failed = tests.reject do |file|
   system "ruby #{file}"
 #  pid = fork { ## should use popen3 so we can weed out successful output
 #    $REDSHIFT_CLIB_NAME = file
-#    require 'redshift/redshift'
+#    require 'redshift'
 #    load file
 #  }
 #  Process.waitpid(pid)

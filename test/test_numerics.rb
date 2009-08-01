@@ -2,7 +2,7 @@
 
 require 'test/unit'
 
-require 'redshift/redshift'
+require 'redshift'
 
 include RedShift
 

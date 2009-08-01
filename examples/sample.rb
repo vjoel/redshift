@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-require 'redshift/redshift.rb'
+require 'redshift'
 
 puts "\
 This example needs to be rewritten. Maybe it

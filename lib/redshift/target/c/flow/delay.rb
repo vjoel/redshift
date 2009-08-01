@@ -19,12 +19,24 @@ module RedShift; class DelayFlow
       bufname     = "#{var_name}_buffer_data"
       offsetname  = "#{var_name}_buffer_offset"
       delayname   = "#{var_name}_delay"
+      tsname      = "#{var_name}_time_step"
       
       cl.class_eval do
         shadow_attr_accessor bufname    => "Buffer  #{bufname}"
         shadow_attr_accessor offsetname => "long    #{offsetname}"
-        shadow_attr_reader   delayname  => "double  #{delayname}"
-          # delay can be set only using the var designated in :by => "var"
+        shadow_attr_accessor delayname  => "double  #{delayname}"
+          # delay should be set only using the expr designated in :by => "expr"
+        shadow_attr          tsname     => "double  #{tsname}"
+      
+        after_commit do
+          alias_method "__#{bufname}=", "#{bufname}="
+          define_method "#{bufname}=" do |val|
+            send("__#{bufname}=", val)
+            d = world.time_step * (val.size / 4)
+            send("#{delayname}=", d) # keep cached delay consistent
+          end
+        end
+        private :"#{delayname}="
       end
       
       # We need the struct
@@ -66,6 +78,14 @@ module RedShift; class DelayFlow
           case 0:
             ptr = shadow->#{bufname}.ptr;
             offset = shadow->#{offsetname};
+            
+            if (shadow->world->time_step != shadow->#{tsname}) {
+              if (shadow->#{tsname} == 0.0)
+                shadow->#{tsname} = shadow->world->time_step;
+              else
+                rs_raise(#{declare_class RedShiftError}, shadow->self,
+                "Delay flow doesn't support changing time_step yet"); // ##
+            }
             
             if (ptr && delay == shadow->#{delayname}) {
               len = shadow->#{bufname}.len;
@@ -134,10 +154,6 @@ module RedShift; class DelayFlow
               }
             }
             
-            // ## Check if buffer is stale, and advance as needed?
-            // ## This might be correct if A => B => A, staying in B
-            // ## for time > 0, and B doesn't delay this var.
-
             offset = (offset + 4) % len;
             shadow->#{offsetname} = offset;
             

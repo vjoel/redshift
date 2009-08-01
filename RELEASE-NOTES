@@ -1,3 +1,10 @@
+redshift 1.3.12
+
+- Fixed bug with explicitly assigning an array to a 
+  delay buffer.
+
+- Raise if time_step changes while using delay.
+
 redshift 1.3.11
 
 - Expressions can refer to module constants

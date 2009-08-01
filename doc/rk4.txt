@@ -1,0 +1,14 @@
+Runge-Kutta 4th order numerical integraton based on:
+  http://claymore.engineer.gvsu.edu/~jackh/eod/mathmod/laplace/laplace-48.html
+
+With no explicit time variable, the formulas simplify to:
+
+x_next = x + (F1 + 2 * F2 + 2 * F3 + F4) / 6
+
+F1 = h * f(x)
+
+F2 = h * f(x + F1 / 2)
+
+F3 = h * f(x + F2 / 2)
+
+F4 = h * f(x + F3)

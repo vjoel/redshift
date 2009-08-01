@@ -15,6 +15,10 @@ class Component
   
   @@caching_in_use = false    # refers to per-instance cache
 
+  def Component.attach_state name
+    const_set name, State.new(name, self)
+  end
+  
   def Component.attach states, features
   
     if features.type != Array
@@ -43,6 +47,10 @@ class Component
     flows = @@flows[self] ||= {}
     
     for state in states
+      unless state.is_a? State
+        raise TypeError, "Must be a state: #{state}"
+      end
+      
       flows[state] ||= {}
       
       for f in new_flows
@@ -75,6 +83,14 @@ class Component
     transitions = @@transitions[self] ||= {}
     
     for src, dest in states
+      unless src.is_a? State
+        raise TypeError, "Source must be a state: #{src}"
+      end
+      
+      unless dest.is_a? State
+        raise TypeError, "Destination must be a state: #{dest}"
+      end
+      
       transitions[src] ||= {}
       
       for t in new_transitions

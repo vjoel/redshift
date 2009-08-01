@@ -12,7 +12,8 @@ end
 Dir["test_*.rb"].sort.each do |file|
   puts "_"*50 + "\nStarting #{file}...\n"
   pid = fork {
-    load file
+system "ruby #{file}"
+###    load file ### Why does this spew exceptions?
   }
   Process.waitpid(pid)
 end

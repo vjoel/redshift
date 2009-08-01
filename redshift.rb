@@ -2,14 +2,18 @@
 # Distributed under the Ruby license. See www.ruby-lang.org.
 
 require 'mathn'
+require 'cgen/cshadow'
 
-require 'redshift/clib'
-require 'redshift/world'
-require 'redshift/component'
-require 'redshift/syntax'
+class Object
+  def pp arg  # for debugging :)
+    p arg; arg
+  end
+end
 
 module RedShift
   include Math
+  
+  Infinity = 1.0/0.0
 
   def run(*args)
     if @@world
@@ -20,6 +24,22 @@ module RedShift
   end
   module_function :run
   
+  unless defined? CLibName
+    CLibName =
+      if $0 == "\000PWD"  # irb in ruby 1.6.5 bug
+        "irb"
+      else
+        File.basename($0)
+      end
+    CLibName[/\.rb$/] = ''
+    CLibName[/-/] = '_'
+      # other symbols will be caught in CGenerate::Library#initialize.
+    CLibName << '_clib'
+  end
+
+  CLib = CGenerator::Library.new CLibName
+  CLib.include '<math.h>'
+
 #  class Warning < Exception; end
 #  
 #  # Warn with string str and skipping n stack frames.
@@ -34,3 +54,7 @@ module RedShift
 #  module_function :warn
 
 end # module RedShift
+
+require 'redshift/component'
+require 'redshift/world'
+require 'redshift/syntax'

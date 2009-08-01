@@ -1,0 +1,74 @@
+Syntax
+
+Component initialization
+
+
+Components
+==========
+
+Steps in the initialization process:
+
+1. Object is created.
+
+2. Ruby calls the initialize method. This should in general not be overridden in subclasses of Component. Use defaults and setup clauses instead.
+
+3. The initialize method sets @state to Enter and calls the following, in order:
+
+  a. The defaults clause supplied in the Component class definition.
+  
+  b. The block supplied with the create command.
+  
+  c. The setup clause supplied in the Component class definition.
+
+
+
+Notes.
+
+--
+
+A component starts in Enter state by default. If the component never needs another state, it can be defined without a 'state' clause.
+
+--
+
+To start in a state other than Enter, there are two easy alternatives:
+
+  setup { @state = S0 }
+
+and
+
+  transition (Enter => S0) {
+    # ...
+  }
+
+The latter is slightly preferrable, because in the former case any code after the assignment will not be able to use flows defined in either Enter or S0. In the latter case, action code executes before the transition, so it will use flows defined in Enter.
+
+--
+
+A Component definition is executable code, so the following works:
+
+  class Foo < Component
+    for i in 0..9
+      state "mode_#{i}".intern
+      transition # ...
+    end
+  end
+
+--
+
+Similarly, blocks can always include any executable code:
+
+  transition (S => T) {
+    if $DEBUG
+      action { ... }
+    else
+      action { ... }
+    end
+  end
+
+Also, blocks which need to return a value can do arbitrary processing beforehand:
+
+      guard {
+        x = world.min { |c, d|
+          c.type == Foo && d.type == Foo && dist(c, self)
+        }
+      }

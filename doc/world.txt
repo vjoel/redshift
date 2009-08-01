@@ -1,0 +1,40 @@
+#!ruby docs
+
+=begin
+
+---started
+
+Returns true if the world has advanced from its initial state in either a discrete or continuous way. World setup clauses happen before this becomes true.
+
+
+setup clauses
+  in World class and subclasses
+  in individual world
+  they chain, like in components
+  setup clauses are executed before world is run (started is false)
+
+in simple simulations, you can just create objects in a world without a setup clause. But with CShadow, all class definition must come before creating components. So if a library wants to do dome world-level setup, it should subclass World and add a setup clause.
+
+---remove c
+
+Removes component (({c})) from the world.
+
+---garbage_collect
+
+Removes all components from the world that are not reachable by any references except the world's component list. This is not necessarily a Good Thing for a typical simulation to do. You have a choice: manage the world using exit transitions, or keep a list (or other data structure) of the live objects and periodically call garbage_collect to remove the dead ones.
+
+Note that reachability includes references that are on the stack (local vars and args) as well as global vars and constants.
+
+---World#save and World.open
+
+Block allows custom data to be saved along with the world (you can also do this by subclassing the World or simply adding attrs to the World instance).
+
+Can run two worlds, but in the same process there is no SMP advantage. (Ruby threads are in-process threads, not kernel threads.)
+
+==Subclassing (({World}))
+
+Defining a subclass of (({World})) can be useful for several reasons. 
+
+* A template for several worlds created within the same simulation run.
+
+* Making additional data about the world persist along with the world. Simply add attributes in the subclass. (Additional data might include the "live object" list discussed above, or other data structures related to the world that are not components.)

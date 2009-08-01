@@ -4,9 +4,13 @@ To do
 Syntax
 
   resets and even assignment to cont-vars can use '<=' or '[]='
+  better: eval each setup or reset block in a context in which
+          for each continuous var a local var of the same name
+          has been initialized to nil, and then make the
+          assignments later
 
   check for symbol conflicts
-    user attributes may conflict with Component's attrs
+    user attributes may conflict with Component's attrs/methods
     ditto for flows and other methods defined in subclasses
     can we 'hook' method def and attr def to check for conflict? 
     or just use a consistent naming scheme to keep internals separate?
@@ -246,6 +250,7 @@ x   automatically scan formulas and use best alg.
     transitions and events
     dynamism:
       changing flows and transitions on classes which have instances
+      check that this *fails* after commit!
   
   system tests
     compare with other integrators (accuracy)

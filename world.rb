@@ -1,5 +1,6 @@
 require 'option-block/option-block'
 require 'pstore'
+require 'redshift/component'
 
 module RedShift
 
@@ -8,39 +9,45 @@ class ZenoError < RuntimeError; end
 class World
   include OptionBlock
   include Enumerable
-  
-  # see also clib.rb
-  
-  Infinity = 1.0/0.0
-  
-  $RK_level = nil
+  include CShadow; shadow_library Component
 
   option_block_defaults \
     :name         =>  nil,
     :time_step    =>  0.1,
-    :zeno_limit   =>  Infinity,
+###    :zeno_limit   =>  -1, ## Infinity,
     :clock_start  =>  0.0,
     :clock_finish =>  Infinity
   
   @@count = 0
 
-  attr_reader :components, :started
-  private :components
+  attr_reader :step_count
   
-  attr_reader :step_count #, :clock_start
-#  attr_accessor :name, :time_step, :zeno_limit, :clock_finish
+  def started?; @started; end
 
+  shadow_attr_writer   :time_step    => "double   time_step"
+  shadow_attr_accessor :components   => Array
+  shadow_attr_accessor :zeno_limit   => "long     zeno_limit"
+  protected :time_step=, :components=
+  ### what about dynamically changing time step?
+  
+  def self.new(*args, &block)
+    unless Component.committed? or CLib.empty?
+      Component.commit
+      new(*args, &block)
+    end
+  end
+  
   def initialize(&block)
+    super ##??
     
-    super
-    
-    @components = {}
+    self.components = []
 
-    @name          = options[:name] || "#{type} #{@@count}"
-    @time_step     = options[:time_step]
-    @zeno_limit    = options[:zeno_limit]
-    @clock_start   = options[:clock_start]
-    @clock_finish  = options[:clock_finish]
+    @name           = options[:name] || "#{type} #{@@count}"
+    self.time_step  = options[:time_step]
+###    self.zeno_limit = options[:zeno_limit]
+    self.zeno_limit = -1
+    @clock_start    = options[:clock_start]
+    @clock_finish   = options[:clock_finish]
     
     @step_count = 0
     
@@ -68,13 +75,13 @@ class World
   end
 
   def create(component_class, &block)
-    CLib.commit unless CLib.committed? or CLib.empty?
     c = component_class.new(self, &block)
-    @components[c.id] = c
+    components << c
+    c
   end
   
   def remove c
-    @components.delete c.id
+    components.delete c
   end
   
   
@@ -97,62 +104,138 @@ class World
     self
   end
 
+  define_method :step_continuous do
+    declare :locals => %{
+      VALUE             comp_rb_ary, *comp_ary;
+      long              len;
+      long              var_count;
+      ContVar          *var, *end_var;
+      long              ci;
+      ComponentShadow  *comp_shdw;
+    }.tabto(0)
+    body %{
+      time_step = shadow->time_step;    //# assign global
+      comp_rb_ary = shadow->components;
 
-  def step_continuous
-    $RK_level = 4   # need SEMAPHORE
-    each { |c| c.step_continuous @time_step }
-    $RK_level = nil
+      len = RARRAY(comp_rb_ary)->len;
+      comp_ary = RARRAY(comp_rb_ary)->ptr;
+      
+      for (rk_level = 0; rk_level <= 4; rk_level++) { //# assign global
+        for (ci = 0; ci < len; ci++) {
+          Data_Get_Struct(comp_ary[ci], ComponentShadow, comp_shdw);
+          var_count = comp_shdw->type_data->var_count;
+          var = (ContVar *)(&comp_shdw->cont_state->begin_vars);
+          end_var = &var[var_count];
+
+          while (var < end_var) {
+            if (rk_level == 0) {
+              var->rk_level = 0;
+              if (!var->flow)
+                var->value_1 = var->value_2 = var->value_3 = var->value_0;
+            }
+            else {
+              if (var->flow &&
+                  var->rk_level < rk_level &&
+                  !var->algebraic)
+                (*var->flow)(comp_shdw);
+              if (rk_level == 4)
+                var->d_tick = 0;      //# for next step_discrete
+            }
+            var++;
+          }
+        }
+      }
+      d_tick = 1; //# alg flows need to be recalculated
+      rk_level = 0;
+    } ## assumed that comp_ary[i] was a Component
   end
   private :step_continuous
 
-  def step_discrete
-    $RK_level = nil # need SEMAPHORE
+if true
+  define_method :step_discrete do
+    declare :locals => %{
+      VALUE             comp_rb_ary, *comp_ary;
+      long              len;
+      long              ci;
+      ComponentShadow  *comp_shdw;
+      long              done;
+      long              zeno_counter;
+      long              zeno_limit;
+    }.tabto(0)
+    body %{
+      done = 0;
+      zeno_counter = 0;
+      zeno_limit = shadow->zeno_limit;
+      
+      while (!done) {
+        done = Qtrue;
+        
+        comp_rb_ary = shadow->components; //# list might change each time thru
 
+        len = RARRAY(comp_rb_ary)->len;
+        comp_ary = RARRAY(comp_rb_ary)->ptr;
+        
+        for (ci = 0; ci < len; ci++) {
+          done &= rb_funcall(comp_ary[ci],
+                  #{declare_symbol(:step_discrete)}, 0);
+          
+          zeno_counter += 1;
+          if (zeno_counter > zeno_limit && zeno_limit >= 0)
+            rb_raise(#{declare_class RedShift::ZenoError},
+            "\\nExceeded zeno limit of %d.\\n", zeno_limit);
+        }
+      }
+    } ## assumed that comp_ary[i] was a Component
+  end
+else
+  def step_discrete
     done = false
     zeno_counter = 0
     
     until done
-    
       done = true
       each { |c| done &= c.step_discrete }
       
       zeno_counter += 1
-      if zeno_counter > @zeno_limit
-        raise ZenoError
+#      if zeno_counter > @zeno_limit
+      if zeno_counter > zeno_limit and zeno_limit >= 0
+        raise ZenoError,
+          "at count #{zeno_counter}, exceeded limit #{zeno_limit}."
       end
-  
     end
   end
+end
   private :step_discrete
   
   
   def clock
-    @step_count * @time_step + @clock_start
+    @step_count * time_step + @clock_start
   end
   
   
   def garbage_collect
-    @components = {}
+    self.components = []
     GC.start
     ObjectSpace.each_object(Component) do |c|
       if c.world == self
-        @components[c.id] = c
+        components << c
       end
     end
   end
   
   
   def each(&b)
-    @components.each_value(&b)
+    components.each(&b)
   end
   
   def size
-    @components.size
+    components.size
   end
   
-  def member?(component)
+  def include? component
     component.world == self
   end
+  alias member? include?
   
   def inspect
     if @started
@@ -162,21 +245,25 @@ class World
         clock, ("s" if clock != 1),
         size, ("s" if size != 1)
     else
-      sprintf "<%s: not started. Do 'run 0' to setup.>",
+      sprintf "<%s: not started. Do 'run 0' to setup, or 'run n' to run.>",
         @name
     end
   end
   
   
   def save filename = @name
-    File.delete filename rescue
+    each { |c|
+      c.instance_eval {
+        @trans_cache_state = nil
+        @cache_transitions = nil
+      }
+    } ## can get rid of this after moving discrete behavior into C code
+    File.delete filename rescue SystemCallError
     store = PStore.new filename
-    each { |c| c.discard_singleton_methods }
     store.transaction do
       store['world'] = self
       yield store if block_given?
     end
-    each { |c| c.restore }
   end
   
   

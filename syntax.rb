@@ -1,5 +1,4 @@
 require 'redshift/component'
-require 'redshift/cflow'
 
 # None of the defs in this file are strictly necessary to
 # use RedShift, but they make your code prettier.
@@ -49,32 +48,34 @@ def Component.state(*state_names)
     
     if name.to_s =~ /^[A-Z]/
     
-      if class_eval "defined?(#{name})"
-        if class_eval(name.to_s).is_a? State
+      if class_eval "defined?(#{name})"  ## avoid class_eval, string?
+        if class_eval(name.to_s).is_a? State  ## const_get works?
           raise "state :#{name} already exists"
         else
           raise "state name '#{name}' is used for a constant."
         end
       else
-        const_set name, State.new(name, self.name)
+        attach_state name
       end
       
     else
     
-      if class_variables.include "@@#{name}_state"
-        if class_eval("@@#{name}_state").is_a? State
-          raise "state :#{name} already exists"
-        else  
-          raise "state name '#{name}' is used for a class variable, @@#{name}."
-        end
-      else
-        eval <<-END
-          @@#{name}_state = State.new :#{name}, #{self.name}
-          def #{name}
-            @@#{name}_state
-          end
-        END
-      end
+      raise SyntaxError, "State name #{name} does not begin with [A-Z]."
+    
+#      if class_variables.include "@@#{name}_state"
+#        if class_eval("@@#{name}_state").is_a? State
+#          raise "state :#{name} already exists"
+#        else  
+#          raise "state name '#{name}' is used for a class variable, @@#{name}."
+#        end
+#      else
+#        eval <<-END
+#          @@#{name}_state = State.new :#{name}, #{self.name}
+#          def #{name}
+#            @@#{name}_state
+#          end
+#        END
+#      end
       
     end
   end
@@ -108,36 +109,6 @@ class Flow
       end
     end
     
-    def algebraic_c(*equations)
-      for equation in equations
-        unless equation =~ /^\s*(\w+)\s*=\s*(.*)/m
-          raise "parse error in\n\t#{equation}."
-        else
-          @flows << AlgebraicFlow_C.new($1.intern, $2.strip)
-        end
-      end
-    end
-    
-    def cached_algebraic(*equations)
-      for equation in equations
-        unless equation =~ /^\s*(\w+)\s*=\s*(.*)/m
-          raise "parse error in\n\t#{equation}."
-        else
-          @flows << CachedAlgebraicFlow.new($1.intern, $2.strip)
-        end
-      end
-    end
-    
-    def cached_algebraic_c(*equations)
-      for equation in equations
-        unless equation =~ /^\s*(\w+)\s*=\s*(.*)/m
-          raise "parse error in\n\t#{equation}."
-        else
-          @flows << CachedAlgebraicFlow_C.new($1.intern, $2.strip)
-        end
-      end
-    end
-    
     def euler(*equations)
       for equation in equations
         unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
@@ -148,17 +119,7 @@ class Flow
       end
     end
     
-    def euler_c(*equations)
-      for equation in equations
-        unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
-          raise "parse error in\n\t#{equation}."
-        else
-          @flows << EulerDifferentialFlow_C.new($1.intern, $2.strip)
-        end
-      end
-    end
-    
-    def differential(*equations)
+    def rk4(*equations)
       for equation in equations
         unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
           raise "parse error in\n\t#{equation}."
@@ -168,20 +129,9 @@ class Flow
       end
     end
     
-    def differential_c(*equations)
-      for equation in equations
-        unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
-          raise "parse error in\n\t#{equation}."
-        else
-          @flows << RK4DifferentialFlow_C.new($1.intern, $2.strip)
-        end
-      end
-    end
-    
-    alias alg         algebraic
-    alias cached      cached_algebraic
-    alias runge_kutta differential
-    alias diff        differential
+    alias alg           algebraic
+    alias diff          rk4
+    alias differential  rk4
 
   end
 	
@@ -233,15 +183,10 @@ end # class Transition
 
 
 def Component.flow(*states, &block)
-
-  raise "no flows specified. Put { on same line!" unless block
-  
-  if states == []
-    states = Enter
-  end
+  raise "no flows specified. Put { on same line!" unless block  
+  states = Enter if states == []
   
   attach states, Flow.parse(block)
-
 end
 
 

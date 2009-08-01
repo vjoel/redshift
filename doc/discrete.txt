@@ -1,0 +1,57 @@
+#!ruby docs
+
+=begin
+
+= The discrete structure of a RedShift program
+
+All components start in the Enter state, by default. This can be changed by calling "start SomeState" in the default or setup clause (or create block) or by using a transition. The Enter state itself has no behavior in the Component class, but of course subclass may change that.
+
+Components leave the world by transitioning to the Exit state. The component is not deleted; it will not be garbage-collected as long as there are other references to it (from other objects in the world, or from variables outside the world). However, it will not continue to evolve.
+
+==Initialization
+
+The order of initialization of a component is as follows
+
+(1) default blocks
+
+(2) create block, i.e. the code passed to the create(...) {...} call.
+
+(3) setup blocks
+
+There can be more than one default and setup blocks per class, and they are inherited. The evaluation order is from ancestor to descendent, followed by the order of definition within each component class.
+
+The difference between default and setup is that defaults are overridden by the create block, and setup overrides the block. This gives the class designer flexibility in letting client code customize, but still having a chance to check and modify those customizations.
+
+Additonal initialization can be performed in the transition from Enter to another state.
+
+==States
+
+States are constants in the lexical scope of the class of the component in which they are defined. This means that to refer to a state Foo from outside a component of type Bar, you prefix Foo with Bar:
+
+  Bar::Foo
+
+==Transitions
+
+==="All" states
+
+Some HS languages, like SHIFT, allow you to specify that a certain transition should be attached as an outgoing transition from all states to some specified state. RedShift does not allow this, for two reasons. First, it is ambiguous how this would interact with inheritance: if a subclass introduces a new state, should the "all" quantifier include it? Second, it is easy to loop over all states, defining a transition for each one:
+
+  for st in states
+    transition st => Foo do ... end
+  end
+  TEST THIS
+
+Note that states will refer to all states defined up to that moment in the interpretation of the RedShift program.
+
+If the transition should apply to new states introduced in subclasses, one can override the (({state})) method of the component class:
+
+  def MyComponent.state(*state_names)
+    old_states = states
+    super # this will define the given states
+    for st in states - old_states
+      transition st => Foo do ... end
+    end
+  end
+  TEST THIS
+
+=end

@@ -1,3 +1,106 @@
+require 'redshift/flow'
+
+=begin
+
+Flow syntax:
+
+C expressions (operators, math functions, user-defined C functions, constants) with variables as follows:
+
+var       -- shadow attribute of the 'self' object
+
+link.var  -- shadow attribute of another ruby object
+             link is a shadow attr of self
+
+
+=end
+
+=begin
+
+=cflow expressions
+
+A cflow is a flow whose formula is a C expression involving some Ruby subexpressions. The formula is compiled to executable code before the simulation runs.
+
+The restrictions on the Ruby expressions allowed within cflow expressions are
+intended to promote efficient code. The purpose of cflows is not rapid
+development, or elegant model expression, but optimization. Inefficient
+constructs should be rewritten. For instance, using a complex expression like
+
+  radar_sensors[:front_left].target[4].range
+
+will incur the overhead of recalculation each time the expression is evaluated,
+even though the object which receives the (({range})) method call cannot
+change during continuous evolution. Instead, use intermediate variables. Define
+an instance variable ((|@front_left_target_4|)), updated when necessary during discrete evolution, and use the expression
+
+  @front_left_target_4.range
+
+The increase in efficiency comes at the cost of maintaining this new variable. Use of cflows should be considered only for mature, stable code. Premature optimization is the root of all evil.
+
+==Syntax
+
+The syntax of algebraic and differential cflows is
+
+  var = rhs
+  var' = rhs
+
+where rhs is a C expression, except that it may also have the following additional subexpressions in Ruby syntax:
+
+  @ivar
+  @@cvar
+  @ivar.method
+  @@cvar.method
+  method
+  self.method
+
+The last two are equivalent. Method arguments are not allowed, nor are special methods such as []. All use of () and [] is reserved for C expressions.
+
+Note that C has a comma operator which allows a pair (and therefore any sequence) of expressions to be evaluated, returning the value of the last one. However, on-the-fly assignments are not yet supported (see the to do list), so this isn't useful.
+
+==Semantic restrictions
+
+The value of each Ruby subexpression must be Float or convertible to Float (Fixnum, String, etc.).
+
+If a receiver.method pair occurs more than once in a cflow, the method is
+called only once on that receiver per evaluation of the expression. (The
+expression as a whole may be evaluated several times per time-step, depending
+on the integration algorithm.) Using methods that have side efffects with
+caution. Typical methods used are accessors, which have no side effects.
+
+==C interface
+
+All functions in math.h are available in the expression. The library is geberated with (({CGenerator})) (in file ((*cgen.rb*))). This is a very flexible tool:
+
+* To statically link to other C files, simply place them in the same dir as the library (you may need to create the dir yourself unless the RedShift program has already run). To include a .h file, simply do the following somewhere in your Ruby code:
+
+  RedShift::CLib.include "my-file.h"
+  
+or
+  
+  RedShift::CLib.include "<lib-file.h>"
+
+The external functions declared in the .h file will be available in cflow expressions.
+
+* Definitions can be added to the library file itself (though large definitions that do not change from run to run are better kept externally). See the (({CGenerator})) documentation for details.
+
+==Limitations
+
+The cflow cannot be changed or recompiled while the simulation is running. Changes are ignored. Must reload everything to change cflows (however, can change other things without restarting). This limitation will lifted eventually.
+
+==To do
+
+* globals (store these in a unique GlobalData object)
+
+* class vars (store these in the TypeData instance)
+
+* constants: FOO, FOO.bar, FOO::BAR (as above)
+
+* link1.link2.var, etc.
+
+* WARN when variable name conflics with ruby method.
+
+=end
+
+
 module RedShift
 
 class Flow
@@ -6,246 +109,284 @@ class Flow
   
   def initialize v, f
     @var, @formula = v, f
-    
-    @var_equals = "#{@var}=".intern
-
-    @direct_getter = "__direct__#{@var}".intern
-    @direct_setter = "__direct__#{@var}=".intern
   end
-  
-  
-  def getter state
-    "__state__#{state.name}__#{@var}".intern
-  end
-  
-  def setter state
-    "__state__#{state.name}__#{@var}=".intern
-  end
-  private :getter, :setter
   
   def attach cl, state
+    cont_var = cl.continuous(@var)[0]
+    cl.type_data_class.add_flow [state, cont_var] => flow_wrapper(cl, state)
+  end
+  
+  def translate flow_fn, result_var, rk_level, cl
+    translation = {}
+    setup = []    ## should use accumulator
     
-    cl.module_eval <<-END
+    c_formula = @formula.dup
     
-      unless method_defined? :#{@direct_getter}
-        def #{@direct_getter}
-          @#{@var}
-        end
+    c_formula.gsub! /(?:([A-Za-z_]\w*)\.)?([A-Za-z_]\w*)(?!\w*\s*\()/ do |expr|
+      unless translation[expr]
+        link, var = $1, $2
+        if link
+          # link.var  ==>  shadow->link->cont_state->var.value_n
+          link_cname = "link_#{link}"
+          link_cs_cname = "link_#{link}_cs"
+          unless translation[link]
+            # link  ==>  shadow->link (but don't sub this into expr)
+            translation[link] = link_cname # just so we know we've seen it
+            
+            link_type = cl.link_type link.intern
+            raise "No such link, #{link}" unless link_type
 
-        def #{@direct_setter} value
-          @#{@var} = value
-        end
-      end
-      
-    END
-    
-    begin
-    
-      _attach cl, getter(state), setter(state)
-      
-      old_flow = Component.cached_flows(cl, state)[@var]
-        # cache has not been updated yet
-        # hack, hack!
-      
-      if old_flow
-        ObjectSpace.each_object(cl) do |c|
-          if c.state == state and
-             c.flows.include? old_flow
-                # watch out for override in subclass!
-                # c.flows has not been recalculated yet
-            arrive c, state
+            link_type_ssn = link_type.shadow_struct.name
+            flow_fn.declare link_cname => "#{link_type_ssn} *#{link_cname}"
+
+            link_cs_ssn = link_type.cont_state_class.shadow_struct.name
+            flow_fn.declare link_cs_cname => "#{link_cs_ssn} *#{link_cs_cname}"
+
+            exc = flow_fn.declare_class(RuntimeError)
+            msg = "Link #{link} is nil in component %s"
+            insp = flow_fn.declare_symbol(:inspect)
+            str = "STR2CSTR(rb_funcall(shadow->self, #{insp}, 0))"
+            flow_fn.setup link_cname => %{
+              #{link_cname} = shadow->#{link};
+              if (!#{link_cname})
+                rb_raise(#{exc}, #{msg.inspect}, #{str});
+              #{link_cs_cname} = (#{link_cs_ssn} *)#{link_cname}->cont_state;
+            } ## some redundancy
           end
+          var_cname = "#{link_cname}__dot__#{var}"
+          sh_cname = link_cname
+          cs_cname = link_cs_cname
+        else
+          # var ==> cont_state->var.value_n
+          var_cname = "var_#{var}"
+          sh_cname = "shadow"
+          cs_cname = "cont_state"
         end
+        flow_fn.declare var_cname => "double    #{var_cname}"
+        flow_fn.setup var_cname => %{
+          if (#{cs_cname}->#{var}.algebraic) {
+            if (#{cs_cname}->#{var}.rk_level < rk_level ||
+               (rk_level == 0 && #{cs_cname}->#{var}.d_tick < d_tick))
+              (*#{cs_cname}->#{var}.flow)(#{sh_cname});
+          }
+        }
+        setup << %{
+          #{var_cname} = #{cs_cname}->#{var}.value_#{rk_level};
+        }.tabto(0).split("\n")
+        translation[expr] = var_cname
       end
-      
-    rescue SyntaxError
-      $stderr.print "Flow:\n\tvar is '#{@var}',\n\tformula is '#{@formula}'\n"
-      raise
-      
+      translation[expr]
     end
     
+    setup << "#{result_var} = #{c_formula}"
   end
-  
-  def arrive c, state
     
-    c.instance_eval <<-END
-      alias :#{@var} :#{getter(state)}
-      alias :#{@var_equals} :#{setter(state)}
-    END
-    
-  end
-  
-  def depart c, state
-  
-    c.instance_eval <<-END
-      alias :#{@var} :#{@direct_getter}
-      alias :#{@var_equals} :#{@direct_setter}
-    END
-    
-  end
-  
-  def update c
-    c.send @var_equals, nil
-  end
-  
-  def eval c
-    c.send @var
-  end
-  
-end # class Flow
+end
 
+class CircularDefinitionError < StandardError; end
 
 class AlgebraicFlow < Flow
 
-  def _attach cl, getter, setter
+  def flow_wrapper cl, state
+    var_name = @var
+    flow = self
     
-    cl.module_eval <<-END
-
-      def #{getter}
-        #{@formula}
+    Component::FlowWrapper.make_subclass do
+      function_name =
+        "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}".intern
+        
+      define_method :calc_function_pointer do
+        body "shadow->flow = &#{function_name}", "shadow->algebraic = 1"
       end
-
-      def #{setter} value
-      end
-
-    END
-    
+      
+      ssn = cl.shadow_struct.name
+      cont_state_ssn = cl.cont_state_class.shadow_struct.name
+      
+      shadow_library_source_file.define(function_name).instance_eval do
+        arguments "ComponentShadow *comp_shdw"
+        declare :shadow => %{
+          struct #{ssn} *shadow;
+          struct #{cont_state_ssn} *cont_state;
+          ContVar  *var;
+        }
+        setup :shadow => %{
+          shadow = (#{ssn} *)comp_shdw;
+          cont_state = (#{cont_state_ssn} *)shadow->cont_state;
+          var = &cont_state->#{var_name};
+        }
+        body %{
+          assert(var->algebraic);
+          if (var->nested)
+            rb_raise(#{declare_class CircularDefinitionError},
+              "\\nCircularity in algebraic formula: #{var_name}");
+          
+          var->nested = 1;
+          
+          switch (rk_level) {
+          case 0:
+            #{flow.translate(self, "var->value_0", 0, cl).join("
+            ")};
+            var->d_tick = d_tick;
+            break;
+          case 1:
+            #{flow.translate(self, "var->value_1", 1, cl).join("
+            ")};
+            var->rk_level = rk_level;
+            break;
+          case 2:
+            #{flow.translate(self, "var->value_2", 2, cl).join("
+            ")};
+            var->rk_level = rk_level;
+            break;
+          case 3:
+            #{flow.translate(self, "var->value_3", 3, cl).join("
+            ")};
+            var->rk_level = rk_level;
+            break;
+          default:
+            rb_raise(#{declare_class RuntimeError},
+              "Bad rk_level, %d!", rk_level);
+          }
+          
+          var->nested = 0;
+        }
+      end # Case 0 applies during discrete update.
+    end   # alg flows are lazy
   end
 
 end # class AlgebraicFlow
 
 
-class CachedAlgebraicFlow < Flow
-
-  def _attach cl, getter, setter
-    
-    cl.module_eval <<-END
-
-      def #{getter}
-        @#{@var} ||
-          @#{@var} = (#{@formula})
-      end
-
-      def #{setter} value
-        @#{@var} = value
-      end
-
-    END
-    
-  end
-
-end # class CachedAlgebraicFlow
-
-
 class EulerDifferentialFlow < Flow
 
-  def _attach cl, getter, setter
+  def flow_wrapper cl, state
+    var_name = @var
+    flow = self
     
-    cl.module_eval <<-END
-
-      def #{getter}
-        if $RK_level and $RK_level < 2
-          @#{@var}_prev
-        else
-          unless @#{@var}
-            save_RK_level = $RK_level
-            $RK_level = 0
-            @#{@var} = @#{@var}_prev + (#{@formula}) * @dt
-            $RK_level = save_RK_level
-          end
-          @#{@var}
-        end
+    Component::FlowWrapper.make_subclass do
+      function_name =
+        "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}".intern
+        
+      define_method :calc_function_pointer do
+        body "shadow->flow = &#{function_name}"
       end
+      
+      ssn = cl.shadow_struct.name
+      cont_state_ssn = cl.cont_state_class.shadow_struct.name
+      
+      shadow_library_source_file.define(function_name).instance_eval do
+        arguments "ComponentShadow *comp_shdw"
+        declare :shadow => %{
+          struct #{ssn} *shadow;
+          struct #{cont_state_ssn} *cont_state;
+          ContVar  *var;
+          double    ddt_#{var_name};
+        }
+        setup :shadow => %{
+          if (rk_level == 2) {
+            shadow = (#{ssn} *)comp_shdw;
+            cont_state = (#{cont_state_ssn} *)shadow->cont_state;
+            var = &cont_state->#{var_name};
+          }
+        }
+        setup :rk_level => %{
+          rk_level -= 2;
+        } # has to happen before referenced alg flows are called in other setups
+        body %{
+          if (rk_level == 0) {
+            #{flow.translate(self, "ddt_#{var_name}", 0, cl).join("
+            ")};
 
-      def #{setter} value
-        @#{@var}_prev = @#{@var}
-        @#{@var} = value
-      end
-
-    END
-    
-  end
+            var->value_0 = var->value_3 = var->value_2 =
+              var->value_0 + time_step * ddt_#{var_name};
+            
+            var->rk_level = 4;
+          }
+          rk_level += 2;
+        }
+      end ## setting var->rk_level=4 saves two function calls
+    end   ## but there's still the wasted rk_level=1 function call...
+  end     ## this might be a reason to handle euler steps at rk_level=1
 
 end # class EulerDifferentialFlow
 
 
 class RK4DifferentialFlow < Flow
   
-  def _attach cl, getter, setter
+  def flow_wrapper cl, state
+    var_name = @var
+    flow = self
     
-    cl.module_eval <<-END
-    
-      def #{getter}
+    Component::FlowWrapper.make_subclass do
+      function_name =
+        "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}".intern
+        
+      define_method :calc_function_pointer do
+        body "shadow->flow = &#{function_name}"
+      end
       
-        case $RK_level
+      ssn = cl.shadow_struct.name
+      cont_state_ssn = cl.cont_state_class.shadow_struct.name
+      
+      shadow_library_source_file.define(function_name).instance_eval do
+        arguments "ComponentShadow *comp_shdw"
+        declare :shadow => %{
+          struct #{ssn} *shadow;
+          struct #{cont_state_ssn} *cont_state;
+          ContVar  *var;
+          double    ddt_#{var_name};
+          double    value_4;
+        }
+        setup :shadow => %{
+          shadow = (#{ssn} *)comp_shdw;
+          cont_state = (#{cont_state_ssn} *)shadow->cont_state;
+          var = &cont_state->#{var_name};
+        }
+        setup :rk_level => %{
+          rk_level--;
+        } # has to happen before referenced alg flows are called in other setups
+        body %{
+          switch (rk_level) {
+          case 0:
+            #{flow.translate(self, "ddt_#{var_name}", 0, cl).join("
+            ")};
+            var->value_1 = var->value_0 + ddt_#{var_name} * time_step / 2;
+            break;
 
-        when nil
-          @#{@var}
+          case 1:
+            #{flow.translate(self, "ddt_#{var_name}", 1, cl).join("
+            ")};
+            var->value_2 = var->value_0 + ddt_#{var_name} * time_step / 2;
+            break;
 
-        when 0
-          @#{@var}_prev
+          case 2:
+            #{flow.translate(self, "ddt_#{var_name}", 2, cl).join("
+            ")};
+            var->value_3 = var->value_0 + ddt_#{var_name} * time_step;
+            break;
 
-        when 1
-          unless @#{@var}_F1
-            save_RK_level = $RK_level
-            $RK_level = 0
-            @#{@var}_F1 = (#{@formula}) * @dt
-            $RK_level = save_RK_level
-          end
-          @#{@var}_prev + @#{@var}_F1 / 2
+          case 3:
+            #{flow.translate(self, "ddt_#{var_name}", 3, cl).join("
+            ")};
+            value_4 = var->value_0 + ddt_#{var_name} * time_step;
+            var->value_0 = 
+              (-3*var->value_0 + 2*var->value_1 + 4*var->value_2 +
+                2*var->value_3 + value_4) / 6;
+            break;
 
-        when 2
-          unless @#{@var}_F2
-            save_RK_level = $RK_level
-            $RK_level = 1
-            @#{@var}_F2 = (#{@formula}) * @dt
-            #{getter} unless @#{@var}_F1
-            $RK_level = save_RK_level
-          end
-          @#{@var}_prev + @#{@var}_F2 / 2
-
-        when 3
-          unless @#{@var}_F3
-            save_RK_level = $RK_level
-            $RK_level = 2
-            @#{@var}_F3 = (#{@formula}) * @dt
-            #{getter} unless @#{@var}_F2
-            $RK_level = save_RK_level
-          end
-          @#{@var}_prev + @#{@var}_F3
-
-        when 4
-          unless @#{@var}_F4   # always true
-            save_RK_level = $RK_level
-            $RK_level = 3
-            @#{@var}_F4 = (#{@formula}) * @dt
-            #{getter} unless @#{@var}_F3
-            $RK_level = save_RK_level
-          end
-          @#{@var} =
-            @#{@var}_prev +
-            (@#{@var}_F1     +
-             @#{@var}_F2 * 2 +
-             @#{@var}_F3 * 2 +
-             @#{@var}_F4      ) / 6
+          default:
+            rb_raise(#{declare_class RuntimeError},
+              "Bad rk_level, %d!", rk_level);
+          }
           
-        end            
-
+          rk_level++;
+          var->rk_level = rk_level;
+        }
       end
-      
-      def #{setter} value
-        @#{@var}_prev = @#{@var}
-        @#{@var} = value
-        @#{@var}_F1 = value
-        @#{@var}_F2 = value
-        @#{@var}_F3 = value
-        @#{@var}_F4 = value
-      end
-      
-    END
-    
+    end
   end
 
 end # class RK4DifferentialFlow
+
 
 end # module RedShift

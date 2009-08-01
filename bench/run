@@ -1,0 +1,55 @@
+#!/usr/bin/env ruby
+
+class Object
+  def profile prof_flag = true
+    if block_given?
+      $profiler.instance_eval do
+        save = @do_profiling
+        @do_profiling = prof_flag
+        yield
+        @do_profiling = save
+      end
+    else
+      $profiler.instance_eval {@do_profiling = prof_flag}
+    end
+  end
+end
+
+case ARGV[0]
+
+when /\Ab(ench)?\z/
+  require ARGV[1]; steps = $steps
+  require 'benchmark'
+  include Benchmark
+  bm(12) do |test|
+    for step in steps
+      test.report(step[0] + ":") do
+        step[1].call
+      end
+    end
+  end
+
+when /\Ap(rofile)?\z/
+  require ARGV[1]; steps = $steps
+  for step in steps
+    require 'profile' if step[0] == "run"  # don't profile compilation
+    step[1].call
+  end
+
+when /\Arbprof\z/
+  require 'rbprof'; profile false
+  require ARGV[1]; steps = $steps
+  for step in steps
+    if step[0] == "run"  # don't profile compilation
+      profile {step[1].call}
+    else
+      step[1].call
+    end
+  end
+
+else
+  require ARGV[0]; steps = $steps
+  for step in steps
+    step[1].call
+  end
+end

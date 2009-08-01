@@ -1,0 +1,76 @@
+= Inheritance in RedShift
+
+== Inheritance in Ruby
+
+RedShift inherits some of its inheritance behavior from Ruby itself. In Ruby, the following are inherited by a class from its superclass:
+
+* attributes
+* methods (both class and instance methods)
+
+== Inheritance among components
+
+Classes descending from Component, the base class for all RedShift components, have additional inheritance behavior. The following additional characteristics are inherited by a class from its superclass:
+
+* states
+* flows
+* transitions and events
+* setup and default blocks
+
+Inheritance of each of these works slightly differently. In each case, we describe the granularity of inheritance, that is, the unit of class description that is subject to overriding, and the means of identifying that unit so that subclasses can specify what to override.
+
+One general principle is that inheritance can only add or change features, not remove them. This simplifies design of the inheritance system and enforces a programming style with a clearer separation of layers of abstraction. If you find that your subclasses tend to want to remove behaviors from the superclasses, then you should probably make a new, more abstract, superclass which has the "least common divisor" of the two behaviors.
+
+There is no performance disadvantage to using inheritance to express your simulation design.
+
+=== Inheritance of states
+
+The states of the subclass are all states of the superclass plus any new states declared in the subclass. Redundant declarations provoke a warning but do not result in two states of the same name. (TEST THIS)
+
+=== Inheritance of flows
+
+Granularity: per state, per equation
+Identity: var name on LHS of equation (regardless of type of equation)
+
+The fact that the identity of a flow is simply the var name means that the type (diff, alg, euler, etc.) can be overridden in the subclass.
+
+=== Inheritance of transitions and events
+
+Granularity: per edge (transition including initial and terminal state)
+Identity: Program must supply a name (e.g., "name :reset_x_position") in the transition def. in order for subclases to override this transition. The name can be a symbol, string, or any other object (it will be used as a hash key, so immutable objects, like symbols and numbers, are best).
+
+The granularity level for transitions means that if two transitions are defined with
+  transition (A => B, C=> D) { name :foo; ... }
+then it is possible to override just one of the two using
+  transition (A => B) { name :foo; ... }
+in a subclass.
+
+Also, two transitions with the same initial and terminal states can be selectively overridden in subclasses as long as they are supplied with names.
+
+Overriding part of a transition overrides the whole transition. In other words, 
+the granularity is not so fine that it allows overriding just the action clause or just the event list. The entire transition must be redefined from scratch.
+
+=== Inheritance of setup and default clauses
+
+Setup and default clauses are "chained". That is, at a component's setup time, all the inherited setup clauses are executed; the order is the order of the descending classes, ancestors first. Default clauses are handled similarly.
+
+Chaining the clauses in this simplistic way is perfectly suited to many purposes. One case in which chaining by itself is not a good solution is when a class needs to prevent its superclass from perfoming some action in its setup or defaults.
+
+For example, each instance of class A has an attribute @x that refers to an instance of A_Helper, whereas each instance of A's subclass B has an attribute @x that refers to an instance of B_Helper. Using setup to initialize these attributes for a new B results in an extra A_Helper, even if it is not referred to by @x after the setup chain finishes.
+
+This problem can easily be avoided by calling a certain method in A's setup, but not in B's setup. The method itself, however, is redefined in B. Simply define the method in A (or B) to do what needs to be done only in A (or B). In this way, a weakness in the setup/defaults inheritance mechanism is made up for by the inheritance system in the underlying language. To illustrate:
+
+class A < Component
+  setup { make_helper }
+  def make_helper
+    @x = create(A_Helper)
+  end
+end
+
+class B < A
+# setup { create(B_Helper)    # <-- doesn't stop A_Helper from getting created
+  def make_helper             # gets called from A's setup clause...
+    @x = create(B_Helper)     # ...creating B_Helper instead of A_Helper
+  end
+end
+
+== advanced topics: include modules for mixins

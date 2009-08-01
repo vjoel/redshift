@@ -1,0 +1,208 @@
+RedShift
+
+A Ruby implementation of
+SHIFT simulation semantics 
+
+Joel VanderWerf
+
+
+Motivation
+
+  Existing SHIFT implementation is a PITA.
+    Eats up programmer time.
+    Reduces quality of products based on it.
+
+  Alternatives are deficient in substantive ways.
+    MATLAB/Stateflow
+      missing dynamic reconfiguration
+    Lambda SHIFT
+      difficulties inherited from Lisp
+    UML/Statechart
+      worth exploring in conjunction with
+      some form of SHIFT
+    Others?
+      
+      
+Problems with C-SHIFT
+
+  Language semantics
+    strict adherence to pure simulation semantics is a mixed blessing
+      forces you into awkward use of transitions
+        to emulate algorithmic constructs
+      forces use of external C functions
+        when you need side effects/stateful functions
+    events as syncronized transitions is a powerful mechanism
+      but hard to understand simulation behavior and hard to debug
+  
+  Libraries
+    collection and math libraries have good features, but buggy
+    many things are DIY in C:
+      files and other OS-level access, random generators, statistics, etc.
+    extensibility is limited
+      can only exchange doubles, arrays of doubles with C code
+      C code can't work with components
+    hard to get leverage from other software libraries
+  
+  Current implementation(s) has stability and maintainability problems
+    reliance on many parts
+      --> many chances for failure due to conflicts (e.g., gc and gdb)
+      this is especially bad with PC SHIFT
+    many parts were custom-built from scratch
+      parser, code generator, collection types
+      no one will maintain them except us
+    large code base (50K lines)
+    no institutional continuity
+      SHIFT is not evolving
+    coding style is sometimes poor (esp. in client-server code for TkShift)
+      patchy use of error checking, exceptions
+        error reporting is almost useless
+          ("SHIFT runtime: error: out of bounds array indexing",
+           but no line number or even file name.)
+          not to mention the dreaded and non-informative segfault,
+          or "internal compiler error".
+          Debugging with gdb fails because of an incompatibility
+            with gc, so you're left with the needle in a haystack approach
+      too many globals, not OO in place where OO is helpful
+      hard-coded buffer sizes
+    
+  Use of SHIFT as programming tool
+    coding cycle is long (a few minutes from editor to running sim)
+      no way to separately compiler parts of a simulation
+    debugging is hard
+      no way to step thru checking guard conditions
+    no dynamic access to simulation
+      change vars, redefine flows/transitions
+      run scripts (e.g., montecarlo, or data collection)
+    no way to select different integration methods to improve performance
+  
+  SHIFT is good at the HS component level, but not good at the application level
+    hard to talk about HSs and how they make up an application
+  
+  SHIFT is not good with complex discrete behavior.
+    Continuous models map very easily to SHIFT code.
+    Discrete models do not.
+      (Experience with PassengerQueue, Signal,
+        Source/merging in mou366, Paul's ACC merge,
+        maneuvers in TASIM)
+      See comments sent to Jim re: SmartBRT project.
+
+These are all good reasons to use Lisp. Why Ruby?
+
+  Not better ideas than Lisp, but in a more useful package.
+    see article "evolving lisp" on comp.lang.lisp by Miles Egan, May 20, 2001
+      good summary of Lisp's weaknesses w.r.t. Perl/Python/Ruby
+      from point of view of Lisp proponent
+      
+  see:
+    http://www.itworld.com/AppDev/1262/itw-0314-rcmappdevint/
+
+  several divergent implementations of "Common" Lisp
+    Allegro Common Lisp is expensive
+      this is now the only Lisp that fully supports Lambda-SHIFT
+    CMUCL is not available on Windows
+    interfaces to C and other external tools and protocols not standard
+      this affects gui, networking, persistence
+      depend on implementation and platform
+    
+  Ruby
+    one implementation
+      concentrates efforts of developers and extension writers
+    open-source, freely available
+    permissive license (Not GPL)
+    cross-platform: Unix, Windows, Mac OS X
+
+    C interface is
+      powerful: C code can do what Ruby code can do
+      relatively seamless: less interface glue than other languages
+      dynamic: can compile and load C functions at run-time
+
+    support for many extensions
+      gui libraries (Tk, Gtk, FOX, Fltk)
+      files and processes, network protocols, databases
+      some math library support developing (LAPACK for matrices)
+
+    syntax
+      readability to non-specialists (like Python)
+      easy to build user-oriented languages (for example MC spec language)
+        and command-line interfaces
+
+    object model is clean, powerful (like Common Lisp, almost)
+      everything is object (like Smalltalk)
+
+    state-of-the-art features for:
+      exception handling
+      collections and iteration
+      garbage collection
+      threading
+      namespace management (modules, public/protected/private, alias)
+      text file processing (like Perl, but more consistent)
+
+    compact implementation
+      RedShift is 1000 lines vs. 30000 for comparable part of c-shift
+      (written in about 5 days)
+    
+What do we lose?
+  clean syntax (slightly less clean)
+  pure semantics (but more flexible as a programming tool)
+  
+  SmartAHS
+    but porting to RedShift aided by similar syntax
+    
+  execution speed
+    for integration-heavy simulation, 10X slower than C-SHIFT.
+    
+    But:
+      not so bad for discrete
+      collection (set/array) operations are probably
+        comparable, if not better
+    
+      as cpu speed gets cheaper and labor more expensive/scarce
+        it makes sense to choose a programmer-optimzed tool
+        rather than a cpu-optimized tool
+
+      also, there are several possible ways to improve performance
+        Euler flows--this works now
+        generate C code, compile, and load dynamic library
+          in principle, possible, but might be hard
+          (UPDATE: in progress, outlook excellent)
+        interface to C-SHIFT--might not be worth it.
+        
+References
+    www.ruby-lang.org
+    www.rubycentral.com
+
+Appendix I: From the Ruby NG FAQ:
+
+    Ruby is a very high level, fully OO programming language. Indeed,
+    Ruby is one of the relatively few pure OO languages. Yet despite
+    its conceptual simplicity, Ruby is still a powerful and practical
+    "industrial strength" development language.
+
+    Ruby selectively integrates many good ideas taken from Perl,
+    Python, Smalltalk, Eiffel, ADA, Clu, and Lisp.  (Ruby is more
+    fully OO than Python in so far as basic types such as hashes can
+    be subclassed. See Ruby FAQ 1.4.) Ruby combines these ideas in a
+    natural, well-coordinated system that embodies the principles of
+    least effort and least surprise to a substantially greater extent
+    than most comparable languages--i.e. you get more bang for your
+    buck, and what you write is more likely to give you what you
+    expected to get.  Ruby is thus a relatively easy to learn, easy to
+    read, and easy to maintain language, yet it is very powerful and
+    sophisticated.
+
+    In addition to common OO features, Ruby also has threads,
+    singleton methods, mix-ins, fully integrated closures and
+    iterators, plus proper meta-classes.   Ruby has a true
+    mark-and-sweep garbage collector, which makes code more reliable
+    and simplifies writing extensions.  In summary, Ruby provides a
+    very powerful and very easy to deploy "standing on the shoulders
+    of giants" OO scaffolding/framework so that you can more quickly
+    and easily build what you want to build, to do what you want to
+    do.
+
+    You will find many former (and current) Perl, Python, Java, and
+    C++ users on comp.lang.ruby that can help you get up to speed in
+    Ruby.
+
+    Finally, Ruby is an "open source" development programming
+    language.

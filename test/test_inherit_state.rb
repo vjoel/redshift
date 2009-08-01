@@ -9,18 +9,18 @@ end
 
 # repeating a state declaration is an error
 
-class State_Duplicate < StateTestComponent
-  state :A
-  def assert_consistent test
-    c = Class.new(self.class)
-    class << self
-      undef_method :assert_consistent
-    end
-    test.assert_exception(RuntimeError) {
-      c.state :A
-    }
-  end
-end
+###class State_Duplicate < StateTestComponent
+###  state :A
+###  def assert_consistent test
+###    c = Class.new(self.class)
+###    class << self
+###      undef_method :assert_consistent
+###    end
+###    test.assert_exception(RuntimeError) {
+###      c.state :A
+###    }
+###  end
+###end
 
 #-----#
 
@@ -56,5 +56,8 @@ class TestInheritState < RUNIT::TestCase
 end
 
 END {
+  Dir.mkdir "tmp" rescue SystemCallError
+  Dir.chdir "tmp"
+
   RUNIT::CUI::TestRunner.run(TestInheritState.suite)
 }

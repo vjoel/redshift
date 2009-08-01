@@ -1,0 +1,103 @@
+  differences from cshift
+    simulation semantics
+      event semantics like lambda-shift
+      no static creation of components
+        must create world first
+        philosophy:
+          Component *definitions* precede World *specification*
+    programming language semantics
+      input/output/connect not needed because vars are untyped
+/     inheritance
+      transition, flow, etc. are *commands* and so can happen within loops...
+    reflection: iterating over transitions, flows, components, etc.
+    no mixing scopes in create, as in "create(Foo, x := x)"
+    warning about:
+      'self.x = ...'
+      associativity of and/or
+      C-like operators (i.e., = and == vs. := and =)
+        but no ++, --, only +=, -=, etc.
+      truth values
+      names w/ capitals etc.
+      fixnums vs. floats
+        fix / fix ==> fix
+        (maybe setters should check for this? -- they do with cshadow)
+        not a problem if require 'mathn'
+      fwd refs
+      no error checking with "@x = ..." if x doesn't already exist
+      can't statically create objects (because of cgen) until
+        all classes have been defined
+        use setup clauses (?)
+    during discrete phase, cached algebraic flows do not change
+      they do not have function semantics
+      evaluated only once per timestep
+        no extra side effects, faster
+        leads to small error when used with rk4
+    world.clock shouldn't be used during rk
+      use a timer based on an EulerFlow
+
+===semicolons
+  (or should this go in syntax.txt?)
+      
+===Enter state
+
+In SHIFT, a component starts out in the first state listed in the "discrete <name>, <name>, ..." clause. In RedShift, states are inherited, so "first state listed" becomes ambiguous: is it the first state listed in the superclass, in the subclass, or something else. To solve this problem, the base Component class defines an Enter state which is, by default, the state the component starts out in. To change the default, you can call the start method in the defaults or setup block or in the create block (but nowhere else):
+
+  class Foo < Component
+    state :A, :B
+    default { start A }   # lets user change default when creating a Foo
+#   setup { start A }     # would prevent user from changing start state
+  end
+
+Or you can transition to the state you want.
+
+Enter is also the default state used by the "flow" construct. This can be very convenient. If a component class doesn't need more than one state, it is possible to express it very simply:
+
+  class Foo < Component
+    flow { diff "x' = y", "y' = 1" }
+  end
+
+
+
+===Exit state
+
+Like SHIFT, RedShift 
+
+===Defaults, setup, and the block passed to create
+
+SHIFT has three ways to initialize:
+
+  type T {
+    state number x := 1; // (1)
+    setup do {
+      x := 3; // (3)
+    }
+  }
+   ... = create(T, x := 2); // (2)
+
+These operate in the order (1), (2), (3). (CHECK THIS)
+
+RedShift has a similar order of initialization:
+
+  class C < Component
+    # assume a flow or something to define x
+    default { self.x = 1 } # (1)
+    setup { self.x = 3 } # (3)
+  end
+   ... = world.create(C) { self.x = 2 } # (2)
+
+This can be used to give the component class a chance to check and modify the create-block:
+
+  default { self.x = 0 }; setup { if x > 1000 then x = 1000 end }
+
+section on cshift examples translated to redshift
+
+== non-continuous variables
+
+Use @x, @y, @Fred_Flintstone, etc. These don't need to be declared, and can hold any kind of value. Think of them as pointers, except when the value is a number.
+
+You can make these accessible to other objects with
+  attr_reader :x
+  attr_writer :y
+  attr_accessor :Fred_Flintstone
+
+There are a few you can't use: @state is the internal variable that the state method uses. WHAT ELSE? CAN WE HAVE CHECKS FOR THIS?

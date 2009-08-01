@@ -1,0 +1,223 @@
+=begin
+
+To do: read syntax.rb!
+
+= RedShift Syntax
+
+RedShift is embedded in Ruby, and Ruby has no ability, short of preprocessing, to extend its syntax. However, Ruby's syntax is rich and somewhat malleable.  Clever uses of blocks 'method { ... }' and hashes 'x => y', particularly, can emulate syntactic constructs of other langauges. As a last resort, RedShift simply uses strings (as in the case of flows).
+
+RedShift syntax is therefore hard to describe formally. This is compounded by the fact that, currently, the only definitive reference on Ruby syntax is the lexer and parser source code.
+
+==Some general Ruby syntax principles:
+
+1. Line breaks are significant; they end an expression unless the parser expects additional terms. You can force continuation with a '\'. A useful trick in numerical expressions is to end the line with an operator:
+
+  x = 1 + 2 +
+      3 + 4
+
+or just use parens:
+
+  x = (  1 + 2
+       + 3 + 4 )
+
+Beware of {...} and do...end pairs:
+
+  setup do
+    ...
+  end
+
+is ok, but
+  setup
+    do
+      ...
+    end
+
+will not connect the code block with the setup function. The Ruby parser will report this as a syntax error, fortunately. Otherwise, whitespace is not significant to the parser:
+
+  1 .             # . operator forces line continuation
+    upto 20 do    # 'do' marks the beginning of a code block
+      |x|
+      sum     \   # explicit line continuation
+        +=        # assignment forces line continuation
+        x
+    end
+
+2. Semicolons are necessary between expressions only when separate expressions occur on the same line. In some cases, commas have the same effect
+    flow { diff "t' = 1", alg "x = 5*t" }
+    flow { diff "t' = 1"; alg "x = 5*t" }
+(TEST THIS; where else is it true, where is it false)
+
+3. Identifiers. Because of its rich syntax, Ruby places restrictions on the characters that can be used in some kinds of identifiers, so that it can disambiguate complex expressions. This also help readability, as a side effect. ...
+
+3a. self.x .
+
+4. Blocks: 'method do ... end' and 'method { ... }' are almost the same. Tow differences:
+
+* precedence: (Example)
+
+* as a result of precedence, need to enclose method args, if any, in ():
+
+  transition A => B do ... end
+
+  transition (A => B) { ... }
+  
+For this reason, and for readibility, the do...end form of RedShift constructs like setup, default(s), flow, and transition is usually preferrable.
+
+5. Comments. From # to the end of a line is a comment. If a line begins with '=begin', then all lines until a line beginning with '=end' is ignored. This is commonly used for embedded documentation, which is extracted by programs like rd2html and rdoc, which generate html documentation.
+
+6. Parens in method calls are necessary only to disambiguate.
+
+  y = sin x
+  y = sin(x)
+  y = sin x + 1 # ???
+
+Some people prefer to always use them, for clarity and to not have to worry about ambiguity.
+
+7. Numbers. Ruby accepts the usual notations as in C and other languages, with some extensions:
+
+  x = 1E-10 + -0.2E5 - 10_000 * 0x34
+  
+Note that, unlike C, Ruby supports big integers (10**100) and rationals (1/3). Rational support (require 'mathn') in the context of RedShift, at least.
+
+8. Namespaces. You have a choice: 'include RedShift' and work within the RedShift namespace, or don't include it and have to write RedShift::Component, etc. Not using the RedShift namespace avoids potential conflict between class names. In effect you are using a global namespace. You can also make your own namespaces with the Module (and Class) constructs, and include RedShift there. You can "import" from namespaces by doing 'Component = RedShift::Component' if you want to simplify notation without importing all of RedShift.
+
+9. In code blocks like do...end, {...}, begin...end, and so on, the value of the block is the value of the last expression in the block. For example:
+
+  guard do
+    range = front.pos - pos
+    range < 10
+  end
+  
+This guard clause returns true just when the range is less than 10.
+
+The only other case is 'def <method-name> ... end'. If a 'return <expr>' statement is executed, then the value of the expression is returned.
+
+10. Class and module definitions can be broken up:
+
+  in foo.rb:
+  ----------
+  class Foo < Component
+    state...
+    transition...
+  end
+  
+  in foo-flows.rb
+  ---------------
+  class Foo < Component
+    flow...
+  end
+
+11. The syntax
+
+ something a => b, c=>d, ...
+
+is implemented with a hash. This means that "a=>b, a=>d" is not going to produce two options. (GOTCHA list)
+
+12. Closures.
+
+  for s in [State1, State2, ...]
+    transition State0 => s do
+      guard { s == @next_state }
+    end
+  end
+
+(GOTCHA list)
+
+THESE SHOULD GO SOMEWHERE ELSE OR CHANGE THE NAME OF THIS FILE:
+
+numbers and symbols have immutable value semantics, almost all other objects have mutable reference semantics.
+
+'if cond ... end' without an else clause has value nil if cond is false
+
+nil and false are the only false values. 0 is not false. all other values (including true) function as true in logical operators and if statements
+
+==Some general RedShift syntax principles:
+
+1. Clauses don't have to be unique within a class definition: this applies to flow, transtion, setup, default, state clauses. This can let you make your code more readable, keeping related things together.
+
+== States
+
+RedShift defines a constant in the scope of the Component class where the state exists. Constants are upper case, so this is good for readability. In a statements like transition a => b, you know that a and b are variables referring to states. ...
+
+The first reference to a state is as a symbol, like :Stopped. This is because you are providing a name to a method that is creating the state object. Later references are to the state object itself, usually by way of a constant witht eh same name, like Stopped.
+
+== Transitions
+
+  transition (A => B, C => D, ...) {
+    name    <name>
+    guard   <guard>
+    action  <action>
+    events  <event-list>
+  }
+
+another form:
+
+  transition A => B, C => D, ... do
+    ...
+  end
+
+aliases:  event   for   events
+          watch   for   guard
+          on      for   guard
+
+degenerate cases:
+  if edges are omitted, but the block is given, the default edge Enter => Enter is assumed.
+  if the block is omitted, but some edges are given, a transition is attached to those edges which has no guard, no action, and no events, and whose name is :Always. (This transition is also accessible in the constant RedShift::Always.)
+
+If name is omitted, it is generated.
+
+Supplying more than one edge as in '(A => B, C => D)' is just shorthand for two separate transition definitions.
+
+Note that the code block is executable, so the following is acceptable:
+
+  transition A => B do
+    if TESTING_FLAG
+      action { ... }
+    end
+  end
+
+== Assignment
+
+=== Assignment to component variables
+
+self.x vs. x
+
+=== Parallel assignment
+
+RedShift's action and reset clauses are sequential, unlike SHIFT's, which are parallel. However, parallel assignment is possible in Ruby. The following transition definition in SHIFT translates easily:
+
+  transition A -> B {}
+    define {
+      number angle := ...;
+      number delta_x := r * cos(angle); // sequential!
+      number delta_y := r * sin(angle);
+    }
+    do {
+      x := -y + delta_x;                // parallel!
+      y := -x + delta_y;
+    };
+
+In RedShift, this might be written as:
+
+  transition A => B do
+    angle = ...
+    delta_x = r * cos(angle)            # sequential!
+    delta_y = r * sin(angle)
+    self.x, self.y =
+      -y + delta_x, -x + delta_y        # parallel!
+  end
+
+Setup clauses translate similarly.
+
+== Setup and defaults blocks
+
+default is alias for defaults
+multiple allowed. Allows keeping initialization near equations:
+
+  flow { diff "y' = 2y" }; default { self.y = 1 }
+
+and:
+
+  state :A, :B, :C; default { @state = B }
+
+=end

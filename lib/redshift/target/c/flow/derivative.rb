@@ -13,11 +13,7 @@ module RedShift; class DerivativeFlow
       # We need the struct
       shadow_library_source_file.include(cl.shadow_library_include_file)
       
-      # Make sure we have a scratch var (other flows on this var can use it).
-      scratch_name = "#{var_name}_scratch"
-      cl.class_eval do
-        shadow_attr :nonpersistent, scratch_name => "double #{scratch_name}"
-      end
+      scratch_name = cl.scratch_for var_name
       
       shadow_library_source_file.define(flow_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"

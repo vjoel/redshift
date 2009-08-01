@@ -140,9 +140,11 @@ module RedShift; class DelayFlow
                 shadow->#{offsetname} = offset;
                 shadow->#{delayname} = delay;
               }
-              
-              // ## check if state changed recently--clear old hist
             }
+            
+            // ## Check if buffer is stale, and advance as needed?
+            // ## This might be correct if A => B => A, staying in B
+            // ## for time > 0, and B doesn't delay this var.
 
             offset = (offset + 4) % len;
             shadow->#{offsetname} = offset;

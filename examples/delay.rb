@@ -7,7 +7,10 @@ class C < Component
   constant :pi => Math::PI
   constant :d => 0.3
 
-  flow do
+  state :A, :B
+  start A
+  
+  flow A, B do
     diff   "       t' = 1 "
     alg    "       u  = sin(t*pi/2) "
     alg    " shift_u  = sin((t-d)*pi/2) " # u shifted by d
@@ -18,10 +21,11 @@ class C < Component
 
   constant :new_d => 0.5  # change this to see how varying delay works
   constant :t_new_d => 5.0
-  transition do
-    guard "t > t_new_d && d != new_d"
+  transition A => B do
+    guard "t >= t_new_d"
     reset :d => "new_d"
   end
+  # Note that the buffered u values are preserved in the transition
 end
 
 world = World.new

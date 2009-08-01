@@ -1,3 +1,7 @@
+redshift 1.2.16
+
+- Fixed bugs with delay flow and transition between 2 states.
+
 redshift 1.2.15
 
 - Derivative flows can be arbitrary expressions.

@@ -320,6 +320,16 @@ module RedShift
         @cont_state_class ||= ContState.make_subclass_for(self)
       end
       
+      # Add a scratch variable of type double to the component's
+      # shadow. Returns the var name. The scratch var is nonpersistent and
+      # not accessible. The scratch var may be read/written by whatever flow
+      # controls +var_name+; the value is preserved during the continuous step.
+      def scratch_for var_name
+        scratch_name = "#{var_name}_scratch"
+        shadow_attr :nonpersistent, scratch_name => "double #{scratch_name}"
+        scratch_name
+      end
+
       def define_continuous(kind, var_names)
         var_names.collect do |var_name|
           var_name = var_name.intern if var_name.is_a? String

@@ -1,5 +1,8 @@
 class RedShift::Library
   def define_buffer
+    return if @define_buffer
+    @define_buffer = true
+    
     include_file, source_file = add_file "buffer"
 
     include_file.declare :Buffer => %{

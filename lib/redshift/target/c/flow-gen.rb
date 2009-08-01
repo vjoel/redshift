@@ -12,7 +12,8 @@ module RedShift; class Flow
     translation = {}
     setup = []    ## should use accumulator
     
-    c_formula ||= @formula.dup
+    c_formula ||= @formula
+    c_formula = c_formula.dup
     strict = true
     
     re = /(?:([A-Za-z_]\w*)\.)?([A-Za-z_]\w*)(?!\w*\s*[(])/

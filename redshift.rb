@@ -10,8 +10,8 @@ class Object
   end
   
   class AssertionFailure < StandardError; end
-  def assert(msg=nil,&bl)
-    unless bl.call
+  def assert(test, msg=nil)
+    unless test
       if msg
         raise AssertionFailure, msg
       else

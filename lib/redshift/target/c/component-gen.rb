@@ -126,11 +126,22 @@ module RedShift
       include CShadow; shadow_library Component
 
       ## maybe this should be in cgen as "shadow_aligned N"
-      unless /mswin/i =~ RUBY_PLATFORM
+      if /mswin/i =~ RUBY_PLATFORM
+        shadow_struct.declare :begin_vars =>
+          "double begin_vars" ### wasted
+        
+        Component.shadow_library_include_file.declare :first_cont_var => '
+          #define FIRST_CONT_VAR(shadow) (*(1+&shadow->cont_state->begin_vars))
+        '
+      else
         shadow_struct.declare :begin_vars =>
           "struct {} begin_vars __attribute__ ((aligned (8)))"
           # could conceivably have to be >8, or simply ((aligned)) on some
           # platforms but this seems to work for x86 and sparc
+
+        Component.shadow_library_include_file.declare :first_cont_var => '
+          #define FIRST_CONT_VAR(shadow) (shadow->cont_state->begin_vars)
+        '
       end
       
       class_superhash :vars
@@ -602,7 +613,7 @@ module RedShift
 
         //# Cache flows.
         var_count = shadow->var_count;
-        vars = (ContVar *)(&shadow->cont_state->begin_vars);
+        vars = (ContVar *)&FIRST_CONT_VAR(shadow);
 
         for (i = 0; i < var_count; i++) {
           vars[i].flow = 0;
@@ -654,7 +665,7 @@ module RedShift
   #    
   #    body %{
   #      var_count = shadow->type_data->var_count;
-  #      vars = (ContVar *)(&shadow->cont_state->begin_vars);
+  #      vars = (ContVar *)&FIRST_CONT_VAR(shadow);
   #      for (i = 0; i < var_count; i++)
   #        if (vars[i].algebraic)
   ## also check d_tick

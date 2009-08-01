@@ -58,11 +58,11 @@ class World
     }
   end
   
-  sf = shadow_library_source_file
-  sf.declare :get_shadow => %{
-    inline ComponentShadow *get_shadow(VALUE comp)
+  slif = shadow_library_include_file
+  slif.declare :get_shadow => %{
+    inline static ComponentShadow *get_shadow(VALUE comp)
     {
-      assert(rb_obj_is_kind_of(comp, #{sf.declare_class Component}));
+      assert(rb_obj_is_kind_of(comp, #{slif.declare_class Component}));
       return (ComponentShadow *)DATA_PTR(comp);
     }
   }
@@ -87,7 +87,7 @@ class World
         for (ci = 0; ci < len; ci++) {
           Data_Get_Struct(comp_ary[ci], ComponentShadow, comp_shdw);
           var_count = comp_shdw->var_count;
-          var = (ContVar *)(&comp_shdw->cont_state->begin_vars);
+          var = (ContVar *)(&FIRST_CONT_VAR(comp_shdw));
           end_var = &var[var_count];
 
           while (var < end_var) {
@@ -153,27 +153,26 @@ class World
     gpi = Component::GuardPhaseItem
     epi = Component::EventPhaseItem
     
-    # put these in another include file?
     parent.declare :step_discrete_subs => %{
-      inline VALUE cur_procs(ComponentShadow *comp_shdw)
+      inline static VALUE cur_procs(ComponentShadow *comp_shdw)
       {
         VALUE procs = RARRAY(comp_shdw->phases)->ptr[comp_shdw->cur_ph];
         assert(RBASIC(procs)->klass == ProcClass);
         return procs;
       }
-      inline VALUE cur_events(ComponentShadow *comp_shdw)
+      inline static VALUE cur_events(ComponentShadow *comp_shdw)
       {
         VALUE events = RARRAY(comp_shdw->phases)->ptr[comp_shdw->cur_ph];
         assert(RBASIC(events)->klass == EventClass);
         return events;
       }
-      inline VALUE cur_resets(ComponentShadow *comp_shdw)
+      inline static VALUE cur_resets(ComponentShadow *comp_shdw)
       {
         VALUE resets = RARRAY(comp_shdw->phases)->ptr[comp_shdw->cur_ph];
         assert(RBASIC(resets)->klass == ResetClass);
         return resets;
       }
-      inline void move_comp(VALUE comp, VALUE list, VALUE next_list)
+      inline static void move_comp(VALUE comp, VALUE list, VALUE next_list)
       {
         struct RArray *nl = RARRAY(next_list);
         assert(RARRAY(list)->ptr[RARRAY(list)->len-1] == comp);
@@ -183,13 +182,13 @@ class World
           nl->ptr[nl->len++] = comp;
         --RARRAY(list)->len;
       }
-      inline void move_all_comps(VALUE list, VALUE next_list)
+      inline static void move_all_comps(VALUE list, VALUE next_list)
       { //## this could be faster using memcpy
         struct RArray *l = RARRAY(list);
         while (l->len)
           move_comp(l->ptr[l->len-1], list, next_list);
       }
-      inline void remove_comp(VALUE comp, VALUE list)
+      inline static void remove_comp(VALUE comp, VALUE list)
       {
         ComponentShadow *comp_shdw = get_shadow(comp);
         assert(RARRAY(list)->ptr[RARRAY(list)->len-1] == comp);
@@ -197,7 +196,7 @@ class World
         comp_shdw->world = Qnil;
         --RARRAY(list)->len;
       }
-      inline double eval_expr(VALUE comp, VALUE expr)
+      inline static double eval_expr(VALUE comp, VALUE expr)
       {
         double (*fn)(ComponentShadow *), rslt;
         assert(rb_obj_is_kind_of(expr, ExprWrapperClass));
@@ -206,7 +205,7 @@ class World
         rslt = (*fn)(get_shadow(comp));
         return rslt;
       }
-      inline int test_cexpr_guard(VALUE comp, VALUE guard)
+      inline static int test_cexpr_guard(VALUE comp, VALUE guard)
       {
         int (*fn)(ComponentShadow *), rslt;
         assert(rb_obj_is_kind_of(guard, GuardWrapperClass));
@@ -215,7 +214,7 @@ class World
         rslt = (*fn)(get_shadow(comp));
         return rslt;
       }
-      inline int test_event_guard(VALUE comp, VALUE guard)
+      inline static int test_event_guard(VALUE comp, VALUE guard)
       {
         VALUE link  = RARRAY(guard)->ptr[#{gpi::LINK_OFFSET_IDX}];
         VALUE event = RARRAY(guard)->ptr[#{gpi::EVENT_INDEX_IDX}];
@@ -228,7 +227,8 @@ class World
 
         return event_value != Qnil; //# Qfalse is a valid event value.
       }
-      inline int guard_enabled(VALUE comp, VALUE guards, int started_events)
+      inline static int guard_enabled(VALUE comp, VALUE guards,
+                                      int started_events)
       {
         int i;
         assert(BUILTIN_TYPE(guards) == T_ARRAY);
@@ -265,7 +265,8 @@ class World
         }
         return 1;
       }
-      inline void start_trans(ComponentShadow *comp_shdw,
+      inline static void start_trans(ComponentShadow *comp_shdw,
+                              #{World.shadow_struct.name} *shadow,
                               VALUE trans, VALUE dest, VALUE phases)
       {
         comp_shdw->trans  = trans;
@@ -274,7 +275,8 @@ class World
         comp_shdw->cur_ph = -1;
         //%% hook_start_transition(comp_shdw->self, trans, dest);
       }
-      inline void finish_trans(ComponentShadow  *comp_shdw)
+      inline static void finish_trans(ComponentShadow  *comp_shdw,
+                               #{World.shadow_struct.name} *shadow)
       { //## should this be deferred to end of step? (in case alg flow
         //## changes discretely)
         //%% hook_finish_transition(comp_shdw->self, comp_shdw->trans,
@@ -289,7 +291,7 @@ class World
         comp_shdw->dest   = Qnil;
         comp_shdw->phases = Qnil;
       }
-      inline void enter_next_phase(VALUE comp, VALUE list,
+      inline static void enter_next_phase(VALUE comp, VALUE list,
                                    #{World.shadow_struct.name} *shadow)
       {
         ComponentShadow *comp_shdw = get_shadow(comp);
@@ -312,7 +314,7 @@ class World
               remove_comp(comp, list);
             else
               move_comp(comp, list, shadow->next_G);
-            finish_trans(comp_shdw);
+            finish_trans(comp_shdw, shadow);
           }
         }
         else {
@@ -412,7 +414,7 @@ class World
               phases  = ptr[--len];
               dest    = ptr[--len];
               trans   = ptr[--len];
-              start_trans(comp_shdw, trans, dest, phases);
+              start_trans(comp_shdw, shadow, trans, dest, phases);
               all_were_g = 0; //## better name? no_trans? sleep?
               break;
             }
@@ -521,7 +523,7 @@ class World
         //%% hook_enter_reset_phase();
         shadow->discrete_phase = reset_phase_sym;
         EACH_COMP_DO(shadow->curr_R) {
-          ContVar  *var     = (ContVar *)(&comp_shdw->cont_state->begin_vars);
+          ContVar  *var     = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
           VALUE     resets  = cur_resets(comp_shdw);
 
           ptr = RARRAY(resets)->ptr;
@@ -555,7 +557,8 @@ class World
               }
               
               //%% hook_do_reset(comp,
-              //%%   rb_funcall(comp_shdw->cont_state->self,#{declare_symbol :var_at_index},1,INT2NUM(i)),
+              //%%   rb_funcall(comp_shdw->cont_state->self,//
+              //%%              #{declare_symbol :var_at_index},1,INT2NUM(i)),
               //%%   rb_float_new(new_value));
               var->value_1 = new_value;
             }
@@ -563,7 +566,7 @@ class World
         }
 
         EACH_COMP_ADVANCE(shadow->curr_R) {
-          ContVar  *var     = (ContVar *)(&comp_shdw->cont_state->begin_vars);
+          ContVar  *var     = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
           VALUE     resets  = cur_resets(comp_shdw);
 
           len = RARRAY(resets)->len;
@@ -585,22 +588,24 @@ class World
 
       //%% hook_end();
     }
-    def self.to_s
-      # at this point, we know the definition is complete
+    
+    # only call this when all defs have been added
+    def parent.to_s
       @cached_output ||= super
     end
   end
 
-  prefix = /\Ahook_/ ## better name?
-  any_hook = /\bhook_\w+/
+  hook = /\bhook_\w+/
   world_classes = World.subclasses + [World]
-  hooks = Hash.new {|h,cl| h[cl] = cl.instance_methods(true).grep(prefix).sort}
+  hooks = Hash.new {|h,cl| h[cl] = cl.instance_methods(true).grep(hook).sort}
   hooks[World.superclass] = nil
   known_hooks = nil
+  
   world_classes.each do |cl|
     cl_hooks = hooks[cl]
     next if hooks[cl.superclass] == hooks[cl]
-    cl.instance_eval do
+    
+    cl.class_eval do
       shadow_library_source_file.include(Component.shadow_library_include_file)
       
       if (instance_methods(false) + protected_instance_methods(false) +
@@ -611,24 +616,31 @@ class World
       meth = define_c_method(:step_discrete, &discrete_step_definer)
       private :step_discrete
       
-      meth_str = meth.to_s
-      known_hooks ||= meth_str.scan(any_hook)
-      unknown_hooks = cl_hooks - known_hooks
-      
-      unless unknown_hooks.empty?
-        warn "Unknown hooks:\n  #{unknown_hooks.join("\n  ")}"
-      end
-      
-      hook_pat = /\/\/%%\s*(#{cl_hooks.join("|")})\(((?:.|\n\s*\/\/%%)*)\)/
-      meth_str.gsub!(hook_pat) do |match|
-        hook = $1
-        argstr = $2.delete("//%%")
-        args = argstr.split(/,\s+/)
-          # crude parser--no ", " within args, but may be multiline
-        args.unshift(args.size)
-        ## enclose the following in if(shadow->hook) {...}
-        %{rb_funcall(shadow->self, #{meth.declare_symbol hook},
-             #{args.join(", ")})}
+      before_commit do
+        # at this point, we know the file is complete
+        file_str = meth.parent.to_s
+        
+        known_hooks ||= file_str.scan(hook)
+        unknown_hooks = cl_hooks - known_hooks
+
+        unless unknown_hooks.empty?
+          warn "Unknown hooks:\n  #{unknown_hooks.join("\n  ")}"
+        end
+
+        hook_pat = /\/\/%%\s*(#{cl_hooks.join("|")})\(((?:.|\n\s*\/\/%%)*)\)/
+        file_str.gsub!(hook_pat) do
+          hook = $1
+          argstr = $2.gsub(/\/\/%%/, "")
+          args = argstr.split(/,\s+/)
+          args.each {|arg| arg.gsub(/\/\/.*$/, "")}
+            # crude parser--no ", " within args, but may be multiline
+            # and may have "//" comments, which can be used to extend an arg
+            # across lines (see hook_do_reset).
+          args.unshift(args.size)
+          ## enclose the following in if(shadow->hook) {...}
+          %{rb_funcall(shadow->self, #{meth.declare_symbol hook},
+               #{args.join(", ")})}
+        end
       end
     end
   end

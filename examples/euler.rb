@@ -26,10 +26,10 @@ end
 require 'sci/plot'
 include Plot::PlotUtils
 
-gnuplot do
-  command %{set title "Euler Integration"}
-  command %{set xlabel "time"}
-  add x, %{title "x" with lines}
-  add y, %{title "y" with lines}
-  add z, %{title "z" with lines}
+gnuplot do |plot|
+  plot.command %{set title "Euler Integration"}
+  plot.command %{set xlabel "time"}
+  plot.add x, %{title "x" with lines}
+  plot.add y, %{title "y" with lines}
+  plot.add z, %{title "z" with lines}
 end

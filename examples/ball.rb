@@ -1,13 +1,10 @@
 #!/usr/bin/env ruby
 require 'redshift'
-require 'plot/plot'
 
 include RedShift
 
 class Observer < Component
-
-  attr_accessor :ball
-  
+  link :ball => :Ball
   state :Observing
   
   transition Enter => Observing
@@ -21,35 +18,30 @@ class Observer < Component
     guard {world.clock >= 20.0}
     action {print "\n\n ***** Observer leaving.\n\n"}
   end
-  
 end
 
 class Ball < Component
-
-  attr_accessor :a
-  
+  constant :y0, :v0, :a, :bounce_count
   state :Falling, :Rising
   
   flow Falling, Rising do
-  
     differential  " y' = v "
     euler         " v' = a "
     
     euler         " t_elapsed' = 1.0 "
-    algebraic     " true_y = @y0 + @v0 * t_elapsed +
-                             0.5 * @a * t_elapsed ** 2 "
-    algebraic     " y_err = (true_y - y).abs "
-    
+    algebraic     " true_y = y0 + v0 * t_elapsed +
+                             0.5 * a * pow(t_elapsed, 2) "
+    algebraic     " y_err = fabs(true_y - y) "
   end
   
   transition Falling => Rising do
     guard {y <= 0}
     event :impact
     action {
-      @v = -v
-      @y0 = y; @v0 = v
-      @t_elapsed = 0.0
-      @bounce_count += 1
+      self.v = -v
+      self.y0 = y; self.v0 = v
+      self.t_elapsed = 0.0
+      self.bounce_count += 1
     }
   end
   
@@ -58,40 +50,37 @@ class Ball < Component
   end
   
   transition Rising => Exit, Falling => Exit do
-    guard {@bounce_count == 3}
+    guard "bounce_count >= 3"
   end
   
   defaults {
     start Falling
-    @y0 = 100.0
-    @v0 = 0.0
-    @a = -9.8
+    self.y0 = 100.0
+    self.v0 = 0.0
+    self.a = -9.8
   }
   
   setup {
-    @y = @y0; @v = @v0
-    @t_elapsed = 0.0
-    @bounce_count = 0
+    self.y = y0; self.v = v0
+    self.t_elapsed = 0.0
+    self.bounce_count = 0
   }
   
   def inspect
     sprintf "y = %8.4f, v = %8.4f, y_err = %8.6f%16s",
-            @y, @v, y_err, @state.name
+            y, v, y_err, state
   end
+end
 
-end # class Ball
+w = World.new
+w.time_step = 0.01
 
-w = World.new {
-  time_step 0.01
-}
-
-ball = w.create(Ball) {@a = -9.8}
-obs = w.create(Observer) {@ball = ball}
+ball = w.create(Ball) {|b| b.a = -9.8}
+obs = w.create(Observer) {|o|o.ball = ball}
 
 y = [[w.clock, ball.y]]
 
 while w.size > 0 do
-
   t = w.clock
   if t == t.floor
     print "\nTime #{t}\n"
@@ -103,8 +92,9 @@ while w.size > 0 do
   y << [w.clock, ball.y]
 end
 
-Plot.new('gnuplot') {
-  add y, 'title "height" with lines'
-  show
-  pause 5
-}
+require 'sci/plot'
+include Plot::PlotUtils
+
+gnuplot do |plot|
+  plot.add y, 'title "height" with lines'
+end

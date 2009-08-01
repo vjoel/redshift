@@ -32,7 +32,7 @@ class Component
         raise ArgumentError, "Strictness must be false or :strict"
       end
       unless vars.is_a? Hash
-        raise SyntaxError, "Arguments to link must of form :var => class, " +
+        raise SyntaxError, "Arguments to link must be of form :var => class, " +
           "where class can be either a Class or a string denoting class name"
       end
       vars.each do |var_name, var_type|
@@ -75,6 +75,7 @@ class Component
     end
 
     def attach_transitions state_pairs, new_transitions
+      new_transitions.delete_if {|t| t.guard && t.guard.any?{|g| g==false}}
       state_pairs.each do |src, dst|
         must_be_state(src); must_be_state(dst)
 

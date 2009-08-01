@@ -468,6 +468,21 @@ class Discrete_19 < DiscreteTestComponent
   end
 end
 
+# Check that false guards are never taken, but nil (empty) guards always are.
+class Discrete_20 < DiscreteTestComponent
+  transition Enter => Exit do
+    guard false
+    action { @fail = true }
+  end
+  transition Enter => Exit do
+    guard nil
+  end
+  def assert_consistent test
+    test.assert_equal(Exit, state)
+    test.assert_not(@fail)
+  end
+end
+
 =begin
 
 test timing of other combinations of

@@ -1,3 +1,9 @@
+redshift 1.2.10
+
+- Guards can now be one of: true, false, nil. Added tests for this..
+
+- Fixed examples to work with new redshift and plotting interface.
+
 redshift 1.2.9
 
 - Added examples/exernal-lib.rb and some support code.

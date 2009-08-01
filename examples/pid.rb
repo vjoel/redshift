@@ -70,12 +70,12 @@ end
 require 'sci/plot'
 include Plot::PlotUtils
 
-gnuplot do
-  command %{set title "PID control"}
-  command %{set xlabel "time"}
-  add x, %{title "x" with lines}
-  add p_out, %{title "p_out" with lines}
-  add i_out, %{title "i_out" with lines}
-  add d_out, %{title "d_out" with lines}
-  add output, %{title "output" with lines}
+gnuplot do |plot|
+  plot.command %{set title "PID control"}
+  plot.command %{set xlabel "time"}
+  plot.add x, %{title "x" with lines}
+  plot.add p_out, %{title "p_out" with lines}
+  plot.add i_out, %{title "i_out" with lines}
+  plot.add d_out, %{title "d_out" with lines}
+  plot.add output, %{title "output" with lines}
 end

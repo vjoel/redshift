@@ -51,14 +51,14 @@ end
 require 'sci/plot'
 include Plot::PlotUtils
 
-gnuplot do
-  command %{set title "Numerical differentiation"}
-  command %{set xlabel "time"}
-  add u, %{title "u" with lines}
-  add sdu, %{title "sdu" with lines}
-  add ndu, %{title "ndu" with lines}
-  add nindu, %{title "nindu" with lines}
-  add err, %{title "err" with lines}
-  add err1, %{title "err1" with lines}
-  add err2, %{title "err2" with lines}
+gnuplot do |plot|
+  plot.command %{set title "Numerical differentiation"}
+  plot.command %{set xlabel "time"}
+  plot.add u, %{title "u" with lines}
+  plot.add sdu, %{title "sdu" with lines}
+  plot.add ndu, %{title "ndu" with lines}
+  plot.add nindu, %{title "nindu" with lines}
+  plot.add err, %{title "err" with lines}
+  plot.add err1, %{title "err1" with lines}
+  plot.add err2, %{title "err2" with lines}
 end

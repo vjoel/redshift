@@ -1,3 +1,8 @@
+abort %{
+  This was an example of complex flows, back in the day when
+  flows could be arb. ruby expressions...
+}
+
 #!/usr/bin/env ruby
 require 'redshift'
 require 'plot/plot'
@@ -33,7 +38,7 @@ dataRK4 = [[curve.z.real, curve.z.image]]
 end
 
 
-MyCurve.flow (Enter) {
+MyCurve.flow(Enter) {
   euler MyCurve::MyFormula
 }
 
@@ -46,7 +51,7 @@ dataEuler = [[curve.z.real, curve.z.image]]
   dataEuler << [curve.z.real, curve.z.image]
 end
 
-Plot.new ('gnuplot') {
+Plot.new('gnuplot') {
 
   add dataRK4, 'title "Runge-Kutta 4th order" w l'
   add dataEuler, 'title "Euler" w l'

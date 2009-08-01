@@ -277,6 +277,8 @@ module TransitionSyntax
         when String;  guard << arg.strip      # "<expression>"
         when Proc;    guard << arg            # proc { ... }
         when Symbol;  guard << arg            # :method
+        when nil, true;     # no condition
+        when false;   guard << arg
         else          raise SyntaxError
         end
         ## should define, for each link, a TransitionParser method which returns

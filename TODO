@@ -24,6 +24,11 @@ Syntax
     or just use a consistent naming scheme to keep internals separate?
 
 Semantics
+
+  allow outside code to tell component to change state? send event to comp?
+
+  "finalizers" for components -- called when component exits, world
+   is finalized, or app quits
   
   abstract classes
   
@@ -32,6 +37,8 @@ Semantics
   input events (in place of interrupts?)
   
     as opposed to normal events, which are output (pull vs. push)
+    
+    but does this mean arriving events are queued?
   
   "together {}" clause in transitions
   
@@ -47,7 +54,10 @@ Semantics
   abort guards
   
   wait/sleep
-  
+    
+    in a transition, saying "sleep n" says that the component will not
+    check guards for the rest of that discrete update and for n time units.
+    
   exception handler clauses in transitions (or use interrupts?)
     on LockFailed { |var, value| ... }
   
@@ -145,8 +155,8 @@ Tools
 
   debugger mixin for World (also an executable script?)
     
-    on interrupt, world should warn if inside discrete update
-
   generalize the irb-shell.rb and TO4230 shells, and make RedShift::Shell
   
     use this in ZenoDebugger, too
+    
+    can this be a mixin for World

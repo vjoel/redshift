@@ -17,12 +17,20 @@ class A < StrictContinuityComponent
   end
   
   setup do
-    @guard_count = 0
+    @guard1_count = 0
+    @guard2_count = 0
     @x_event_time = nil
   end
   
   transition Enter => Exit do
-    guard {@guard_count += 1; x > 0.95}
+    guard {@guard1_count += 1; x > 0.95} ## use hook for this?
+    action do
+      @x_event_time = world.clock
+    end
+  end
+
+  transition Enter => Exit do
+    guard {@guard2_count += 1; x > 0.95} ## use hook for this?
     action do
       @x_event_time = world.clock
     end
@@ -32,7 +40,11 @@ class A < StrictContinuityComponent
     case state
     when Enter
       # Should not check the guard more than once per step, or so.
-      test.assert(@guard_count <= world.step_count + 1)
+      test.assert(@guard1_count <= world.step_count + 1)
+      test.assert(@guard1_count >= world.step_count)
+      
+      test.assert(@guard2_count <= world.step_count + 1)
+      test.assert(@guard2_count >= world.step_count)
     when Exit
       test.assert_equal(1.0, @x_event_time)
     
@@ -104,4 +116,3 @@ class TestStrictContinuity < Test::Unit::TestCase
     assert(b)
   end
 end
-

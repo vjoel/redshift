@@ -15,6 +15,11 @@ class ZWorld < World
   # debugging shell.
   include ZenoDebugger
   
+  # Try commenting out the action clause in Z. Without the following line,
+  # the Zeno debugger will not be able to watch instances of Z. The cost
+  # of this line is a recompilation and a small run-time speed cost.
+#  include ZenoDebugger_DetectEmptyTransitions
+  
   def report_zeno
     super # the normal zeno output
     
@@ -43,7 +48,7 @@ world.zeno_limit = 10
 world.debug_zeno = true
 # After zeno_limit steps, RedShift starts calling world.step_zeno
 
-world.debug_zeno_limit = Infinity
+world.debug_zeno_limit = ZENO_UNLIMITED
 # The user is in control.
 
 world.create(Z)

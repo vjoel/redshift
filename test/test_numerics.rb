@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+require 'mathn' # Use rationals for 1/2 etc.
+
 require 'test/unit'
 
 require 'redshift'

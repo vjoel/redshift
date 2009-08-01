@@ -7,6 +7,9 @@ include RedShift
 
 # See examples/step-discrete-hook.rb for more examples of hook methods.
 
+# Note that ruby's profiler.rb can be used to profile the ruby methods, it just
+# doesn't give any results _within_ World#step_discrete.
+
 n_components = 100
 n_seconds = 100
 $use_slow_guard = false

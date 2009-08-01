@@ -1,9 +1,10 @@
 class RedShift::World
 
   # Include this module in a World class. See example in examples/zeno.rb. Has a
-  # small performance cost, so don't use it in production runs. Note that, even
-  # without ZenoDebugger, RedShift will still detect zeno problems by raising a
-  # ZenoError when world.zeno_counter > world.zeno_limit, if zeno_limit >= 0.
+  # very small performance cost, so don't use it in production runs. Note that,
+  # even without ZenoDebugger, RedShift will still detect zeno problems by
+  # raising a ZenoError when world.zeno_counter > world.zeno_limit, if
+  # zeno_limit >= 0.
 
   module ZenoDebugger
 
@@ -17,14 +18,15 @@ class RedShift::World
     # Can be used to see which components are causing trouble.
     attr_accessor :zeno_watch_list
     
-    # How many zeno steps before the debugger gives up. Set to Infinity to debug
-    # indefinitely, e.g., for interactive mode.
+    # How many zeno steps before the debugger gives up. Set to ZENO_UNLIMITED to
+    # debug indefinitely, e.g., for interactive mode. By default, equal to 3
+    # times world.zeno_limit, so that batch runs will terminate.
     attr_accessor :debug_zeno_limit
-
+    
     def initialize
-      @debug_zeno = $REDSHIFT_DEBUG_ZENO
-      @zeno_io = $stderr
-      @zeno_watch_list = []
+      @debug_zeno       ||= $REDSHIFT_DEBUG_ZENO
+      @zeno_io          ||= $stderr
+      @zeno_watch_list  ||= []
       
       super
     end
@@ -36,22 +38,32 @@ class RedShift::World
 
     # This method is called for each discrete step after the zeno_limit has been
     # exceeded. This implementation is just one possibility, useful for
-    # debugging. One useful behavior might be to shuffle guards in the active
-    # components.
+    # debugging. One other useful behavior might be to shuffle guards in the
+    # active components.
+    #
+    # In this implementation, when the zeno_counter exceeds zeno_limit, we start
+    # to add active objects to the zeno_watch_list. When the counter exceeds
+    # two times the zeno_limit, we call report_zeno. When the counter exceeds
+    # three times the zeno_limit, we fall back to the super definition of
+    # step_zeno, which is typically to raise a ZenoError.
+    
     def step_zeno
       self.debug_zeno_limit ||= zeno_limit*3
-      if debug_zeno and zeno_counter < debug_zeno_limit
+      if debug_zeno and
+         (debug_zeno_limit == ZENO_UNLIMITED or zeno_counter < debug_zeno_limit)
         self.zeno_watch_list |= select {|c| c.trans}
         report_zeno if zeno_counter >= 2*zeno_limit
 
       else
-        super # raise ZenoError
+        super
       end
     end
     
-    ## bug: doesn't detect an active component that has no phases (other
-    ## than the guard, if any) in its transition. This could be fixed by
-    ## using fine-grained instrumentation of setp_discrete.
+    # Reports to zeno_io the list of active components. (Unless you are
+    # using ZenoDebugger_DetectEmptyTransitions, you will not see active
+    # components that take only transitions with no phases other than
+    # guards
+    
     def report_zeno
       f = zeno_io
 
@@ -67,4 +79,19 @@ class RedShift::World
 
   end
 
+  # Include this module in your World class if you want the Zeno debugger to
+  # detect components that take only transitions with no phases other than
+  # guards. Detected components will be added to the zeno_watch_list.
+  #
+  # Including this module may force a brief recompilation, which requires that a
+  # C compiler be installed.
+  #
+  # This module automatically includes ZenoDebugger, as well.
+
+  module ZenoDebugger_DetectEmptyTransitions
+    include ZenoDebugger
+    def hook_start_transition(comp, trans, dest)
+      self.zeno_watch_list |= [comp]
+    end
+  end
 end

@@ -1,7 +1,7 @@
 # Copyright (C) 2001-2004, Joel VanderWerf
 # Distributed under the Ruby license. See www.ruby-lang.org.
 
-require 'mathn'
+##require 'mathn' ## maybe this should be left to the client code to decide
 
 # Read all environment variables related to RedShift and store in globals
 ## see importenv.rb for a way to keep these in sync
@@ -88,8 +88,8 @@ module RedShift
   @library_calls = []
   
   # Defer a block until just after the library ruby code is loaded, but before
-  # commit. Necessary for defining inline C functions. Note that a whole
-  # require statement could be placed inside the with_library block.
+  # commit. Necessary for defining inline C functions or shadow_attrs. Note that
+  # a whole require statement could be placed inside the with_library block.
   def RedShift.with_library(&block)
     @library_calls << block
   end

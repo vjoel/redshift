@@ -184,7 +184,7 @@ module FlowSyntax
     
     def algebraic(*equations)
       equations.each do |equation|
-        unless equation =~ /^\s*(\w+)\s*=\s*(.*)/m
+        unless equation =~ /^\s*(\w+)\s*=\s*(.+)/m
           raise "parse error in\n\t#{equation}."
         end
         @flows << AlgebraicFlow.new($1.intern, $2.strip)
@@ -193,7 +193,7 @@ module FlowSyntax
     
     def euler(*equations)
       for equation in equations
-        unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
+        unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.+)/m
           raise "parse error in\n\t#{equation}."
         end
         @flows << EulerDifferentialFlow.new($1.intern, $2.strip)
@@ -202,10 +202,19 @@ module FlowSyntax
     
     def rk4(*equations)
       for equation in equations
-        unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
+        unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.+)/m
           raise "parse error in\n\t#{equation}."
         end
         @flows << RK4DifferentialFlow.new($1.intern, $2.strip)
+      end
+    end
+    
+    def derive(*equations)
+      for equation in equations
+        unless equation =~ /^\s*(\w+)\s*=\s*(\w+)\s*'\s*\z/m
+          raise "parse error in\n\t#{equation}."
+        end
+        @flows << DerivativeFlow.new($1.intern, $2.strip)
       end
     end
     

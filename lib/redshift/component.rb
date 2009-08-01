@@ -61,6 +61,7 @@ end
 
 class EulerDifferentialFlow < Flow; end
 class RK4DifferentialFlow < Flow; end
+class DerivativeFlow < Flow; end
 
 Always = Transition.new :Always, :guard => nil
 

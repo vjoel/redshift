@@ -1,3 +1,49 @@
+Publishing RedShift
+===================
+
+  core for 1.2 release
+
+    connect
+    queues and sleep
+    unambiguous sync
+    transition local vars
+    action %{ pseudo-c-code }
+
+  doc, tutorial, web site
+
+  tests
+
+  benchmarks
+  - compare with stateflow and simulink examples
+  - try to scale these examples up
+
+  packaging and project mgmt
+  - windows w/ several compilers
+
+  notify
+  - shift-dev folks, hs researchers (Joao Hispanha)
+  - contacts who have expressed interest in redshift or shift
+
+
+  publicize
+  - ruby-talk, sciruby
+  - public simulation lists/ngs/bbs/etc
+  - paper?
+
+  funding
+  - nsf or sbir
+  - approach potential users in industry
+    - GM, with wrapping for CarSim dll
+
+
+
+
+
+
+
+
+
+
 To do
 =====
 
@@ -122,8 +168,14 @@ Semantics
 
   a transition that can happen only once per discrete step, to easily
   prevent zeno pb (useful for utility transitions, such as output)
+  
+    better: a "pre-strict" var that can only get reset once per step
 
   per-state strictness?
+  
+  if  guard "strictvar && something" is checked and strictvar is false,
+    then the guard doesn't need to be checked again, regardless of "something"
+    similarly for:  guard "strictvar"; guard "something"
   
   "finalizers" for components -- called when component exits, world
    is finalized, or app quits

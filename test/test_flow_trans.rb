@@ -108,21 +108,25 @@ class Flow_Transition < FlowTestComponent
 end
 
 
-# Test what happens to a var when transitioning from a state in which
-# it is defined algebraically to a state in which is has no definition.
-# (This isn't quite the same as Flow_Transition.)
-
-class Flow_AlgebraicToEmptyFlow < FlowTestComponent
-  state :A, :B
-  transition Enter => A
-  transition A => B do guard {world.clock > 1} end
-  flow A do alg "x = 1" end
+# After changing out of a state with an alg flow, the variable should
+# have a value defined by that flow, even if the flow was never
+# explicitly referenced. Check that the strict optimization doesn't
+# interfere with this evaluation.
+class Flow_LeavingAlgebraic < FlowTestComponent
+  continuous :x
+  strictly_continuous :y
+  state :S, :T
+  flow S do
+    alg " x = 42 "
+    alg " y = 43 "
+  end
+  transition Enter => S, S => T
   def assert_consistent test
-    return if world.clock > 2 ## should be a way to remove this component
-    if state == B
-      test.assert_in_delta(0, x, 1E-10) ## is this what we want?
+    if state == T
+      test.assert_equal(42, x)
+      test.assert_equal(43, y)
     end
-  end  
+  end
 end
 
 

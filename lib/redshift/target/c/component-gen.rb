@@ -31,6 +31,7 @@ module RedShift
         unsigned    nested    :  1; // to catch circular evaluation
         unsigned    strict    :  1; // never changes discretely
         unsigned    ck_strict :  1; // should check strict at end of phase
+        unsigned    reset     :  1; // var is being reset
         Flow        flow;           // cached flow function of current state
         double      value_0;        // value during discrete step
         double      value_1;        // value at steps of Runge-Kutta
@@ -533,8 +534,8 @@ module RedShift
             ## use the defer mechanism from teja2hsif
             if not flow.strict and cont_var.strict?
               raise StrictnessError,
-                "Variable #{cont_var.name} in #{self} " +
-                "redefined with different strictness."
+                "Strict variable '#{cont_var.name}' in #{self} " +
+                "redefined with non-strict flow.", []
             end
           end
         end
@@ -635,7 +636,8 @@ module RedShift
       def define_reset_continuous cont_var, expr, phase
         if cont_var.strict?
           raise StrictnessError,
-            "Cannot reset strictly continuous #{cont_var} in #{self}.", []
+            "Cannot reset strictly continuous '#{cont_var.name}' in #{self}.",
+           []
         end
 
         case expr

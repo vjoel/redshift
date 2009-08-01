@@ -390,7 +390,8 @@ class Discrete_16 < DiscreteTestComponent
   end
 end
 
-# Multiple transitions in one definition are allowed.
+# Multiple transitions in one definition are allowed (but discouraged since
+# they are not checked in order).
 class Discrete_17 < DiscreteTestComponent
   state :A, :B
   transition Enter => A, A => B

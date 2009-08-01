@@ -1,3 +1,11 @@
+redshift 1.1.57
+
+- Changed behavior when leaving state in which var is defined by alg flow,
+  and entering state with no alg flow.
+
+- Resets are now allowed in algebraic state, even if the reset value will be
+  overridden by the next alg evaluation.
+
 redshift 1.1.56
 
 - Misc fixes, cleanup, and tests.

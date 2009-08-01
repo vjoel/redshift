@@ -313,6 +313,10 @@ module TransitionSyntax
       @phases << resets
     end
     
+    # each arg can be an event name (string or symbol), exported with value 
+    # +true+, or a hash of event_name => value. In the latter case, _value_
+    # can be either a Proc or a literal.
+    ## Should allow :e => c_expr as well.
     def event(*args, &bl)
       events = Component::EventPhase.new
       for arg in args

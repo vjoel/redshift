@@ -33,16 +33,15 @@ end
 class B < Component
   state :S1, :S2
   
-  flow Enter do
-    diff " x' = 3 "
-  end
-  transition Enter => S1 do
-    reset :x => 2
-  end
+  start S1
   
   flow S1 do
     alg " x = 1 "
   end
+  flow S2 do
+    alg " x = 2 "
+  end
+
   transition S1 => S2 do
     reset :x => 3
   end
@@ -117,11 +116,14 @@ class TestReset < Test::Unit::TestCase
   
   def test_reset_algebraic_flow_error
     b = @world.create(B)
-    assert_raises AlgebraicAssignmentError do
-      @world.step
-    end
+
     assert_equal(B::S1, b.state)
-      # there should have been no problem whie in Enter, where x not alg.
+    assert_equal(1, b.x)
+
+    @world.run 1
+
+    assert_equal(B::S2, b.state)
+    assert_equal(2, b.x)
   end
   
   # This is to test the expansion of the reset value cache.

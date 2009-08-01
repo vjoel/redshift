@@ -329,6 +329,19 @@ class World
         }
         return 1;
       }
+      inline static void update_all_alg_vars(ComponentShadow *comp_shdw)
+      {
+        ContVar    *vars = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
+        long        count = comp_shdw->var_count;
+        long        i;
+        for(i = 0; i < count; i++) {
+          ContVar *var = &vars[i];
+          if (var->algebraic &&
+              (var->strict ? var->d_tick == 0 : var->d_tick != d_tick)) {
+            var->flow(comp_shdw);
+          }
+        }
+      }
       inline static void start_trans(ComponentShadow *comp_shdw,
                               #{World.shadow_struct.name} *shadow,
                               VALUE trans, VALUE dest, VALUE phases)
@@ -339,11 +352,12 @@ class World
         comp_shdw->cur_ph = -1;
         //%% hook_start_transition(comp_shdw->self, trans, dest);
       }
-      inline static void finish_trans(ComponentShadow  *comp_shdw,
+      inline static void finish_trans(ComponentShadow *comp_shdw,
                                #{World.shadow_struct.name} *shadow)
       { //%% hook_finish_transition(comp_shdw->self, comp_shdw->trans,
         //%%                        comp_shdw->dest);
         if (comp_shdw->state != comp_shdw->dest) {
+          update_all_alg_vars(comp_shdw);
           comp_shdw->state = comp_shdw->dest;
           __update_cache(comp_shdw);
         }
@@ -352,8 +366,7 @@ class World
         comp_shdw->phases = Qnil;
         comp_shdw->checked = 0;
       }
-      inline static void check_strict(ComponentShadow  *comp_shdw,
-                               #{World.shadow_struct.name} *shadow)
+      inline static void check_strict(ComponentShadow *comp_shdw)
       {
         ContVar    *vars = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
         long        count = comp_shdw->var_count;
@@ -362,7 +375,7 @@ class World
           ContVar *var = &vars[i];
           if (var->ck_strict) {
             var->ck_strict = 0;
-            (*var->flow)((ComponentShadow *)comp_shdw);
+            (*var->flow)(comp_shdw);
             if (var->value_0 != var->value_1) {
               rb_funcall(comp_shdw->self,
                 #{declare_symbol :handle_strictness_error}, 3, INT2NUM(i),
@@ -611,7 +624,7 @@ class World
             finish_trans(comp_shdw, shadow);
           }
           EACH_COMP_DO(shadow->finishers) {
-            check_strict(comp_shdw, shadow);
+            check_strict(comp_shdw);
             //## optimize: only keep comps with var->ck_strict on this list
             //## option to skip this check
           }
@@ -710,14 +723,14 @@ class World
           for (i = 0; i < len; i++, var++, ptr++) {
             VALUE reset = *ptr;
             if (reset == Qnil) {
-              var->value_1 = var->value_0;
+              var->reset = 0;
             }
             else {
               double new_value;
               
-              if (var->algebraic)
-                rb_raise(#{declare_class AlgebraicAssignmentError},
-                    "variable has algebraic flow"); //## do statically?
+//##              if (var->algebraic)
+//##                rb_raise(#{declare_class AlgebraicAssignmentError},
+//##                    "reset of variable with algebraic flow"); //## do statically?
               
               switch(TYPE(reset)) {
                 case T_FIXNUM:
@@ -738,6 +751,7 @@ class World
               //%%              #{declare_symbol :var_at_index},1,INT2NUM(i)),
               //%%   rb_float_new(new_value));
               var->value_1 = new_value;
+              var->reset = 1;
             }
           }
           
@@ -830,8 +844,21 @@ class World
             VALUE     link_resets   = RARRAY(resets)->ptr[2];
 
             len = RARRAY(cont_resets)->len;
-            for (i = len; i > 0; i--, var++)
-              var->value_0 = var->value_1;
+            for (i = len; i > 0; i--, var++) {
+              if (var->reset) {
+                var->reset = 0;
+                var->value_0 = var->value_1;
+                if (var->algebraic) {
+                  if (comp_shdw->state == comp_shdw->dest) {
+                    // ### error?
+                  }
+                  else {
+                    var->algebraic = 0;
+                    // ## this is not needed in the 1-step transition model
+                  }
+                }
+              }
+            }
           }
           assign_new_constant_values(shadow);
           assign_new_links(shadow);

@@ -322,6 +322,10 @@ Implementation
 
     Current file/line position must be saved by many constructs, e.g. reset,
       so that it can be shown later if there is an error message
+    
+    use ", []" to avoid showing backtrace when it is not helpful
+    
+    exceptions in C code sometimes don't give symbolic info, like var names
 
   check against ruby 1.9
   

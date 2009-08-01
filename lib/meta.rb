@@ -29,7 +29,8 @@ class Component
         for var_name, var_type in vars
           lt = link_type[var_name]
           unless lt.is_a? Class
-            lt = link_type[var_name] = const_get(lt)
+            lt = lt.to_s.split(/::/).inject(Object) { |p, n| p.const_get(n)}  
+            link_type[var_name] = lt
           end
           shadow_attr_accessor var_name => [lt]
 

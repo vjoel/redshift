@@ -81,7 +81,7 @@ class Component
       if state
         raise RuntimeError, "Can't assign to state.\n" +
           "Occurred in initialization of component of class #{self.class}."
-      end
+      end ## is this a useful restriction?
       
       self.state = @start_state
     }
@@ -548,7 +548,8 @@ class Component
 
         if (count > var_count)
           rb_raise(#{declare_module IndexError},
-                   "Index into continuous variable list out of range.");
+                 "Index into continuous variable list out of range: %d > %d.",
+                 count, var_count);
 
         for (i = 0; i < count; i++)
           if (flows[i] != Qnil) {

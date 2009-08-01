@@ -103,6 +103,7 @@ class World
   end
 
   def create(component_class, &block)
+    raise unless component_class < Component
     c = component_class.new(self, &block)
     curr_G << c ## problem if occurs during guard?
     c

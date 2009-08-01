@@ -79,3 +79,7 @@ gnuplot do |plot|
   plot.add d_out, %{title "d_out" with lines}
   plot.add output, %{title "output" with lines}
 end
+
+if RUBY_PLATFOM =~ /win32/
+  puts "Press enter to continue"
+end

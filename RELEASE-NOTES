@@ -1,3 +1,8 @@
+redshift 1.2.17
+
+- Added examples/simulink/delay.mdl and error comparison code in
+  examples/delay.rb.
+
 redshift 1.2.16
 
 - Fixed bugs with delay flow and transition between 2 states.

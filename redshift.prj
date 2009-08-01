@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 1.2 16)
-(Parent-Version redshift 1.2 15)
+(Project-Version redshift 1.2 17)
+(Parent-Version redshift 1.2 16)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Sat, 15 Mar 2008 22:06:45 -0700")
+(Checkin-Time "Sun, 16 Mar 2008 00:31:22 -0700")
 (Checkin-Login vjoel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -304,7 +304,7 @@
 ;; Files added by populate at Thu, 16 May 2002 00:16:02 -0700,
 ;; to version 1.0.7(w), by tercel:
 
-  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.39 644))
+  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.40 644))
 
 ;; Files added by populate at Thu, 16 May 2002 00:16:26 -0700,
 ;; to version 1.0.7(w), by tercel:
@@ -508,8 +508,8 @@
 ;; Files added by populate at Sun, 02 Mar 2008 22:52:45 -0800,
 ;; to version 1.2.6(w), by vjoel:
 
-  (examples/derivative.rb (redshift/c/16_derivative 1.3 644))
-  (examples/pid.rb (redshift/c/17_pid.rb 1.2 644))
+  (examples/derivative.rb (redshift/c/16_derivative 1.4 644))
+  (examples/pid.rb (redshift/c/17_pid.rb 1.3 644))
 
 ;; Files added by populate at Tue, 04 Mar 2008 19:17:39 -0800,
 ;; to version 1.2.6(w), by vjoel:
@@ -525,7 +525,7 @@
 ;; to version 1.2.7(w), by vjoel:
 
   (examples/simulink/README (redshift/c/20_README 1.1 644))
-  (examples/simulink/derivative.mdl (redshift/c/21_derivative 1.1 755))
+  (examples/simulink/derivative.mdl (redshift/c/21_derivative 1.2 644))
 
 ;; Files added by populate at Wed, 05 Mar 2008 22:08:24 -0800,
 ;; to version 1.2.7(w), by vjoel:
@@ -548,12 +548,17 @@
   (lib/redshift/target/c/flow/delay.rb (redshift/c/29_delay.rb 1.6 644))
   (lib/redshift/target/c/flow/buffer.rb (redshift/c/30_buffer.rb 1.3 644))
   (lib/redshift/target/c/flow/algebraic.rb (redshift/c/31_algebraic. 1.2 644))
-  (examples/delay.rb (redshift/c/32_delay.rb 1.5 644))
+  (examples/delay.rb (redshift/c/32_delay.rb 1.6 644))
 
 ;; Files added by populate at Fri, 14 Mar 2008 16:58:05 -0700,
 ;; to version 1.2.12(w), by vjoel:
 
   (test/test_delay.rb (redshift/c/33_test_delay 1.2 644))
+
+;; Files added by populate at Sun, 16 Mar 2008 00:21:37 -0700,
+;; to version 1.2.16(w), by vjoel:
+
+  (examples/simulink/delay.mdl (redshift/c/34_delay.mdl 1.1 644))
 )
 (Merge-Parents)
 (New-Merge-Parents)

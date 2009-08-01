@@ -1,5 +1,9 @@
 # Numerical differentiation.
 
+# Compare with simulink/derivative.mdl -- note that redshift is more accurate
+# because the derivative flow operates at all integrator steps, not just at
+# the simulation timesteps.
+
 require 'redshift'
 include RedShift
 
@@ -62,4 +66,8 @@ gnuplot do |plot|
   plot.add err, %{title "err" with lines}
   plot.add e_ndni, %{title "e_ndni" with lines}
   plot.add e_nind, %{title "e_nind" with lines}
+end
+
+if RUBY_PLATFOM =~ /win32/
+  puts "Press enter to continue"
 end

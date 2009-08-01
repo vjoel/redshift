@@ -1,12 +1,12 @@
 Model {
-  Name			  "derivative"
+  Name			  "delay"
   Version		  6.5
   MdlSubVersion		  0
   GraphicalInterface {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.5"
+    ComputedModelVersion    "1.4"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -38,14 +38,14 @@ Model {
   StatusBar		  on
   BrowserShowLibraryLinks off
   BrowserLookUnderMasks	  off
-  Created		  "Tue Mar 04 16:30:35 2008"
+  Created		  "Sat Mar 15 23:25:09 2008"
   Creator		  "vjoel"
   UpdateHistory		  "UpdateHistoryNever"
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "vjoel"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Sun Mar 16 00:13:22 2008"
-  ModelVersionFormat	  "1.%<AutoIncrement:5>"
+  LastModifiedDate	  "Sun Mar 16 00:04:55 2008"
+  ModelVersionFormat	  "1.%<AutoIncrement:4>"
   ConfigurationManager	  "None"
   LinearizationMsg	  "none"
   Profile		  off
@@ -467,8 +467,21 @@ Model {
   }
   BlockParameterDefaults {
     Block {
-      BlockType		      Derivative
-      LinearizePole	      "inf"
+      BlockType		      Constant
+    }
+    Block {
+      BlockType		      Integrator
+      ExternalReset	      "none"
+      InitialConditionSource  "internal"
+      InitialCondition	      "0"
+      LimitOutput	      off
+      UpperSaturationLimit    "inf"
+      LowerSaturationLimit    "-inf"
+      ShowSaturationPort      off
+      ShowStatePort	      off
+      AbsoluteTolerance	      "auto"
+      IgnoreLimit	      off
+      ZeroCross		      on
     }
     Block {
       BlockType		      Scope
@@ -513,6 +526,18 @@ Model {
       SaturateOnIntegerOverflow	on
       SampleTime	      "-1"
     }
+    Block {
+      BlockType		      VariableTransportDelay
+      VariableDelayType	      "Variable time delay"
+      MaximumDelay	      "1"
+      InitialOutput	      "0"
+      MaximumPoints	      "1024"
+      FixedBuffer	      off
+      ZeroDelay		      off
+      TransDelayFeedthrough   off
+      PadeOrder		      "0"
+      AbsoluteTolerance	      "auto"
+    }
   }
   AnnotationDefaults {
     HorizontalAlignment	    "center"
@@ -532,8 +557,8 @@ Model {
     FontAngle		    "normal"
   }
   System {
-    Name		    "derivative"
-    Location		    [725, 82, 1375, 282]
+    Name		    "delay"
+    Location		    [740, 99, 1393, 457]
     Open		    on
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
@@ -548,27 +573,42 @@ Model {
     ZoomFactor		    "100"
     ReportName		    "simulink-default.rpt"
     Block {
-      BlockType		      Sin
-      Name		      "Cos"
-      Ports		      [0, 1]
-      Position		      [90, 85, 120, 115]
-      SineType		      "Time based"
-      Phase		      "pi/2"
-      SampleTime	      "0"
+      BlockType		      Constant
+      Name		      "Constant"
+      Position		      [35, 50, 65, 80]
+      Value		      "0.3"
+      VectorParams1D	      on
+      SamplingMode	      "Sample based"
+      OutDataTypeMode	      "Inherit from 'Constant value'"
+      OutDataType	      "sfix(16)"
+      ConRadixGroup	      "Use specified scaling"
+      OutScaling	      "2^0"
+      SampleTime	      "inf"
+      FramePeriod	      "inf"
     }
     Block {
-      BlockType		      Derivative
-      Name		      "Derivative"
-      Position		      [185, 40, 215, 70]
+      BlockType		      Integrator
+      Name		      "Integrator"
+      Ports		      [1, 1]
+      Position		      [245, 190, 275, 220]
+      IgnoreLimit	      off
+    }
+    Block {
+      BlockType		      Integrator
+      Name		      "Integrator1"
+      Ports		      [1, 1]
+      Position		      [120, 155, 150, 185]
+      Orientation	      "down"
+      IgnoreLimit	      off
     }
     Block {
       BlockType		      Scope
       Name		      "Scope"
       Ports		      [3]
-      Position		      [455, 83, 485, 117]
+      Position		      [450, 73, 480, 107]
       Floating		      off
-      Location		      [619, 282, 1347, 975]
-      Open		      off
+      Location		      [530, 201, 1258, 894]
+      Open		      on
       NumInputPorts	      "3"
       ZoomMode		      "yonly"
       List {
@@ -583,18 +623,41 @@ Model {
       SampleTime	      "0"
     }
     Block {
+      BlockType		      Scope
+      Name		      "Scope1"
+      Ports		      [3]
+      Position		      [505, 238, 535, 272]
+      Floating		      off
+      Location		      [530, 201, 1258, 894]
+      Open		      off
+      NumInputPorts	      "3"
+      ZoomMode		      "yonly"
+      List {
+	ListType		AxesTitles
+	axes1			"%<SignalLabel>"
+	axes2			"%<SignalLabel>"
+	axes3			"%<SignalLabel>"
+      }
+      YMin		      "-5~-5~-5"
+      YMax		      "5~5~5"
+      SaveName		      "ScopeData1"
+      DataFormat	      "StructureWithTime"
+      SampleTime	      "0"
+    }
+    Block {
       BlockType		      Sin
       Name		      "Sin"
       Ports		      [0, 1]
-      Position		      [90, 40, 120, 70]
+      Position		      [85, 15, 115, 45]
       SineType		      "Time based"
+      Frequency		      "pi/2"
       SampleTime	      "0"
     }
     Block {
       BlockType		      Sum
       Name		      "Sum"
       Ports		      [2, 1]
-      Position		      [375, 130, 395, 150]
+      Position		      [370, 120, 390, 140]
       ShowName		      off
       IconShape		      "round"
       Inputs		      "|-+"
@@ -602,27 +665,75 @@ Model {
       OutDataTypeMode	      "Inherit via internal rule"
       SaturateOnIntegerOverflow	off
     }
+    Block {
+      BlockType		      Sum
+      Name		      "Sum1"
+      Ports		      [2, 1]
+      Position		      [425, 285, 445, 305]
+      ShowName		      off
+      IconShape		      "round"
+      Inputs		      "|-+"
+      InputSameDT	      off
+      OutDataTypeMode	      "Inherit via internal rule"
+      SaturateOnIntegerOverflow	off
+    }
+    Block {
+      BlockType		      VariableTransportDelay
+      Name		      "Variable\nTime Delay"
+      Position		      [175, 22, 205, 53]
+      MaximumDelay	      "10"
+    }
+    Block {
+      BlockType		      VariableTransportDelay
+      Name		      "Variable\nTime Delay1"
+      Position		      [150, 237, 180, 268]
+      MaximumDelay	      "10"
+    }
+    Block {
+      BlockType		      Sin
+      Name		      "shifted sin"
+      Ports		      [0, 1]
+      Position		      [85, 75, 115, 105]
+      SineType		      "Time based"
+      Frequency		      "pi/2"
+      Phase		      "-0.3 * pi/2"
+      SampleTime	      "0"
+    }
     Line {
       SrcBlock		      "Sin"
       SrcPort		      1
-      DstBlock		      "Derivative"
-      DstPort		      1
+      Points		      [15, 0]
+      Branch {
+	DstBlock		"Variable\nTime Delay"
+	DstPort			1
+      }
+      Branch {
+	DstBlock		"Integrator1"
+	DstPort			1
+      }
     }
     Line {
-      SrcBlock		      "Derivative"
+      SrcBlock		      "Variable\nTime Delay"
       SrcPort		      1
-      Points		      [140, 0; 0, 35]
+      Points		      [20, 0]
       Branch {
-	DstBlock		"Scope"
-	DstPort			1
+	Points			[125, 0; 0, 40]
+	Branch {
+	  DstBlock		  "Scope"
+	  DstPort		  1
+	}
+	Branch {
+	  DstBlock		  "Sum"
+	  DstPort		  1
+	}
       }
       Branch {
-	DstBlock		"Sum"
+	DstBlock		"Integrator"
 	DstPort			1
       }
     }
     Line {
-      SrcBlock		      "Cos"
+      SrcBlock		      "shifted sin"
       SrcPort		      1
       Points		      [215, 0]
       Branch {
@@ -642,13 +753,74 @@ Model {
       DstBlock		      "Scope"
       DstPort		      3
     }
+    Line {
+      SrcBlock		      "Constant"
+      SrcPort		      1
+      Points		      [5, 0]
+      Branch {
+	Points			[80, 0; 0, -20]
+	DstBlock		"Variable\nTime Delay"
+	DstPort			2
+      }
+      Branch {
+	Points			[0, 195]
+	DstBlock		"Variable\nTime Delay1"
+	DstPort			2
+      }
+    }
+    Line {
+      SrcBlock		      "Integrator"
+      SrcPort		      1
+      Points		      [130, 0; 0, 40]
+      Branch {
+	DstBlock		"Scope1"
+	DstPort			1
+      }
+      Branch {
+	DstBlock		"Sum1"
+	DstPort			1
+      }
+    }
+    Line {
+      SrcBlock		      "Variable\nTime Delay1"
+      SrcPort		      1
+      Points		      [205, 0]
+      Branch {
+	DstBlock		"Scope1"
+	DstPort			2
+      }
+      Branch {
+	Points			[0, 65]
+	DstBlock		"Sum1"
+	DstPort			2
+      }
+    }
+    Line {
+      SrcBlock		      "Sum1"
+      SrcPort		      1
+      Points		      [20, 0; 0, -30]
+      DstBlock		      "Scope1"
+      DstPort		      3
+    }
+    Line {
+      SrcBlock		      "Integrator1"
+      SrcPort		      1
+      DstBlock		      "Variable\nTime Delay1"
+      DstPort		      1
+    }
     Annotation {
-      Name		      "Compare the thrid plot in the scope with the\n"
-"\"err\" curve in the plot generated by derivative.rb.\nThis shows that redshi"
-"ft uses rk4 steps instead of simulation\ntimesteps to yield a more accurate d"
-"erivative.\nThe difference in errors is about a factor of two."
-      Position		      [507, 51]
-      BackgroundColor	      "lightBlue"
+      Name		      "Note: 0.3 is\nhardcoded\ninside the\nshift bloc"
+"k"
+      Position		      [41, 125]
+      BackgroundColor	      "yellow"
+      UseDisplayTextAsClickCallback off
+    }
+    Annotation {
+      Name		      "Compare the 3rd plot in this scope\nwith the id"
+"di_err in delay.rb.\nRedShift is more accurate\nbecause delay flows buffer\nt"
+"he entire rk4 state, not\njust the values at the timesteps."
+      Position		      [528, 194]
+      BackgroundColor	      "cyan"
       UseDisplayTextAsClickCallback off
     }
   }

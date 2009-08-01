@@ -8,12 +8,12 @@ module RedShift
 end
 
 module RedShift; class Flow
-  def translate flow_fn, result_var, rk_level, cl, c_formula = nil
+  def translate flow_fn, result_var, rk_level, cl, orig_formula = nil
     translation = {}
     setup = []    ## should use accumulator
     
-    c_formula ||= @formula
-    c_formula = c_formula.dup
+    orig_formula ||= @formula
+    c_formula = orig_formula.dup
     strict = true
     
     re = /(?:([A-Za-z_]\w*)\.)?([A-Za-z_]\w*)(?!\w*\s*[(])/
@@ -94,6 +94,10 @@ module RedShift; class Flow
     yield strict if block_given?  ## funky way to return another value
     
     setup << "#{result_var} = #{c_formula}"
+    
+  rescue NameError, ArgumentError => ex
+    ex.message << "\nclass: #{cl.name}\nformula:\n#{orig_formula}\n\n"
+    raise ex
   end
   
   CT_STRUCT_NAME = "Context"
@@ -212,7 +216,7 @@ module RedShift; class Flow
       translation[expr] = "#{get_var_cname}(&ct)"
     
     else
-      raise "Bad var_type: #{var_type.inspect}"
+      raise ArgumentError, "Bad var_type: #{var_type.inspect}"
     end
 
     return strict

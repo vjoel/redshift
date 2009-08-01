@@ -4,13 +4,14 @@ include RedShift
 # Tests delay of continuous var.
 class DelayTestComponent < Component
   constant :pi => Math::PI
-  constant :d => 0.3
+  constant :d => 0.2
+  @@d2 = d2 = 0.1
 
   flow do
     diff   "       t' = 1      "
     alg    "       u  = sin(t*pi/2) "
-    alg    " shift_u  = sin((t-d)*pi/2) "     # u shifted by d
-    delay  " delay_u  = u + 1 ", :by => "d"   # u+1 delayed by d
+    alg    " shift_u  = sin((t-(d+#{d2}))*pi/2) " # u shifted by d+d2
+    delay  " delay_u  = u + 1 ", :by => "d+#{d2}" # u+1 delayed by d+d2
     alg    "     err  = shift_u - (delay_u - 1)"
   end
 
@@ -22,7 +23,7 @@ class DelayTestComponent < Component
   end
 
   def assert_consistent test
-    return if t < d
+    return if t <= d + @@d2
     return if t >= t_new_d and t <= t_new_d + new_d
     test.assert_in_delta(0, err, 1.0E-10)
   end

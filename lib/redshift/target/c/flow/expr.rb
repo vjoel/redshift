@@ -15,8 +15,8 @@ module RedShift; class CexprGuard
     guard_name = "guard_#{cl_cname}_#{g_cname}"
     
     Component::GuardWrapper.make_subclass guard_name do
-      @inspect_str = guard.formula.inspect
-
+      @inspect_str = "#{cl.name}: #{guard.formula}"
+ 
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
       
@@ -71,7 +71,7 @@ module RedShift; class Expr
     expr_name = "expr_#{cl_cname}_#{ex_cname}"
     
     Component::ExprWrapper.make_subclass expr_name do
-      @inspect_str = expr.formula.inspect
+      @inspect_str = "#{cl.name}: #{expr.formula}"
 
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name

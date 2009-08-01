@@ -89,16 +89,29 @@ module RedShift
       def initialize
         calc_function_pointer
       end
-      def self.make_subclass(file_name, &bl)
-        cl = Class.new(self)
-        cl.shadow_library_file file_name
-        clname = file_name.sub /^#{@tag}/i, @tag
-        Object.const_set clname, cl ## maybe put in other namespace?
-        before_commit {cl.class_eval &bl}
-          # this is deferred to commit time to resolve forward refs
-          ## this would be more elegant with defer.rb
-          ## maybe precommit should be used for this now?
-        cl
+      
+      class << self
+        attr_accessor :constructor
+        
+        def construct
+          class_eval &constructor
+        rescue => ex
+          ex.message << " While defining #{inspect_str}."
+          raise
+        end
+        
+        def make_subclass(file_name, &bl)
+          cl = Class.new(self)
+          cl.constructor = bl
+          cl.shadow_library_file file_name
+          clname = file_name.sub /^#{@tag}/i, @tag
+          Object.const_set clname, cl ## maybe put in other namespace?
+          before_commit {cl.construct}
+            # this is deferred to commit time to resolve forward refs
+            ## this would be more elegant with defer.rb
+            ## maybe precommit should be used for this now?
+          cl
+        end
       end
     end
 

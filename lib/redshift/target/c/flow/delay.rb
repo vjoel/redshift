@@ -6,7 +6,8 @@ module RedShift; class DelayFlow
     delay_by = @delay_by
     
     Component::FlowWrapper.make_subclass flow_name do
-      @inspect_str = "#{var_name} = #{flow.formula} [delay: #{delay_by}]"
+      @inspect_str =
+        "#{cl.name}:#{state}: #{var_name} = #{flow.formula} [delay: #{delay_by}]"
 
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
@@ -30,11 +31,9 @@ module RedShift; class DelayFlow
       
       shadow_library_source_file.define(flow_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"
-        world_ssn = World.shadow_struct.name
         declare :shadow => %{
           struct #{ssn} *shadow;
           struct #{cont_state_ssn} *cont_state;
-          #{world_ssn} *world_shadow;
           
           ContVar   *var;
           double    *ptr;
@@ -55,16 +54,10 @@ module RedShift; class DelayFlow
         } # has to happen before referenced alg flows are called in other setups
 
         setup :delay => 
-          case delay_by
-          when /\A\w+\z/
+          begin
+            "delay = #{Float(delay_by)}"
+          rescue ArgumentError
             flow.translate(self, "delay", 0, cl, delay_by)
-          else
-            begin
-              "delay = #{Float(delay_by)}"
-            rescue ArgumentError
-              raise ArgumentError,
-                "Delay by expression #{delay_by.inspect} not implemented."
-            end
           end
         
         include World.shadow_library_include_file
@@ -79,12 +72,12 @@ module RedShift; class DelayFlow
               len = shadow->#{bufname}.len;
               if (offset < 0 || offset > len - 4) {
                 rb_raise(#{declare_class RuntimeError},
-                "Offset out of bounds: %d not in 0..%d!", offset, len);
+                "Offset out of bounds: %d not in 0..%d!", offset, len - 4);
               }
             }
             else {
-              Data_Get_Struct(shadow->world, #{world_ssn}, world_shadow);
-              steps = ceil(delay / world_shadow->time_step);
+              steps = ceil((delay - 1.0E-15) / time_step);
+                //# anticipate float err and prevent incorrect round-up
               if (steps <= 0) {
                 rb_raise(#{declare_class RuntimeError},
                 "Delay too small: %f", delay);
@@ -121,6 +114,7 @@ module RedShift; class DelayFlow
                   }
                   memmove(dst, src, (len - offset) * sizeof(double));
                   REALLOC_N(ptr, double, len);
+                  // ## maybe better: don't release space, just use less of it
                 }
                 else { // # delay > shadow->#{delayname}
                   REALLOC_N(ptr, double, len);

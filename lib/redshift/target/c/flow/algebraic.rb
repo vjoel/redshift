@@ -5,7 +5,7 @@ module RedShift; class AlgebraicFlow
     flow_name = "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}"
     
     Component::FlowWrapper.make_subclass flow_name do
-      @inspect_str = "#{var_name} = #{flow.formula}"
+      @inspect_str = "#{cl.name}:#{state}: #{var_name} = #{flow.formula}"
 
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name

@@ -80,6 +80,6 @@ gnuplot do |plot|
   plot.add output, %{title "output" with lines}
 end
 
-if RUBY_PLATFOM =~ /win32/
+if RUBY_PLATFORM =~ /win32/
   puts "Press enter to continue"
 end

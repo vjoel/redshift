@@ -1,3 +1,11 @@
+redshift 1.2.18
+
+- Fixed bug in Flow#translate with reusing the optional formula string.
+
+- Some improvements in error reporting.
+
+- Fixed roundoff problem with variable delay.
+
 redshift 1.2.17
 
 - Added examples/simulink/delay.mdl and error comparison code in

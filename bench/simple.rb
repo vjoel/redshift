@@ -53,7 +53,7 @@ w = nil
 $steps = [
   ["commit", proc { w = RedShift::World.new { time_step 0.05 } }],
   ["create", proc { 10.times do w.create Tester end }],
-  ["run",    proc { w.run 10_000 }]
+  ["run",    proc { w.run 1000 }]
 ]
 
 #END {

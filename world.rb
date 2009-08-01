@@ -93,7 +93,7 @@ class World
     end
     
     step_discrete
-    while (steps -= 1) >= 0
+    while (steps -= 1) >= 0 ## faster to use '(1..steps).each do' ?
       break if clock > @clock_finish
       @step_count += 1
       step_continuous

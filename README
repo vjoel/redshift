@@ -13,6 +13,12 @@ Compiler
 
 Syntax
 
+  run can take seconds as arg
+    run :steps => n
+    run :time => n
+
+  Fix the option-block cruft--its slow and clunky
+
   resets and even assignment to cont-vars can use '<=' or '[]='
   better: eval each setup or reset block in a context in which
           for each continuous var a local var of the same name
@@ -133,6 +139,7 @@ Semantics
     can register with global interrupt manager
       notify after T seconds
       notify when global event happens (like what?)
+    should interrupts be in a priority queue for the receiving component?
     receive in any state, switch to new state optional (push ok)
     synchronous in the sense that no other components act in between
       the send and receive, and the receiver action happens before the
@@ -145,6 +152,11 @@ Semantics
         action { |args| ...}
         event ...
       end
+      
+                  timely    lossless    nonblocking
+    interrupts:     --         XX           XX
+    events:         XX         --           XX
+    sync:           XX         XX           --
   
   signals
     maybe better than interrupts, more general
@@ -223,8 +235,9 @@ Implementation
   abstract hash-inheritance and use it in meta.rb and option-block.rb
 
   optimization
+    in ruby 1.7, convert proc to methods (e.g., the guard method of a trans)
     don't use Data_Get_Struct in flow fns, use simple casts like in
-      step_discrete inlines
+      step_discrete inlines, with asserts
     profiling
     compare with shift, matlab
     integration method
@@ -256,7 +269,7 @@ x   automatically scan formulas and use best alg.
   run time error checking
     more 'if $DEBUG ...' checks
 /     use $DEBUG when testing.
-    catch infinite loops in alg. flows
+/   catch infinite loops in alg. flows
     zeno
       limit can scale w/ num components
     catch definition of flows after commit, etc.
@@ -267,13 +280,10 @@ x   automatically scan formulas and use best alg.
     use Exception classes
   
   unit tests
-    integrator (start with solution involving diff'able fns)
-      solve eqn in complex vars with and without Complex class
+    migrate to TestUnit
+/   integrator (start with solution involving diff'able fns)
 /   inheritance
-    transitions and events
-    dynamism:
-      changing flows and transitions on classes which have instances
-      check that this *fails* after commit!
+/   transitions and events
   
   system tests
     compare with other integrators (accuracy)
@@ -323,12 +333,5 @@ Examples
 Documentation
 
   restrictions
-    singleton methods cannot be exported (see Event)
     singleton methods will be lost in World#save
     can't use modules to define flows, transitions, etc.
-
-  performance notes
-    don't call run repeatedly, call run n with a block
-      otherwise discrete step happens 2x each time
-    avoid complex non-numerical constructs in flows
-      can usually be done in discrete step anyway

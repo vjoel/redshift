@@ -136,6 +136,12 @@ class World
       long              ci;
       ComponentShadow  *comp_shdw;
     }.tabto(0)
+    declare :step_continuous_subs => %{
+      inline ComponentShadow *get_shadow(VALUE comp)
+      {
+        return (ComponentShadow *)DATA_PTR(comp);
+      }
+    } ## get_shadow is same as below -- make it a static fn
     body %{
       time_step = shadow->time_step;    //# assign global
       comp_rb_ary = shadow->curr_G;
@@ -196,7 +202,7 @@ class World
     test_event    = declare_symbol :test_event
     declare :step_discrete_subs => %{
       inline ComponentShadow *get_shadow(VALUE comp)
-      {
+      { //## assert type check?
         return (ComponentShadow *)DATA_PTR(comp);
       }
       inline VALUE cur_actions(ComponentShadow *comp_shdw)
@@ -220,12 +226,8 @@ class World
       inline void move_comp(VALUE comp, VALUE list, VALUE next_list)
       {
         struct RArray *nl = RARRAY(next_list);
-//#printf("  Moving from list %d to list %d\\n", (long)list, (long)nl);
         if (nl->len == nl->capa)
-{
-//#printf("  Resizing list\\n");
           rb_ary_store(next_list, nl->len, comp);
-}
         else
           nl->ptr[nl->len++] = comp;
         --RARRAY(list)->len;
@@ -233,7 +235,6 @@ class World
       inline void remove_comp(VALUE comp, VALUE list)
       {
         ComponentShadow *comp_shdw = get_shadow(comp);
-//#printf("  Removing from list %d\\n", (long)list);
         assert(comp_shdw->world == shadow->self);
         comp_shdw->world = Qnil;
         --RARRAY(list)->len;
@@ -245,7 +246,6 @@ class World
         fn = ((#{RedShift::Component::GuardWrapper.shadow_struct.name} *)
                get_shadow(guard))->guard;
         rslt = (*fn)(get_shadow(comp));
-//#printf(" Result = %d", rslt);
         return rslt;
       }
       inline int test_event_guard(VALUE comp, VALUE guard)
@@ -276,7 +276,7 @@ class World
           case T_ARRAY:
             assert(RARRAY(guard)->len == 2); //## Future: allow 3: [l,e,value]
             if (!zeno_counter || !test_event_guard(comp, guard))
-              return 0;
+              return 0; //## should use different var than zeno_counter
             break;
           case T_CLASS:
             assert(RTEST(rb_mod_lt(guard, GuardWrapperClass)));
@@ -286,7 +286,7 @@ class World
               return 0;
             break;
           default:
-            assert(false);
+            assert(0);
           }
         }
         return 1;
@@ -300,7 +300,8 @@ class World
         comp_shdw->cur_ph = -1;
       }
       inline void finish_trans(ComponentShadow  *comp_shdw)
-      {
+      { //## should this be deferred to end of step? (in case alg flow
+        //## changes discretely)
         if (comp_shdw->state != comp_shdw->dest) {
           comp_shdw->state = comp_shdw->dest;
           __update_cache(comp_shdw);
@@ -316,7 +317,6 @@ class World
         ComponentShadow *comp_shdw = get_shadow(comp);
         struct RArray *phases = RARRAY(comp_shdw->phases);
         if (RTEST(phases)) {
-//#printf("  Has phases. cur_ph = %d of %d\\n", comp_shdw->cur_ph, phases->len);
           if (++comp_shdw->cur_ph < phases->len) {
             VALUE klass = RBASIC(phases->ptr[comp_shdw->cur_ph])->klass;
             if (klass == ActionClass)
@@ -371,7 +371,6 @@ class World
       
       while (sc-- != 0) {
         struct RArray *list;
-//#printf("G at d_tick %d.\\n", d_tick);
 
         //# GUARD phase. Start on phase 4 of 4, because everything's in G.
         EACH_COMP(shadow->curr_G) {
@@ -386,7 +385,6 @@ class World
             guard = ptr[--len];
             
             if (!RTEST(guard) || guard_enabled(comp, guard)) {
-//#printf("  G true\\n");
               phases  = ptr[--len];
               dest    = ptr[--len];
               trans   = ptr[--len];
@@ -404,29 +402,13 @@ class World
         SWAP_VALUE(shadow->curr_R, shadow->next_R);
         SWAP_VALUE(shadow->curr_E, shadow->next_E);
         SWAP_VALUE(shadow->curr_G, shadow->next_G);
-
-//#printf("\\ncur:\\n");
-//#printf("  A len = %d ID = %d\\n", RARRAY(shadow->curr_A)->len, (long)shadow->curr_A);
-//#printf("  R len = %d ID = %d\\n", RARRAY(shadow->curr_R)->len, (long)shadow->curr_R);
-//#printf("  E len = %d ID = %d\\n", RARRAY(shadow->curr_E)->len, (long)shadow->curr_E);
-//#printf(" (G len = %d) ID = %d\\n", RARRAY(shadow->curr_G)->len, (long)shadow->curr_G);
-//#printf("Next:\\n");
-//#printf("  A len = %d ID = %d\\n", RARRAY(shadow->next_A)->len, (long)shadow->next_A);
-//#printf("  R len = %d ID = %d\\n", RARRAY(shadow->next_R)->len, (long)shadow->next_R);
-//#printf("  E len = %d ID = %d\\n", RARRAY(shadow->next_E)->len, (long)shadow->next_E);
-//#printf(" (G len = %d) ID = %d\\n", RARRAY(shadow->next_G)->len, (long)shadow->next_G);
         
         //# Done stepping if no transitions happened or are about to begin.
         all_are_g = !RARRAY(shadow->curr_A)->len &&
                     !RARRAY(shadow->curr_R)->len &&
                     !RARRAY(shadow->curr_E)->len;
         if (all_were_g && all_are_g)
-{
-//#printf("discrete_update done!\\n");
-//#printf("all_were_g = %d\\n", all_were_g);
-//#printf("all_are_g = %d\\n", all_are_g);
           break;
-}
         all_were_g = all_are_g;
         
         //# Check for zeno problem.
@@ -439,16 +421,11 @@ class World
             rb_funcall(shadow->self, #{declare_symbol :step_zeno},
                        1, INT2NUM(zeno_counter));
         
-//#printf("A at d_tick %d.\\n", d_tick);  
         //# Begin a new step, starting with ACTION phase
         EACH_COMP(shadow->curr_A) {
           VALUE actions = cur_actions(comp_shdw);
-//#printf("  Calling action for comp %d\\n", (long) comp);
-//#printf("  -1-\\n");
-//#printf("    len = %d\\n", RARRAY(actions)->len);
           
           for (i = 0; i < RARRAY(actions)->len; i++) {
-//#printf("  -2-\\n");
             rb_funcall(comp, #{insteval_proc}, 1, RARRAY(actions)->ptr[i]);
 //#            rb_obj_instance_eval(1, &RARRAY(actions)->ptr[i], comp);
             d_tick++;   //# each action may invalidate algebraic flows
@@ -456,7 +433,6 @@ class World
           }
         }
         
-//#printf("R at d_tick %d.\\n", d_tick);  
         //# RESET phase
         EACH_COMP(shadow->curr_R) {
           VALUE resets = cur_resets(comp_shdw);
@@ -465,7 +441,6 @@ class World
         d_tick++;   //# resets may (in parallel) invalidate algebraic flows
         //## optimization: don't incr if no resets? Change name of d_tick!
         
-//#printf("E at d_tick %d.\\n", d_tick);  
         //# EVENT phase
         EACH_COMP(shadow->curr_E) {
           VALUE events = cur_events(comp_shdw);

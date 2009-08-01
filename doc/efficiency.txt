@@ -14,3 +14,27 @@ flows are probably not the bottleneck
 guards may be a bottleneck
   try to use "C expr" or :event forms for guards which are evaluated frequently
 
+
+don't call run repeatedly, call run n with a block
+  otherwise discrete step happens 2x each time
+
+try to partition states into those whose outgoing transitions test      
+  continuous/discrete stuff.
+  
+  
+  Possible advantages over SHIFT:
+  
+    * common subexpression optimization for links:
+    
+        x' = cos(foo.y) + sin(foo.y)
+    
+    * caching of algebraic equation results
+    
+        x  = ... # some complex formula
+        y' = 2*x
+        z' = 3*x
+    
+    * euler flows for timers that are not referred to in rk4 flows
+   
+    * partition states: ones with cexpr guards that test continuous state
+      and ones with proc guards that are entered only during discrete update

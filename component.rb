@@ -55,7 +55,7 @@ class Component
   end
   
   def initialize(world, &block)
-    if $DEBUG
+    if $REDSHIFT_DEBUG
       unless caller[1] =~ /redshift\/world.*`create'\z/ or
              caller[0] =~ /`initialize'\z/
         puts caller[1]; puts

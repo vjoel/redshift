@@ -5,10 +5,10 @@ require 'mathn'
 require 'cgen/cshadow'
 
 # Read some environment variables
-$DEBUG = ENV["REDSHIFT_DEBUG"]
+$REDSHIFT_DEBUG = ENV["REDSHIFT_DEBUG"]
 $REDSHIFT_BUILD_TIMES = ENV["REDSHIFT_BUILD_TIMES"]
 
-if $DEBUG
+if $REDSHIFT_DEBUG
   puts "  ----------------------------------------------------------------- "
   puts " |RedShift debugging information enabled by env var REDSHIFT_DEBUG.|"
   puts " |    Please ignore error messages that do not halt the progam.    |"
@@ -34,14 +34,14 @@ class Object
   def debug setting = true, &block
     if block
       begin
-        save_setting = $DEBUG
-        $DEBUG = setting
+        save_setting = $REDSHIFT_DEBUG
+        $REDSHIFT_DEBUG = setting
         block.call
       ensure
-        $DEBUG = save_setting
+        $REDSHIFT_DEBUG = save_setting
       end
     else
-      $DEBUG = setting
+      $REDSHIFT_DEBUG = setting
     end
   end
 end
@@ -68,7 +68,7 @@ module RedShift
         File.basename($0)
       end
     CLibName[/\.rb$/] = ''
-    CLibName[/-/] = '_'
+    CLibName.gsub!(/-/, '_')
       # other symbols will be caught in CGenerate::Library#initialize.
     CLibName << '_clib'
   end
@@ -97,7 +97,7 @@ module RedShift
   CLib.purge_source_dir = :delete
   CLib.show_build_times $REDSHIFT_BUILD_TIMES
 
-  if $DEBUG
+  if $REDSHIFT_DEBUG
     CLib.include_file.include "<assert.h>"
   else
     CLib.include_file.declare :assert => %{#define assert(cond) 0}
@@ -110,7 +110,7 @@ module RedShift
 #  # Warn with string str and skipping n stack frames.
 #  def warn str, n = 0
 #    warning = sprintf "\nWarning: #{str}\n\t#{caller(n).join("\n\t")}\n"
-#    #if $DEBUG -- in debug mode, exception is always printed ???
+#    #if $REDSHIFT_DEBUG -- in debug mode, exception is always printed ???
 #      raise Warning, warning
 #    #else
 #    #  $stderr.print warning

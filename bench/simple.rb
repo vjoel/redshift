@@ -60,8 +60,8 @@ end
 w = nil
 $steps = [
   ["commit", proc { w = RedShift::World.new { time_step 0.05 } }],
-  ["create", proc { 2.times do w.create Tester end }],
-  ["run",    proc { w.run 1000 }]
+  ["create", proc { 100.times do w.create Tester end }],
+  ["run",    proc { w.run 10000 }]
 ]
 
 END {
@@ -70,21 +70,3 @@ END {
   t = w.find { |c| c.is_a? Tester }
   p t
 }
-
-
-__END__
-
-  Possible advantages over SHIFT:
-  
-    * common subexpression optimization for links:
-    
-        x' = cos(foo.y) + sin(foo.y)
-    
-    * caching of algebraic equation results
-    
-        x  = ... # some complex formula
-        y' = 2*x
-        z' = 3*x
-    
-    * euler flows for timers that are not referred to in rk4 flows
-    

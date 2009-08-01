@@ -18,10 +18,10 @@ module Discrete
   end
   
   class Sleeper < Awakener
-    link :clock => Clock
+    strict_link :clock => Clock
     
     constant :next_wakeup
-    constant :period
+    strictly_constant :period
     
     setup do
       self.next_wakeup = period
@@ -46,7 +46,7 @@ module Discrete
     ## should have a version of this using queued events
   end
   
-  def self.make_world n_sleeper=1, watchers=0
+  def self.make_world n_sleeper=1, n_watchers=0
     w = World.new
     clock = w.create(Clock)
     n_sleeper.times do |i|
@@ -55,7 +55,7 @@ module Discrete
         c.period = ((i % 99)+1) / 10.0
       end
       target = sleeper
-      watchers.times do
+      n_watchers.times do
         target = w.create(Watcher) do |c|
           c.target = target
         end

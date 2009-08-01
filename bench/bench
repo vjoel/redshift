@@ -5,14 +5,17 @@ def bench_one(name)
   cmd = %{
     $REDSHIFT_CLIB_NAME = "#{name}"
     puts "#{name}:"
-    #{name.capitalize}.do_bench {|l| puts l}
+    #{name.split(/[-_]/).map {|w|w.capitalize}.join}.do_bench {|l| puts l}
   }
   system "ruby", "-r" , "./bench", "-r", lib, "-e", cmd
 end
 
 pat = ARGV.pop
 pat = pat ? Regexp.new(pat) : //
-["continuous",
- "discrete"].grep(pat).each do |name|
+%w{
+  continuous
+  discrete
+  half-strict
+}.grep(pat).each do |name|
   bench_one(name)
 end

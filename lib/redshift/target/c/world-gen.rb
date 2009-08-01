@@ -789,7 +789,7 @@ class World
             //%% hook_do_reset_link(comp,
             //%%     RARRAY(pair)->ptr[2], (VALUE)new_value);
             cache_new_link(
-              (VALUE *)((char *)comp_shdw + offset),
+              (ComponentShadow **)((char *)comp_shdw + offset),
               new_value, shadow);
           }
         }

@@ -1,5 +1,9 @@
 redshift 1.1.51
 
+- Added bench/half-strict.rb.
+
+redshift 1.1.51
+
 - Added NonStrictLink test to test_strict_continuity.rb.
 
 redshift 1.1.50

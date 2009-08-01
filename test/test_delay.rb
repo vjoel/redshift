@@ -9,9 +9,9 @@ class DelayTestComponent < Component
   flow do
     diff   "       t' = 1      "
     alg    "       u  = sin(t*pi/2) "
-    alg    " shift_u  = sin((t-d)*pi/2) " # u shifted by d
-    delay  " delay_u  = u ", :by => "d"   # u delayed by d
-    alg    "     err  = shift_u - delay_u "
+    alg    " shift_u  = sin((t-d)*pi/2) "     # u shifted by d
+    delay  " delay_u  = u + 1 ", :by => "d"   # u+1 delayed by d
+    alg    "     err  = shift_u - (delay_u - 1)"
   end
 
   constant :new_d => 0.5  # change this to see how varying delay works

@@ -163,16 +163,18 @@ module RedShift; class DelayFlow
             break;
             
           case 3:
-            #{flow.translate(self, "fill", 3, cl, flow.formula).join("
-            ")};
             ptr = shadow->#{bufname}.ptr;
             len = shadow->#{bufname}.len;
             offset = shadow->#{offsetname};
 
-            ptr[offset]     = target_var->value_0;
-            ptr[offset + 1] = target_var->value_1;
-            ptr[offset + 2] = target_var->value_2;
-            ptr[offset + 3] = target_var->value_3;
+            #{flow.translate(self, "ptr[offset]", 0, cl).join("
+            ")};
+            #{flow.translate(self, "ptr[offset+1]", 1, cl).join("
+            ")};
+            #{flow.translate(self, "ptr[offset+2]", 2, cl).join("
+            ")};
+            #{flow.translate(self, "ptr[offset+3]", 3, cl).join("
+            ")};
 
             var->value_0 = ptr[(offset + 4) % len];
 

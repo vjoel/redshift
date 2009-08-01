@@ -11,7 +11,8 @@ class C < Component
     diff   "       t' = 1 "
     alg    "       u  = sin(t*pi/2) "
     alg    " shift_u  = sin((t-d)*pi/2) " # u shifted by d
-    delay  " delay_u  = u ", :by => "d"   # u delayed by d
+    delay  " delay_u  = u ",  # delayed output from u (can be any expr)
+            :by => "d"        # delayed by d (can be any expr)
     alg    "     err  = shift_u - delay_u "
   end
 

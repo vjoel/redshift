@@ -225,7 +225,7 @@ module FlowSyntax
       end
       delay_by = opts[:by]
       equations.each do |equation|
-        unless equation =~ /^\s*(\w+)\s*=\s*(\w+)\s*/m
+        unless equation =~ /^\s*(\w+)\s*=\s*(.+)/m
           raise SyntaxError, "parse error in\n\t#{equation}."
         end
         @flows << DelayFlow.new($1.intern, $2.strip, delay_by)

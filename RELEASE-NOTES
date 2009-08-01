@@ -1,3 +1,7 @@
+redshift 1.2.14
+
+- Delay flows can be arbitrary expressions (as can the delay term).
+
 redshift 1.2.13
 
 - Fixed RedShift module scoping problem.

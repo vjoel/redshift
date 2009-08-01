@@ -21,7 +21,6 @@ module RedShift; class Flow
 
       unless translation[expr]
         link, var = $1, $2
-        
         if link
           result =
             translate_link(link, var, translation, flow_fn, cl, expr, rk_level)

@@ -50,6 +50,18 @@ module RedShift
       #endif
     }.tabto(0)
 
+    INPUT_NONE     = 0
+    INPUT_CONT_VAR = 1
+    INPUT_CONST    = 2
+    INPUT_INP_VAR  = 3
+
+    Component.shadow_library_include_file.declare :InputVar => %{
+      #define INPUT_NONE     #{INPUT_NONE}
+      #define INPUT_CONT_VAR #{INPUT_CONT_VAR}
+      #define INPUT_CONST    #{INPUT_CONST}
+      #define INPUT_INP_VAR  #{INPUT_INP_VAR}
+    }.tabto(0)
+
     class FlowAttribute < CNativeAttribute
       @pattern = /\A(Flow)\s+(\w+)\z/
     end
@@ -355,16 +367,16 @@ module RedShift
             class_eval %{
               define_c_method :#{var_name} do
                 declare :cont_state => "#{ssn} *cont_state"
+                declare :var        => "ContVar *var"
                 body %{
                   cont_state = (#{ssn} *)shadow->cont_state;
-                  if (cont_state->#{var_name}.algebraic &&
-                      (cont_state->#{var_name}.strict ?
-                       !cont_state->#{var_name}.d_tick :
-                       cont_state->#{var_name}.d_tick != d_tick)) {
-                    (*cont_state->#{var_name}.flow)((ComponentShadow *)shadow);
+                  var = &cont_state->#{var_name};
+                  if (var->algebraic &&
+                      (var->strict ? !var->d_tick : var->d_tick != d_tick)) {
+                    (*var->flow)((ComponentShadow *)shadow);
                   }
                   else {
-                    cont_state->#{var_name}.d_tick = d_tick;
+                    var->d_tick = d_tick;
                   }
                 }
                 # The d_tick assign above is because we now know that the
@@ -423,7 +435,7 @@ module RedShift
       def define_constant(kind, var_names)
         var_names.collect do |var_name|
           var_name = var_name.intern if var_name.is_a? String
-          add_var_to_calc_offset_method(var_name)
+          add_var_to_offset_table(var_name)
           
           (r,w), = shadow_attr_accessor var_name => "double #{var_name}"
           w.body "d_tick++"
@@ -438,12 +450,86 @@ module RedShift
           end
         end
       end
+      
+      def src_comp var_name
+        "#{var_name}_src_comp"
+      end
+
+      def src_type var_name
+        "#{var_name}_src_type"
+      end
+      
+      def src_offset var_name
+        "#{var_name}_src_offset"
+      end
+      
+      def define_input(kind, var_names)
+        var_names.collect do |var_name|
+          var_name = var_name.intern if var_name.is_a? String
+          
+          src_comp    = src_comp(var_name)
+          src_type    = src_type(var_name)
+          src_offset  = src_offset(var_name)
+          
+##          add_var_to_offset_table(src_comp) ## need these?
+##          add_var_to_offset_table(src_type) ## need these?
+##          add_var_to_offset_table(src_offset) ## need these?
+
+          ## readers only?
+          shadow_attr_accessor src_comp   => [Component]
+          shadow_attr_accessor src_type   => "short #{src_type}"
+          shadow_attr_accessor src_offset => "short #{src_offset}"
+          
+          exc = shadow_library.declare_class UnconnectedInputError
+          msg = "Input #{var_name} is not connected in"
+          
+          define_c_method(var_name) do
+            declare :var => "ContVar *var"
+            declare :value => "double  value"
+            returns "rb_float_new(value)"
+            body %{
+              if (!shadow->#{src_comp} || shadow->#{src_type} == INPUT_NONE) {
+                rb_raise(#{exc}, "%s %s", #{msg.inspect},
+                  RSTRING(rb_inspect(shadow->self))->ptr);
+              }
+
+              switch (shadow->#{src_type}) {
+              case INPUT_CONT_VAR:
+                var = (ContVar *)&FIRST_CONT_VAR(shadow->#{src_comp});
+                var += shadow->#{src_offset};
+                if (var->algebraic &&
+                    (var->strict ? !var->d_tick : var->d_tick != d_tick)) {
+                  (*var->flow)((ComponentShadow *)shadow);
+                }
+                else {
+                  var->d_tick = d_tick;
+                }
+                value = var->value_0;
+                break;
+                
+              case INPUT_CONST:
+                value = *(double *)(
+                  &((char *)shadow->#{src_comp})[shadow->#{src_offset}]);
+                break;
+                
+              case INPUT_INP_VAR:
+                rb_raise(#{exc}, "Unimplemented: INPUT_INP_VAR"); //###
+                break;
+              
+              default:
+                assert(0);
+              }
+            }
+          end
+        end
+      end
 
       def precommit
         define_events
         define_links
         define_continuous_variables
         define_constant_variables
+        define_input_variables
 
         states.values.sort_by{|s|s.to_s}.each do |state|
           define_flows(state)
@@ -461,26 +547,45 @@ module RedShift
         end
       end
     
-      def calc_offset(var_sym)
-        raise "#{var_sym} is not a valid constant or link in #{self.class}"
+      def _offset_table
+        {}
       end
       
-      def calc_offset_method
-        @calc_offset_method ||= define_c_class_method :calc_offset do
-            arguments :var_sym
-            declare :offset => "int offset"
-            returns %{rb_call_super(1, &var_sym)}
-            # or we could embed superclass.calc_offset_method.body!
+      def offset_table
+        @offset_table ||= _offset_table
+      end
+      
+      def inv_offset_table
+        @inv_offset_table ||= offset_table.invert
+      end
+      
+      # Note: for constant and link vars. Offset is in bytes.
+      def offset_of_var var_name
+        offset_table[var_name] or
+          raise "#{var_sym} is not a valid constant or link in #{self.class}"
+      end
+      
+      # Note: for constant and link vars. Offset is in bytes.
+      def var_at_offset offset
+        inv_offset_table[offset] or
+          raise "#{offset} is not a constant or link offset in #{self.class}"
+      end
+      
+      def offset_table_method
+        @offset_table_method ||= define_c_class_method :_offset_table do
+            declare :table  => "VALUE table"
+            returns "table"
+            body %{
+              table = rb_call_super(0, 0);
+            }
           end
       end
       
-      def add_var_to_calc_offset_method var_name
+      def add_var_to_offset_table var_name
         ssn = shadow_struct.name
-        calc_offset_method.body %{
-          if (var_sym == #{shadow_library.literal_symbol(var_name)}) {
-            offset = (char *)&(((struct #{ssn} *)0)->#{var_name}) - (char *)0;
-            return INT2FIX(offset);
-          }
+        offset_table_method.body %{\
+          rb_hash_aset(table, #{shadow_library.literal_symbol(var_name)},
+            INT2FIX((char *)&(((struct #{ssn} *)0)->#{var_name}) - (char *)0));
         } ## can we just use offsetof() ?
       end
 
@@ -520,7 +625,7 @@ module RedShift
           shadow_library_include_file.include(
             var_type.shadow_library_include_file)
           
-          add_var_to_calc_offset_method(var_name)
+          add_var_to_offset_table(var_name)
         end
       end
       
@@ -542,6 +647,12 @@ module RedShift
       def define_constant_variables
         constant_variables.own.keys.sort_by{|k|k.to_s}.each do |var_name|
           define_constant(constant_variables[var_name], [var_name])
+        end
+      end
+      
+      def define_input_variables
+        input_variables.own.keys.sort_by{|k|k.to_s}.each do |var_name|
+          define_input(input_variables[var_name], [var_name])
         end
       end
       
@@ -629,7 +740,7 @@ module RedShift
             item.event = event_name
 
             after_commit do
-              item.link_offset = calc_offset(var_name)
+              item.link_offset = offset_of_var(var_name)
             end
 
             item
@@ -702,17 +813,17 @@ module RedShift
           reset = define_reset(expr)
 
           after_commit do
-            phase << [calc_offset(var), reset.instance, var]
+            phase << [offset_of_var(var), reset.instance, var]
           end
 
         when Numeric
           after_commit do
-            phase << [calc_offset(var), expr.to_f, var]
+            phase << [offset_of_var(var), expr.to_f, var]
           end
 
         else
           after_commit do
-            phase << [calc_offset(var), expr, var]
+            phase << [offset_of_var(var), expr, var]
           end
         end
       end
@@ -730,12 +841,12 @@ module RedShift
           reset = define_reset(expr)
 
           after_commit do
-            phase << [calc_offset(var), reset.instance, var, type]
+            phase << [offset_of_var(var), reset.instance, var, type]
           end
 
         when Proc
           after_commit do
-            phase << [calc_offset(var), expr, var, type]
+            phase << [offset_of_var(var), expr, var, type]
           end
         end
       end
@@ -799,6 +910,101 @@ module RedShift
         }
       }
     end
+    
+    ## class-level caching
+    ## define connect in C?
+    ## if need_connect...
+    def connect input_variable, other_component, other_variable
+      src_comp    = self.class.src_comp(input_variable)
+      src_type    = self.class.src_type(input_variable)
+      src_offset  = self.class.src_offset(input_variable)
+
+      ivs = self.class.input_variables
+      unless ivs.key? input_variable
+        raise TypeError, "Cannot connect non-input var: #{input_variable}."
+      end
+      
+      strict = (ivs[input_variable] == :strict)
+      connected_comp = send(src_comp)
+      
+      if strict and connected_comp and connected_comp != other_component
+        raise StrictnessError,
+          "Cannot reconnect or disconnect strict input: #{input_variable}."
+      end
+      
+      if other_variable and other_component
+        other_class = other_component.class
+        
+        case
+        when other_class.continuous_variables.key?(other_variable)
+          if strict and
+             not other_class.continuous_variables[other_variable] == :strict
+            raise StrictnessError,
+              "Cannot connect strict input, #{input_variable}, to non-strict " +
+              "source: #{other_variable} in #{other_component.class}."
+          end
+          
+          type    = INPUT_CONT_VAR
+          offset  = other_class.cont_state_class.vars.each {|v, desc|
+            break desc.index if v.to_sym == other_variable} ## table?
+
+        when other_class.constant_variables.key?(other_variable)
+          if strict and
+             not other_class.constant_variables[other_variable] == :strict
+            raise StrictnessError,
+              "Cannot connect strict input, #{input_variable}, to non-strict " +
+              "source: #{other_variable} in #{other_component.class}."
+          end
+          
+          type    = INPUT_CONST
+          offset  = other_class.offset_of_var(other_variable)
+
+        when other_class.input_variables.key?(other_variable)
+          raise "Unimplemented" ###
+          ### check strict
+          type    = INPUT_INP_VAR
+          offset  = 0
+
+        else
+          raise ArgumentError,
+            "No such variable, #{other_variable}, in #{other_class}."
+        end
+        
+      else
+        type    = INPUT_NONE
+        offset  = 0
+      end
+      
+      ## if this was in C, wouldn't need writer methods
+      send("#{src_comp}=", other_component)
+      send("#{src_type}=", type)
+      send("#{src_offset}=", offset)
+      
+      ## if this was in C, wouldn't need bump_d_tick
+      world.bump_d_tick
+    end
+
+    def source_component_for(input_variable)
+      send(self.class.src_comp(input_variable))
+    end
+    
+    def source_variable_for(input_variable)
+      comp = send(self.class.src_comp(input_variable))
+      type = send(self.class.src_type(input_variable))
+      offset = send(self.class.src_offset(input_variable))
+      
+      case type
+      when INPUT_CONT_VAR
+        comp.class.cont_state_class.var_at_index(offset).name
+      when INPUT_CONST
+        comp.class.var_at_offset(offset)
+      when INPUT_INP_VAR
+        raise ###
+      else
+        nil
+      end
+    end
+    ## end # if need connect
     
     define_c_method :clear_ck_strict do
       declare :locals => %{

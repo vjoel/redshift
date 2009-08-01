@@ -95,6 +95,10 @@ class World
     }
   end
   
+  define_c_method :bump_d_tick do
+    body "d_tick++"
+  end
+  
   slif = shadow_library_include_file
   slif.declare :get_shadow => %{
     inline static ComponentShadow *get_shadow(VALUE comp)

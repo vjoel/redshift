@@ -166,6 +166,14 @@ class << Component
   def link vars
     attach_link vars, false
   end
+  
+  def input(*var_names)
+    attach_input :piecewise, var_names
+  end
+  
+  def strict_input(*var_names)
+    attach_input :strict, var_names
+  end
 end
 
 # Defines the flow types that can be used within a flow block.

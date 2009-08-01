@@ -7,6 +7,7 @@ class Component
   class_superhash :states
   class_superhash :continuous_variables, :constant_variables ## bad name
   class_superhash :link_variables       # :link_name => [type, strictness]
+  class_superhash :input_variables      # :var_name => :piecewise | :strict
   
   @subclasses = []
 
@@ -149,6 +150,12 @@ class Component
     # kind is :strict, :piecewise, or :permissive
     def attach_constant_variables(kind, var_names)
       attach_variables(constant_variables, kind, var_names)
+    end
+    
+    def attach_input(kind, var_names)
+      var_names.each do |var_name|
+        input_variables[var_name.to_sym] = kind
+      end
     end
   end
 

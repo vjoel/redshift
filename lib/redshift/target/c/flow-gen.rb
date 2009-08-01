@@ -79,8 +79,68 @@ module RedShift; class Flow
             # The d_tick assignment is explained in component-gen.rb.
             setup << "#{var_cname} = #{cont_var}.value_#{rk_level};"
           
+          elsif (kind = cl.input_variables[varsym])
+            # x ==> var_x
+            strict &&= (kind == :strict)
+              # note that we check in #connect that the source var is strict
+
+            var_cname = "var_#{var}"
+            translation[var] = var_cname
+
+            src_comp    = cl.src_comp(varsym)
+            src_type    = cl.src_type(varsym)
+            src_offset  = cl.src_offset(varsym)
+
+            exc = cl.shadow_library.declare_class UnconnectedInputError
+            msg = "Input #{var} is not connected in"
+
+            flow_fn.declare var_cname => "double    #{var_cname}"
+            flow_fn.setup var_cname => %{
+              switch(shadow->#{src_type}) {
+              case INPUT_NONE:
+                rb_raise(#{exc}, "%s %s", #{msg.inspect}, 
+                  RSTRING(rb_inspect(shadow->self))->ptr);
+
+              case INPUT_CONT_VAR: {
+                ContVar *v;
+                v = (ContVar *)&FIRST_CONT_VAR(shadow->#{src_comp});
+                v += shadow->#{src_offset};
+
+                if (v->algebraic) {
+                  if (v->rk_level < rk_level ||
+                     (rk_level == 0 &&
+                      (v->strict ? !v->d_tick : v->d_tick != d_tick)
+                      ))
+                    (*v->flow)((ComponentShadow *)shadow->#{src_comp});
+                }
+                else {
+                  v->d_tick = d_tick;
+                }
+
+                #{var_cname} = (&v->value_0)[rk_level];
+                break;
+              }
+              
+              case INPUT_CONST:
+                #{var_cname} = *(double *)(
+                  &((char *)shadow->#{src_comp})[shadow->#{src_offset}]);
+                break;
+              
+              case INPUT_INP_VAR:
+                //###
+                break;
+              
+              default:
+                assert(0); //###
+              }
+            }
+            # The d_tick assignment is explained in component-gen.rb
+          
           elsif /\A[eE]\z/ =~ var
             translation[expr] = expr # scientific notation
+          
+          elsif external_constant?(var)
+            translation[expr] = expr
             
           else
             raise NameError, "Unknown variable: #{var}"
@@ -98,6 +158,10 @@ module RedShift; class Flow
   rescue NameError, ArgumentError => ex
     ex.message << "\nclass: #{cl.name}\nformula:\n#{orig_formula}\n\n"
     raise ex
+  end
+  
+  def external_constant? var
+    RedShift.library.external_constant? var
   end
   
   CT_STRUCT_NAME = "Context"
@@ -152,8 +216,9 @@ module RedShift; class Flow
       link_cs_cname = "link_cs_#{link}"
       ct_struct.declare link_cs_cname => "#{link_cs_ssn} *#{link_cs_cname}"
     
+    ### elsif (kind = link_type.input_variables[varsym])
     else
-      raise NameError, "Unknown variable: #{var}"
+      raise NameError, "Unknown variable: #{var} in #{link_type}"
     end
 
     unless translation[link + "."]

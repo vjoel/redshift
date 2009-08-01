@@ -13,6 +13,7 @@ class StrictnessError < StandardError; end
 class ConstnessError < StandardError; end
 class TransitionError < StandardError; end
 class SyntaxError < ::SyntaxError; end
+class UnconnectedInputError < StandardError; end
 
 # Raised when a component tries to perform an action that makes sense only
 # during initialization.
@@ -160,29 +161,46 @@ class Component
     "<#{self.class} #{name || comp_id}>"
   end
 
+  VAR_TYPES = [:constant_variables, :continuous_variables, :link_variables,
+    :input_variables]
+  
   def inspect data = nil
-    items = []
-    items << state if state
+    old_inspecting = Thread.current[:inspecting]
+    Thread.current[:inspecting] = self
     
-    var_types = [:constant_variables, :continuous_variables, :link_variables]
-    var_types.each do |var_type|
-      var_list = self.class.send(var_type)
-      unless var_list.empty?
-        strs = var_list.map {|name,info| name.to_s}.sort.map do |name|
-          begin
-            "#{name} = #{send(name) || "nil"}"
-          rescue RedShift::CircularDefinitionError
-            "#{name}: CIRCULAR"
-          rescue => ex
-            "#{name}: #{ex.inspect}"
+    items = []
+    
+    unless old_inspecting == self
+      # avoids inf. recursion when send(name) raises exception that
+      # calls inspect again.
+
+      items << state if state
+
+      VAR_TYPES.each do |var_type|
+        var_list = self.class.send(var_type)
+        unless var_list.empty?
+          strs = var_list.map {|name,info| name.to_s}.sort.map do |name|
+            begin
+              "#{name} = #{send(name) || "nil"}"
+            rescue CircularDefinitionError
+              "#{name}: CIRCULAR"
+            rescue UnconnectedInputError
+              "#{name}: UNCONNECTED"
+            rescue => ex
+              "#{name}: #{ex.inspect}"
+            end
           end
+          items << strs.join(", ")
         end
-        items << strs.join(", ")
       end
+
+      items << data if data
     end
     
-    items << data if data
     return "<#{[self, items.join("; ")].join(": ")}>"
+  
+  ensure
+    Thread.current[:inspecting] = old_inspecting
   end
   
   def initialize(world)
@@ -274,6 +292,67 @@ class Component
   ## shouldn't be necessary
   def insteval_proc pr
     instance_eval(&pr)
+  end
+  
+  def disconnect input_var
+    connect(input_var, nil, nil)
+  end
+  
+  # +var_name+ can be a input var, a continuous var, or a constant var.
+  def port var_name
+    return nil unless var_name
+    @ports ||= {}
+    @ports[var_name] ||= begin
+      var_name = var_name.to_sym
+      
+      if self.class.input_variables.key? var_name
+        Port.new(self, var_name, true)
+      elsif self.class.continuous_variables.key? var_name or
+            self.class.constant_variables.key? var_name
+        Port.new(self, var_name, false)
+      else
+        raise "No variable #{var_name.inspect} in #{self.class.inspect}"
+      end
+    end
+  end
+  
+  class Port
+    attr_reader :component, :variable, :connectable
+    
+    def initialize component, variable, connectable
+      @component, @variable, @connectable = component, variable, connectable
+    end
+    
+    # Convenience method to get source port rather than component/var pair.
+    def source
+      source_component && source_component.port(source_variable)
+    end
+    
+    def check_connectable
+      unless connectable
+        raise TypeError, "Not connectable: #{variable} in #{component.class}"
+      end
+    end
+    
+    def connect port
+      check_connectable
+      component.connect(variable, port && port.component, port && port.variable)
+    end
+    alias << connect
+    
+    def disconnect
+      connect nil
+    end
+    
+    def source_component
+      check_connectable
+      component.source_component_for(variable)
+    end
+    
+    def source_variable
+      check_connectable
+      component.source_variable_for(variable)
+    end
   end
   
 end # class Component

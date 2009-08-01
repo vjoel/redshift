@@ -20,8 +20,9 @@ module RedShift; class AlgebraicFlow
           struct #{cont_state_ssn} *cont_state;
           ContVar  *var;
         }
+        exc = declare_class CircularDefinitionError
         msg = "\nCircularity in algebraic formula for #{var_name} in state " +
-              "#{state} of class #{cl.name}. The component is in $rs."
+              "#{state} of class #{cl.name}. The component is $rs =="
         setup :shadow => %{
           shadow = (#{ssn} *)comp_shdw;
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;
@@ -29,7 +30,8 @@ module RedShift; class AlgebraicFlow
           assert(var->algebraic);
           if (var->nested) {
             rb_gv_set("$rs", shadow->self);
-            rb_raise(#{declare_class CircularDefinitionError}, #{msg.inspect});
+            rb_raise(#{exc}, "%s %s", #{msg.inspect}, 
+              RSTRING(rb_inspect(shadow->self))->ptr);
           }
           var->nested = 1;
         }

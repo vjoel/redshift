@@ -3,7 +3,6 @@ Publishing RedShift
 
   core for 1.2 release
 
-    connect
     queues and sleep
     unambiguous sync
     transition local vars
@@ -42,10 +41,11 @@ Publishing RedShift
 
   long-term goals
   - vector-valued signals
-  - user-friendly interface
+    - need proper C parsing first
+  - user-friendly interface and related tools
   - distributed simulation
   - library of integrators/flows and components
-
+  - jruby/jvm port
 
 
 
@@ -117,6 +117,10 @@ Semantics
   
   "Buffer" could be used for: 
   
+    - recurrence relations/ difference equations:
+    
+      recurrence " x = x[-0.1] + x[-0.2] "
+  
     - input data (possibly interpolated) from table/file/etc
     
     - output to data (or file) faster than ruby array of double
@@ -131,31 +135,6 @@ Semantics
     on comp=>event do ... end
 
   Does permissive make sense?
-
-  Add a #connect method:
-  
-    link :comp => [C, :x, :y, :z]
-    ...
-    action do
-      self.comp = C.new
-      connect :comp, :x => :x_in_c, ...
-    end
-    
-  or:
-    
-    link :comp => Connector(:x)
-    action/setup do
-      other = create(SomeComp)
-      connect [:comp, :x] => [other, :y]
-    end
-    flow do
-      "  u'  =  comp.x  "
-    end
-    
-    creates a new connector component so that neither self nor SomeComp
-    nor other need to know statically the offset of the other guy's var
-    
-    (do we need to specify :x ??)
 
   inheritance among states:
   

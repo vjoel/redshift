@@ -33,6 +33,17 @@ module RedShift
       (@link_libs ||= []) << libs
     end
     
+    def declare_external_constant *vars
+      @external_constants ||= {}
+      vars.each do |var|
+        @external_constants[var.to_s] = true
+      end
+    end
+    
+    def external_constant? var
+      @external_constants and @external_constants.key?(var.to_s)
+    end
+    
     def extconf
       super do |lines|
         if @link_libs

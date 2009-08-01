@@ -5,8 +5,8 @@ require 'benchmark'
 include RedShift
 include Benchmark
 
-$exp = 10
-$n = 10
+$exp = 8
+$n = 3
 $reps = 1000
 
 class Foo < Component
@@ -34,17 +34,23 @@ end
 
 foo = []                         ;  foo_c = []
 w = World.new {time_step 0.1}    ;  w_c = World.new {time_step 0.1}
-$n.times {foo << w.create(Foo)}  ;  $n.times {foo_c << w.create(FooC)}
+$n.times {foo << w.create(Foo)}  ;  $n.times {foo_c << w_c.create(FooC)}
 
 
 print "#{$n} objects, #{$reps} repetitions, calculating 2^#{$exp}.\n"
 
+pr = eval "proc { |f| 10.times { f.y#{$exp} } }"
+
 bm(12) do |test|
   test.report("In Ruby:") do
-    w.run $reps
+    w.run($reps) {
+      foo.each &pr
+    }
   end
   test.report("In C:") do
-    w_c.run $reps
+    w_c.run($reps) {
+      foo.each &pr
+    }
   end
 end
 
@@ -54,14 +60,3 @@ in_c  = eval "foo_c[0].y#{$exp}"
 if in_rb != in_c
   raise "Not equal: got #{in_rb} in ruby, but #{in_c} in c."
 end
-
-# Typical results:
-#
-#   10 objects, 1000 repetitions, calculating 2^20.
-#                     user     system      total        real
-#   In Ruby:     23.990000   0.000000  23.990000 ( 23.984814)
-#   In C:         0.030000   0.000000   0.030000 (  0.031595)
-#
-# The difference is partly due to the common sub-expression
-# optimizer in RedShift's flow parser. The algorithm for calculating
-# 2^n is repeated multiplication, which is slooowwww in Ruby.

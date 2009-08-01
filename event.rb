@@ -9,13 +9,13 @@ class Event
         
     eval <<-END
     
-      def export c
+      def self.export c
         def c.#{@name}
           super
         end
       end
 
-      def unexport c
+      def self.unexport c
         def c.#{@name}
           nil
         end
@@ -32,12 +32,20 @@ class Event
       cl.module_eval <<-END
       
         def #{@name}
-          true
+          "true"
         end
       
       END
     end
   
+  end
+  
+  def to_s
+    @name
+  end
+  
+  def inspect arg = nil
+    %{<#{type} #{self}>}  ## should be in some base mod, like in roadway.rb
   end
   
 end # class Event

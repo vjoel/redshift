@@ -4,6 +4,10 @@ To do
 Syntax
 
   defining and creating components
+    classes should have a "static setup" clause
+      because of commit, cannot create components statically
+      (THIS IS A PROBLEM)
+    need to prevent calling new on Component class
     create ... block
 /   defaults { ... }  and setup { ... }
     state methods: flow Foo { def ... }
@@ -21,6 +25,8 @@ Syntax
   static data typing
     setters for flows should check for data type
     flows should have a declared data type
+  
+  should time-step automatically be converted to Float?
 
 Semantics
 
@@ -101,6 +107,8 @@ x   do this periodically if user sets flag
   
   run time error checking
     catch infinite loops in alg. flows
+    zeno
+      limit can scale w/ num components
     
   exception handling
     syntax errors, esp. in flows, guards

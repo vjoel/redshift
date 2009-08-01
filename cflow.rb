@@ -3,7 +3,9 @@ require 'cgen'
 
 =begin
 
-=Algebraic cflow expressions
+=cflow expressions
+
+A cflow is a flow whose formula is a C expression involving some Ruby subexpressions. The formula is compiled to executable code before the simulation runs.
 
 The restrictions on the Ruby expressions allowed within cflow expressions are
 intended to promote efficient code. The purpose of cflows is not rapid
@@ -15,7 +17,7 @@ constructs should be rewritten. For instance, using a complex expression like
 will incur the overhead of recalculation each time the expression is evaluated,
 even though the object which receives the (({range})) method call does not
 change during continuous evolution. Instead, use intermediate variables. Define
-an instance variable {{|@front_left_target_4|}}, updated when necessary during discrete evolution, and use the expression
+an instance variable ((|@front_left_target_4|)), updated when necessary during discrete evolution, and use the expression
 
   @front_left_target_4.range
 
@@ -23,9 +25,10 @@ The increase in efficiency comes at the cost of maintaining this new variable. U
 
 ==Syntax
 
-The syntax of algebraic cflows is
+The syntax of algebraic and differential cflows is
 
   var = rhs
+  var' = rhs
   
 where rhs is a C expression, except that it may also have the following additional subexpressions in Ruby syntax:
 
@@ -68,10 +71,6 @@ The cflow cannot be changed or recompiled while the simulation is running. Chang
 
 ==To do
 
-===Real Soon Now
-Abstract parser/code generator from flow classes.
-Differential cflows; integration algs in C.
-
 ===Soon
 globals, class vars, module methods
 constants: FOO, FOO.bar, FOO::BAR
@@ -96,33 +95,33 @@ will static libs perform much better?
 
 module RedShift
 
-libname = $0.dup    ## use something better than $0?
-libname.sub!(/\.rb/, "")
-libname.sub!(/\A\.\//, "")
-libname.sub!(/-/, "_") ## What to do about other symbols?
-libname << '_cflows'
+unless defined? FlowLibName
+  FlowLibName =
+    if $0 == "\000PWD"  # irb 1.6.5 bug
+      "irb"
+    else
+      $0.dup    ## use something better than $0?
+    end
+  FlowLibName.sub!(/\.rb/, "")
+  FlowLibName.sub!(/\A\.\//, "")
+  FlowLibName.sub!(/-/, "_") ## What to do about other symbols?
+  FlowLibName << '_cflows'
+end
 
-FlowLib = CGenerator::Library.new libname
+FlowLib = CGenerator::Library.new FlowLibName
 FlowLib.include '<math.h>'
 
-class AlgebraicFlow_C < Flow
+class Flow_C < Flow
 
-  def _attach cl, getter, setter
+  def translate getter_fn
   
-    cl.module_eval <<-END
-      def #{setter} value
-      end
-    END
-    
-    float_fn = FlowLib.define_method cl, getter
-    
     translation = {}
     
     c_formula = @formula.dup
     
     # check for self methods
     c_formula.gsub!(/(^|[^@$.\w])([a-z_]\w*)(?=$|[^\w.([])/) {
-      $1 +  'self.' + $2
+      $1 + 'self.' + $2
     }
     
     # handle method call with no args, returning numeric
@@ -136,8 +135,9 @@ class AlgebraicFlow_C < Flow
         
         meth_c_name = FlowLib.declare_symbol meth_name
         value_c_name = "value_#{CGenerator.make_c_name expr}"
-        
-        float_fn.declare expr => "double #{value_c_name};"
+
+        getter_fn.declare :temp => 'VALUE temp'
+        getter_fn.declare expr => "double #{value_c_name};"
 
         case obj_ref
         when 'self'
@@ -146,14 +146,12 @@ class AlgebraicFlow_C < Flow
           obj_ref_c_name = FlowLib.declare_symbol obj_ref
           c_receiver = "rb_ivar_get(self, #{obj_ref_c_name})"
         when /^@@(\w+)/
-          raise "Not yet implemented."
+          raise "Not yet implemented." ##
         when /\w+/
-          raise "Not yet implemented."
+          raise "Not yet implemented." ##
         end
         
-        float_fn.declare :temp => 'VALUE temp'
-
-        float_fn.setup value_c_name => %{
+        getter_fn.setup value_c_name => %{
           temp = rb_Float(rb_funcall(#{c_receiver}, #{meth_c_name}, 0));
           #{value_c_name} = RFLOAT(temp)->value;
         }.tab(-10)
@@ -173,9 +171,9 @@ class AlgebraicFlow_C < Flow
         attr_c_name = FlowLib.declare_symbol expr
         value_c_name = "value_#{CGenerator.make_c_name expr}"
 
-        float_fn.declare expr => "double #{value_c_name};"
+        getter_fn.declare expr => "double #{value_c_name};"
 
-        float_fn.setup value_c_name => %{\
+        getter_fn.setup value_c_name => %{\
           temp = rb_Float(rb_ivar_get(self, #{attr_c_name}));
           #{value_c_name} = RFLOAT(temp)->value;
         }.tab(-10)
@@ -187,10 +185,174 @@ class AlgebraicFlow_C < Flow
       translation[expr]
     }
     
-    float_fn.returns "rb_float_new(#{c_formula})"
+    c_formula
+  
+  end
+  
+  def define_formula_method cl, name
+    fn = FlowLib.define_method cl, name
+    c_formula = translate fn
+    fn.returns "rb_float_new(#{c_formula})"
+  end
+    
+end
+
+## unify these implementations with those in flow.rb using mixins
+
+class AlgebraicFlow_C < Flow_C
+
+  def _attach cl, getter, setter
+  
+    define_formula_method cl, getter
+    
+    cl.module_eval <<-END
+      def #{setter} value
+      end
+    END
     
   end
 
 end # class AlgebraicFlow_C
+
+
+class CachedAlgebraicFlow_C < Flow_C
+
+  def _attach cl, getter, setter
+    
+    define_formula_method cl, "#{getter}_calc"
+    
+    cl.module_eval <<-END
+
+      def #{getter}
+        @#{@var} ||
+          @#{@var} = #{getter}_calc
+      end
+
+      def #{setter} value
+        @#{@var} = value
+      end
+
+    END
+    
+  end
+
+end # class CachedAlgebraicFlow_C
+
+
+class EulerDifferentialFlow_C < Flow_C
+
+  def _attach cl, getter, setter
+    
+    define_formula_method cl, "#{getter}_calc"
+    
+    cl.module_eval <<-END
+
+      def #{getter}
+        if $RK_level and $RK_level < 2
+          @#{@var}_prev
+        else
+          unless @#{@var}
+            save_RK_level = $RK_level
+            $RK_level = 0
+            @#{@var} = @#{@var}_prev + #{getter}_calc * @dt
+            $RK_level = save_RK_level
+          end
+          @#{@var}
+        end
+      end
+
+      def #{setter} value
+        @#{@var}_prev = @#{@var}
+        @#{@var} = value
+      end
+
+    END
+    
+  end
+
+end # class EulerDifferentialFlow_C
+
+
+class RK4DifferentialFlow_C < Flow_C
+  
+  def _attach cl, getter, setter
+    
+    define_formula_method cl, "#{getter}_calc"
+    
+    cl.module_eval <<-END
+    
+      def #{getter}
+      
+        case $RK_level
+
+        when nil
+          @#{@var}
+
+        when 0
+          @#{@var}_prev
+
+        when 1
+          unless @#{@var}_F1
+            save_RK_level = $RK_level
+            $RK_level = 0
+            @#{@var}_F1 = #{getter}_calc * @dt
+            $RK_level = save_RK_level
+          end
+          @#{@var}_prev + @#{@var}_F1 / 2
+
+        when 2
+          unless @#{@var}_F2
+            save_RK_level = $RK_level
+            $RK_level = 1
+            @#{@var}_F2 = #{getter}_calc * @dt
+            #{getter} unless @#{@var}_F1
+            $RK_level = save_RK_level
+          end
+          @#{@var}_prev + @#{@var}_F2 / 2
+
+        when 3
+          unless @#{@var}_F3
+            save_RK_level = $RK_level
+            $RK_level = 2
+            @#{@var}_F3 = #{getter}_calc * @dt
+            #{getter} unless @#{@var}_F2
+            $RK_level = save_RK_level
+          end
+          @#{@var}_prev + @#{@var}_F3
+
+        when 4
+          unless @#{@var}_F4   # always true
+            save_RK_level = $RK_level
+            $RK_level = 3
+            @#{@var}_F4 = #{getter}_calc * @dt
+            #{getter} unless @#{@var}_F3
+            $RK_level = save_RK_level
+          end
+          @#{@var} =
+            @#{@var}_prev +
+            (@#{@var}_F1     +
+             @#{@var}_F2 * 2 +
+             @#{@var}_F3 * 2 +
+             @#{@var}_F4      ) / 6
+          
+        end            
+
+      end
+      
+      def #{setter} value
+        @#{@var}_prev = @#{@var}
+        @#{@var} = value
+        @#{@var}_F1 = value
+        @#{@var}_F2 = value
+        @#{@var}_F3 = value
+        @#{@var}_F4 = value
+      end
+      
+    END
+    
+  end
+
+end # class RK4DifferentialFlow_C
+
 
 end # module RedShift

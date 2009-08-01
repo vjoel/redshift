@@ -1,19 +1,20 @@
 require 'option-block'
 require 'pstore'
+require 'cgen/shadow'
 
 module RedShift
 
 class World
-
   include OptionBlock
   include Enumerable
+  include CShadow
   
   Infinity = 1.0/0.0
   
   $RK_level = nil
 
   option_block_defaults \
-    :name         =>  '"World #{@@count}"',
+    :name         =>  nil,
     :time_step    =>  0.1,
     :zeno_limit   =>  Infinity,
     :clock_start  =>  0.0,
@@ -33,7 +34,7 @@ class World
     
     @components = {}
 
-    @name          = eval options[:name]
+    @name          = options[:name] || "World #{@@count}"
     @time_step     = options[:time_step]
     @zeno_limit    = options[:zeno_limit]
     @clock_start   = options[:clock_start]
@@ -46,9 +47,7 @@ class World
   end
 
   def create(component_class, &block)
-    
     FlowLib.commit unless FlowLib.committed? or FlowLib.empty?
-
     c = component_class.new(self, &block)
     @components[c.id] = c
   end

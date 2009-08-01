@@ -92,6 +92,8 @@ class Flow
       instance_eval(&block)
     end
     
+    ## This should all be more OO
+    
     def algebraic(*equations)
       for equation in equations
         unless equation =~ /^\s*(\w+)\s*=\s*(.*)/m
@@ -122,6 +124,16 @@ class Flow
       end
     end
     
+    def cached_algebraic_c(*equations)
+      for equation in equations
+        unless equation =~ /^\s*(\w+)\s*=\s*(.*)/m
+          raise "parse error in\n\t#{equation}."
+        else
+          @flows << CachedAlgebraicFlow_C.new($1.intern, $2.strip)
+        end
+      end
+    end
+    
     def euler(*equations)
       for equation in equations
         unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
@@ -132,12 +144,32 @@ class Flow
       end
     end
     
+    def euler_c(*equations)
+      for equation in equations
+        unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
+          raise "parse error in\n\t#{equation}."
+        else
+          @flows << EulerDifferentialFlow_C.new($1.intern, $2.strip)
+        end
+      end
+    end
+    
     def differential(*equations)
       for equation in equations
         unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
           raise "parse error in\n\t#{equation}."
         else
           @flows << RK4DifferentialFlow.new($1.intern, $2.strip)
+        end
+      end
+    end
+    
+    def differential_c(*equations)
+      for equation in equations
+        unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
+          raise "parse error in\n\t#{equation}."
+        else
+          @flows << RK4DifferentialFlow_C.new($1.intern, $2.strip)
         end
       end
     end

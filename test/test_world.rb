@@ -142,8 +142,9 @@ class World_5 < World
     self.zeno_limit = 100
   end
   
-  def step_zeno zeno_counter
+  def step_zeno
     @zeno_step_reached = true
+    super # raise ZenoError
   end
   
   def run

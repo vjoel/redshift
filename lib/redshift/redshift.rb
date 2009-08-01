@@ -103,6 +103,8 @@ module RedShift
     require $REDSHIFT_TARGET
   end
 
+  autoload(:ZenoDebugger, "redshift/mixins/zeno-debugger")
+
 end # module RedShift
 
 case $REDSHIFT_TARGET
@@ -116,3 +118,4 @@ end
 # impl. etc. (but procs are a problem for all but ruby)
 
 require 'redshift/syntax'
+

@@ -1,5 +1,4 @@
 require "redshift"
-require "redshift/zeno-debugger"
 
 include RedShift
 

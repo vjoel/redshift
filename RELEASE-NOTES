@@ -1,3 +1,10 @@
+redshift 1.1.55
+
+- Re-fixed bug with order in which guards are checked.
+
+- Defaults and setup clauses can take a hash of var=>value, as can variable
+  declarations.
+
 redshift 1.1.54
 
 - Fixed bug with transition S=>S and strict guards.

@@ -379,9 +379,12 @@ end
 
 class Discrete_16 < DiscreteTestComponent
   state :S
-  transition(Enter => S) {action {@pass=true}}
-  transition(Enter => S) {action {@pass=false}}
-  transition(Enter => S) {action {@pass=false}}
+  transition(Enter => S) {name "C"; action {@pass=true}}
+  transition(Enter => S) {name "B"; action {@pass=false}}
+  transition(Enter => S) {name "A"; action {@pass=false}}
+  transition(Enter => S) {name "X"; action {@pass=false}}
+  transition(Enter => S) {name "Y"; action {@pass=false}}
+  transition(Enter => S) {name "Z"; action {@pass=false}}
   def assert_consistent test
     test.flunk("transitions are not in priority order") unless @pass
   end

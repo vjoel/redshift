@@ -116,8 +116,7 @@ class Trans_3a < TransTestComponent
   end
 end
 
-# priority of transitions is based on program text (as tested in test_discrete)
-# with subclasses first (tested here)
+# priority of transitions is by subclasses first
 class Trans_4a < TransTestComponent
   state :A, :B
   transition Enter => A do name "A" end

@@ -268,7 +268,7 @@ module RedShift
     protected :var_count=
 
     ### check for phases->len < 256
-    shadow_struct.declare :bits => %{
+    shadow_struct.declare :bits => %{\
       unsigned    cur_ph   : 8; //# index of upcoming ph
       unsigned    strict   : 1; //# is cur state strict?
       unsigned    checked  : 1; //# have the guards been checked?
@@ -698,11 +698,9 @@ module RedShift
       end
 
       def define_transitions(state)
-        own_trans = transitions(state).own
-
-        own_trans.keys.sort_by{|k|k.to_s}.each do |name|
-          trans, dest = own_trans[name]
-
+        # transitions don't usually have names, so the following (insertion
+        # order) is better than sorting by name.
+        own_transitions(state).each do |trans, dst|
           guards = trans.guard
           define_guards(guards) if guards
           
@@ -774,6 +772,18 @@ module RedShift
         "Transition violated strictness: var #{var_name}:" +
         " new value #{new_val} != #{old_val} in #{self.inspect}"
     end
+    
+    def self.cached_outgoing_transition_data s
+      if $REDSHIFT_DEBUG
+        raise Library::CommitError unless committed? ## debug only?
+      end
+      @cached_outgoing_transition_data ||= {}
+      @cached_outgoing_transition_data[s] ||= outgoing_transition_data(s)
+    end
+    
+    def outgoing_transition_data
+      self.class.cached_outgoing_transition_data state
+    end
 
     define_c_method :update_cache do body "__update_cache(shadow)" end
 
@@ -802,7 +812,7 @@ module RedShift
 
         //# Cache outgoing transitions.
         shadow->outgoing = rb_funcall(shadow->self,
-                           #{declare_symbol :outgoing_transitions}, 0);
+                           #{declare_symbol :outgoing_transition_data}, 0);
 
         strict = rb_funcall(shadow->outgoing, #{declare_symbol :last}, 0);
         shadow->strict = RTEST(strict);
@@ -814,8 +824,7 @@ module RedShift
         flow_array = rb_hash_aref(flow_table, shadow->state);
 
         if (flow_array != Qnil) {
-          Check_Type(flow_array, T_ARRAY); //## debug only
-
+          #{"Check_Type(flow_array, T_ARRAY);\n" if $REDSHIFT_DEBUG}
           count = RARRAY(flow_array)->len;
           flows = RARRAY(flow_array)->ptr;
 

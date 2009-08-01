@@ -2,7 +2,7 @@ module RedShift
 
 class Component
   
-  class_superhash2 :flows, :transitions
+  class_superhash2 :flows
   class_superhash :exported_events      # :event => index
   class_superhash :states
   class_superhash :continuous_variables, :constant_variables ## bad name
@@ -57,92 +57,103 @@ class Component
         else         raise SyntaxError, "Bad state list: #{states.inspect}"
       end
     end
+    
+    def convert_to_state state
+      unless state.is_a? State
+        state = const_get(state.to_s)
+      end
+      unless state.is_a? State
+        raise TypeError, "Must be a state: #{state.inspect}"
+      end
+      state
+    end
 
     def attach_flows states, new_flows
-      for state in states.sort_by {|s| s.to_s}
-        unless state.is_a? State
-          state = const_get(state.to_s)
-        end
-        
-        unless state.is_a? State
-          raise TypeError, "Must be a state: #{state.inspect}"
-        end
-
+      states.each do |state|
+        state = convert_to_state(state)
         fl = flows(state)
-
         for f in new_flows
           fl[f.var] = f
         end
       end
     end
 
-    def attach_transitions states, new_transitions
-      for src, dest in states.sort_by {|s| s.to_s}
-        unless src.is_a? State
-          src = const_get(src.to_s)
-        end
-        unless src.is_a? State
-          raise TypeError, "Source must be a state: #{src.inspect}"
-        end
+    def attach_transitions state_pairs, new_transitions
+      state_pairs.sort_by {|src,dst| dst.name}.each do |src, dst|
+        src = convert_to_state(src)
+        dst = convert_to_state(dst)
 
-        unless dest.is_a? State
-          dest = const_get(dest.to_s)
-        end
-        unless dest.is_a? State
-          raise TypeError, "Destination must be a state: #{dest.inspect}"
-        end
-
-        @cached_transitions = @cached_outgoing_transitions = nil
-        tr = transitions(src)
-
+        a = own_transitions(src)
+        
         for t in new_transitions
-          tr[t.name] = [t, dest]
+          name = t.name
+          a.delete_if {|u,d| u.name == name}
+          a << [t, dst]
         end
       end
     end
-
-    def cached_transitions s
-      @cached_transitions ||= {}
-      @cached_transitions[s] ||= transitions(s).values
+    
+    # returns list of transitions from state s in evaluation order
+    # (just the ones defined in this class)
+    def own_transitions(s)
+      @own_transitions ||= {}
+      @own_transitions[s] ||= []
     end
-  
-    def cached_outgoing_transitions s
-      @cached_outgoing_transitions ||= {}
-      @cached_outgoing_transitions[s] ||=
-        begin
-          ary = []
-          all_strict = true
-          cached_transitions(s).reverse_each do |t, d|
-            ary << t << d << t.phases << t.guard
+    
+    def all_transitions(s)
+      if self < Component
+        own_transitions(s) + superclass.all_transitions(s)
+      else
+        own_transitions(s)
+      end
+    end
 
-            t_strict = true
-            guard_list = t.guard
-            guard_list and guard_list.each do |g|
-              t_strict &&= g.respond_to?(:strict) && g.strict
-            end
-            all_strict &&= t_strict
-            
-            ary << t_strict
-          end
+    def outgoing_transition_data s
+      ary = []
+      all_strict = true
+      seen = {}
+      all_transitions(s).each do |t, d|
+        next if seen[t.name] # overridden in subclass
+        seen[t.name] = true
 
-          ary << all_strict # just a faster way to return mult. values
-          ary.freeze
-          ary
+        t_strict = true
+        guard_list = t.guard
+        guard_list and guard_list.each do |g|
+          t_strict &&= g.respond_to?(:strict) && g.strict
         end
+        all_strict &&= t_strict
+
+        ary << [t, d, t.phases, t.guard, t_strict]
+      end
+
+      result = []
+      ary.reverse_each do |list| # since step_discrete reads them in reverse
+        result.concat list
+      end
+      result << all_strict # just a faster way to return mult. values
+      result.freeze
+      result
+    end
+    
+    def attach_variables(dest, kind, var_names)
+      if var_names.last.kind_of? Hash
+        h = var_names.pop
+        var_names.concat h.keys.sort_by {|n|n.to_s}
+        defaults h
+      end
+      var_names.each do |var_name|
+        dest[var_name] = kind
+      end
     end
 
     # kind is :strict, :piecewise, or :permissive
     def attach_continuous_variables(kind, var_names)
-      var_names.each do |var_name|
-        continuous_variables[var_name] = kind
-      end
+      attach_variables(continuous_variables, kind, var_names)
     end
     
     # kind is :strict, :piecewise, or :permissive
     def attach_constant_variables(kind, var_names)
-      var_names.each do |var_name|
-        constant_variables[var_name] = kind
-      end
+      attach_variables(constant_variables, kind, var_names)
     end
   end
 
@@ -152,14 +163,6 @@ class Component
   
   def flows s = state
     self.class.flows s
-  end
-  
-  def transitions s = state
-    self.class.cached_transitions s
-  end
-  
-  def outgoing_transitions
-    self.class.cached_outgoing_transitions state
   end
   
 end # class Component

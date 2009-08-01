@@ -64,12 +64,23 @@ class << Component
     default {start s}
   end
 
+  def make_init_value_map(h)
+    h.inject({}) do |hh, (var, val)|
+      if val.kind_of? Proc or val.kind_of? String
+        raise TypeError,
+          "value for '#{var}' must be literal, like #{var} => 1.23"
+      end
+      hh.update "#{var}=" => val
+    end
+  end
+
   # Register, for the current component class, the given block to be called at
   # the beginning of initialization of an instance.
   # The block is called with the world as +self+.
   # Any number of blocks can be registered.
-  def defaults(&block)
+  def defaults(h = nil, &block)
     (@defaults_procs ||= []) << block if block
+    (@defaults_map ||= {}).update make_init_value_map(h) if h
   end
   alias default defaults
 
@@ -78,10 +89,10 @@ class << Component
   # initialization block (the block passed to Component#new).
   # The block is called with the world as +self+.
   # Any number of blocks can be registered.
-  def setup(&block)
+  def setup(h = nil, &block)
     (@setup_procs ||= []) << block if block
+    (@setup_map ||= {}).update make_init_value_map(h) if h
   end
-  ## should default and setup allow syntax like reset? Like: default :x => 3
   
   # Define states in this component class, listed in +state_names+. A state
   # name should be a string or symbol beginning with [A-Z] and consisting of
@@ -127,7 +138,6 @@ class << Component
     attach_continuous_variables(:strict, var_names)
   end
 
-  ## should allow continuous :x => 3 for default initialization
   def continuous(*var_names)
     attach_continuous_variables(:piecewise, var_names)
   end
@@ -141,7 +151,6 @@ class << Component
     attach_constant_variables(:strict, var_names)
   end
 
-  ## should allow constant :x => 3 for default initialization
   def constant(*var_names)
     attach_constant_variables(:piecewise, var_names)
   end

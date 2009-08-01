@@ -194,8 +194,16 @@ class Component
   end
   private :do_setup
   
+  def self.do_assignment_map instance, h
+    ## could be done in c code
+    h.each do |writer, val|
+      instance.send writer, val
+    end
+  end
+  
   def self.do_defaults instance
     superclass.do_defaults instance if superclass.respond_to? :do_defaults
+    do_assignment_map instance, @defaults_map if @defaults_map
     if @defaults_procs
       @defaults_procs.each do |pr|
         instance.instance_eval(&pr)
@@ -207,6 +215,7 @@ class Component
     ## should be possible to turn off superclass's setup so that 
     ## it can be overridden. 'nosupersetup'? explicit 'super'?
     superclass.do_setup instance if superclass.respond_to? :do_setup
+    do_assignment_map instance, @setup_map if @setup_map
     if @setup_procs
       @setup_procs.each do |pr|
         instance.instance_eval(&pr) ## should be pr.call(instance) ?

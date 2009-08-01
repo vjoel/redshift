@@ -258,8 +258,6 @@ Semantics
 
 Implementation
 
-  make sure that sizeof(shadow) is as expected (even bitfields!)
-
   possible to use only 1 tmp value for rk4?
 
   optimization: transitive closure of strict sleep, based on declaration
@@ -267,6 +265,12 @@ Implementation
   
   optimization: weaken "strict" so that resets can apply at end of
     discrete update, but still get all the optimizations (see bench/discrete.rb)
+    
+    - a new kind of flow that applies an "impulse" to a strict var at the
+      beginning of the next cont step, or
+      
+    - a declaration that a var becomes strict for the rest of the discrete
+      step
   
   Allow c-coded actions:
   
@@ -285,7 +289,8 @@ Implementation
     - d_tick rollover
 
   Instead of caching flow function in each cont var, maybe just have pointer
-  to a single (per state?) object?
+  to a single per state object? This can also have the outgoing transitions,
+  and so __update_cache can be somewhat faster.
 
   share mark and free funcs where possible (e.g., guards)
   
@@ -326,6 +331,9 @@ Implementation
   
   dot backend (see file in lib dir)
   
+  optimization: on SMP systems, use threads to evaluate guards and RHS and
+    to perform final assignments
+
 User interface
 
   yaml and pp outputs

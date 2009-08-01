@@ -73,6 +73,21 @@ class Setup_4b < SetupTestComponent
   end
 end
 
+# defaults and setup can take a hash of var=>value, and constant and continuous
+# can take var => value as well
+
+class Setup_5 < SetupTestComponent
+  constant :k => 111, :k2 => 3
+  continuous :x => 222, :x2 => 4
+  setup :k => 1, :x => 2
+  def assert_consistent test
+    test.assert_equal(1, k)
+    test.assert_equal(2, x)
+    test.assert_equal(3, k2)
+    test.assert_equal(4, x2)
+  end
+end
+
 #-----#
 
 require 'test/unit'

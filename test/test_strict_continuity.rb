@@ -177,7 +177,7 @@ class TestStrictContinuity < Test::Unit::TestCase
     @world = nil
   end
   
-  def XXXtest_strict_continuity
+  def test_strict_continuity
     testers = []
     ObjectSpace.each_object(Class) do |cl|
       if cl <= TestComponent and

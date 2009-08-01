@@ -25,7 +25,7 @@ module RedShift
       #pragma pack(push, 1)
       #endif
       typedef struct {
-        unsigned    d_tick    : 16; // last discrete tick at which flow computed
+        unsigned    d_tick    : 16; // last d_tick at which alg flow computed
         unsigned    rk_level  :  3; // last rk level at which flow was computed
         unsigned    algebraic :  1; // should compute flow when inputs change?
         unsigned    nested    :  1; // to catch circular evaluation
@@ -322,7 +322,9 @@ module RedShift
                 body %{
                   cont_state = (#{ssn} *)shadow->cont_state;
                   if (cont_state->#{var_name}.algebraic &&
-                      cont_state->#{var_name}.d_tick != d_tick)
+                      (cont_state->#{var_name}.strict ?
+                       !cont_state->#{var_name}.d_tick :
+                       cont_state->#{var_name}.d_tick != d_tick))
                     (*cont_state->#{var_name}.flow)((ComponentShadow *)shadow);
                 }
                 returns "rb_float_new(cont_state->#{var_name}.value_0)"
@@ -783,6 +785,8 @@ module RedShift
         }
       }
     end
+    ## optimization: 
+    ## if (var->flow != old_flow && ...)
 
     shadow_attr_reader :world => World
 

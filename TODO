@@ -37,9 +37,6 @@ Syntax
     can we 'hook' method def and attr def to check for conflict? 
     or just use a consistent naming scheme to keep internals separate?
 
-  transition do ... end with no states should apply to all S=>S not just to
-   Enter=>Enter ?
-
 Semantics
 
   Does permissive make sense?
@@ -228,10 +225,6 @@ Implementation
   
     - d_tick rollover
 
-    - check for violation of stricness by a transition to
-      a state with different algebraic eqns (so this check
-      would become optional)
-  
   Instead of caching flow function in each cont var, maybe just have pointer
   to a single (per state?) object?
 
@@ -290,5 +283,5 @@ Tools
     
     can this be a mixin for World
 
-  general vis interface using TkCanvas
+  general vis interface using TkCanvas/tkar or opengl
   

@@ -1,3 +1,7 @@
+redshift 1.1.43
+
+- Optimization for strictly continuous var readers.
+
 redshift 1.1.42
 
 - Added runtime check for strictness violation due to transition to state

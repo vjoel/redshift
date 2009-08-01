@@ -17,8 +17,9 @@ class ZWorld < World
   
   # Try commenting out the action clause in Z. Without the following line,
   # the Zeno debugger will not be able to watch instances of Z. The cost
-  # of this line is a recompilation and a small run-time speed cost.
-#  include ZenoDebugger_DetectEmptyTransitions
+  # of this line is a recompilation and a small run-time speed hit. Note
+  # that only one of these "include" lines is needed.
+#  include ZenoDebugger::DetectEmptyTransitions
   
   def report_zeno
     super # the normal zeno output

@@ -96,7 +96,7 @@ class RedShift::World
   #
   # This module automatically includes ZenoDebugger, as well.
 
-  module ZenoDebugger_DetectEmptyTransitions
+  module ZenoDebugger::DetectEmptyTransitions
     include ZenoDebugger
     
     def hook_start_transition(comp, trans, dest)

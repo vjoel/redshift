@@ -125,10 +125,13 @@ module RedShift
     class ContState
       include CShadow; shadow_library Component
 
-      shadow_struct.declare :begin_vars =>
-        "struct {} begin_vars __attribute__ ((aligned (8)))"
-        # could conceivably have to be >8, or simply ((aligned)) on some
-        # platforms but this seems to work for x86 and sparc
+      ## maybe this should be in cgen as "shadow_aligned N"
+      unless /mswin/i =~ RUBY_PLATFORM
+        shadow_struct.declare :begin_vars =>
+          "struct {} begin_vars __attribute__ ((aligned (8)))"
+          # could conceivably have to be >8, or simply ((aligned)) on some
+          # platforms but this seems to work for x86 and sparc
+      end
       
       class_superhash :vars
       

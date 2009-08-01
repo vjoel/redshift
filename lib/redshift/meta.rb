@@ -58,19 +58,15 @@ class Component
       end
     end
     
-    def convert_to_state state
-      unless state.is_a? State
-        state = const_get(state.to_s)
-      end
+    def must_be_state state
       unless state.is_a? State
         raise TypeError, "Must be a state: #{state.inspect}"
       end
-      state
     end
 
     def attach_flows states, new_flows
       states.each do |state|
-        state = convert_to_state(state)
+        must_be_state(state)
         fl = flows(state)
         for f in new_flows
           fl[f.var] = f
@@ -79,13 +75,11 @@ class Component
     end
 
     def attach_transitions state_pairs, new_transitions
-      state_pairs.sort_by {|src,dst| dst.name}.each do |src, dst|
-        src = convert_to_state(src)
-        dst = convert_to_state(dst)
+      state_pairs.each do |src, dst|
+        must_be_state(src); must_be_state(dst)
 
         a = own_transitions(src)
-        
-        for t in new_transitions
+        new_transitions.each do |t|
           name = t.name
           a.delete_if {|u,d| u.name == name}
           a << [t, dst]
@@ -165,6 +159,9 @@ class Component
     self.class.flows s
   end
   
+  def transitions s = state
+    self.class.all_transitions s
+  end  
 end # class Component
 
 end # module RedShift

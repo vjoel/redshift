@@ -774,9 +774,7 @@ module RedShift
     end
     
     def self.cached_outgoing_transition_data s
-      if $REDSHIFT_DEBUG
-        raise Library::CommitError unless committed? ## debug only?
-      end
+      raise Library::CommitError if $REDSHIFT_DEBUG and not committed?
       @cached_outgoing_transition_data ||= {}
       @cached_outgoing_transition_data[s] ||= outgoing_transition_data(s)
     end

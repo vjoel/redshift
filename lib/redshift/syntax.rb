@@ -123,8 +123,10 @@ class << Component
         case val
         when State
           raise NameError, "state #{state_name} already exists"
-        when Class
-          raise NameError, "state name '#{state_name}' is used for a constant."
+        else
+          raise NameError,
+            "state name '#{state_name}' is already used for a constant " +
+            "of type #{val.class}."
         end
       end
     end
@@ -168,7 +170,6 @@ end
 
 # Defines the flow types that can be used within a flow block.
 module FlowSyntax
-
   def self.parse block
     FlowParser.new(block).flows
   end
@@ -182,7 +183,7 @@ module FlowSyntax
     end
     
     def algebraic(*equations)
-      for equation in equations
+      equations.each do |equation|
         unless equation =~ /^\s*(\w+)\s*=\s*(.*)/m
           raise "parse error in\n\t#{equation}."
         end
@@ -211,14 +212,10 @@ module FlowSyntax
     alias alg           algebraic
     alias diff          rk4
     alias differential  rk4
-
   end
-	
-end # module FlowSyntax
-
+end
 
 module TransitionSyntax
-
   def self.parse block
     parser = TransitionParser.new(block)
     Transition.new(*parser.tr_data)
@@ -292,20 +289,18 @@ module TransitionSyntax
       end
     end
     
-    def procedure(meth = nil, &bl)
+    def action(meth = nil, &bl)
       proc_phase = Component::ProcPhase.new
       proc_phase << meth if meth
       proc_phase << bl if bl
       @phases << proc_phase
     end
-    alias action procedure ## will be deprecated?
     
     def pass
-      procedure
+      action
     end
     
-    # +h+ is a hash of :var => {value_expr} or "value_expr";
-    # {value_expr} is ruby, "value_expr" is C.
+    # +h+ is a hash of :var => proc {value_expr_ruby} or "value_expr_c".
     def reset(h)
       badkeys = h.keys.reject {|k| k.is_a?(Symbol)}
       unless badkeys.empty?
@@ -345,11 +340,8 @@ module TransitionSyntax
       end
       @phases << events
     end
-  
   end
-
-end # module TransitionSyntax
-
+end
 
 # Define flows in this component class. Flows are attached to all of the
 # +states+ listed. The block contains method calls such as:
@@ -363,7 +355,6 @@ def Component.flow(*states, &block)
   
   attach states, FlowSyntax.parse(block)
 end
-
 
 # Define transitions in this component class. Transitions are attached to
 # all of the +edges+ listed as <tt>src => dst</tt>. In fact, edges may
@@ -382,7 +373,6 @@ end
 # the transition--this is necessary for overriding the transition in a subclass.
 #
 def Component.transition(edges = {}, &block)
-
   # allow edges like [s1, s2, s3] => d
   e = {}
   warn = []
@@ -431,7 +421,6 @@ def Component.transition(edges = {}, &block)
   end
   
   attach edges, trans
-
 end
 
-end # module RedShift
+end

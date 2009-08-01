@@ -69,7 +69,7 @@ class Discrete_4a < DiscreteTestComponent
     name "zap"
     event :e
     pass
-      ## pass because, as an optimization, a component finishes the transition
+      ## because, as an optimization, a component finishes the transition
       ## after completing the last phase, rather than at the end of the
       ## discrete step.
   end
@@ -86,7 +86,7 @@ class Discrete_4b < DiscreteTestComponent
       end
       @x.e
     }
-    pass
+    action
   end
   setup { @x = create Discrete_4a }
   def assert_consistent test
@@ -387,6 +387,15 @@ class Discrete_16 < DiscreteTestComponent
   transition(Enter => S) {name "Z"; action {@pass=false}}
   def assert_consistent test
     test.flunk("transitions are not in priority order") unless @pass
+  end
+end
+
+# Multiple transitions in one definition are allowed.
+class Discrete_17 < DiscreteTestComponent
+  state :A, :B
+  transition Enter => A, A => B
+  def assert_consistent test
+    test.assert_equal(B, state)
   end
 end
 

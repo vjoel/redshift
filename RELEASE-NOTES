@@ -1,3 +1,7 @@
+redshift 1.1.56
+
+- Misc fixes, cleanup, and tests.
+
 redshift 1.1.55
 
 - Re-fixed bug with order in which guards are checked.

@@ -138,13 +138,12 @@ class World
             if (!var->flow) {
               var->value_1 = var->value_2 = var->value_3 = var->value_0;
             }
-            var->d_tick = 0;
             var++;
           }
         }
       }
-            
-      for (rk_level = 1; rk_level <= 4; rk_level++) { //# assign global
+      
+      for (rk_level = 1; rk_level <= 3; rk_level++) { //# assign global
         len = RARRAY(shadow->diff_list)->len;
         comp_ary = RARRAY(shadow->diff_list)->ptr;
         for (ci = 0; ci < len; ci++) {
@@ -167,16 +166,36 @@ class World
                 var->rk_level < rk_level &&
                 !var->algebraic)
               (*var->flow)((ComponentShadow *)comp_shdw);
-            if (rk_level == 4) {
-              if (var->rk_level == 4)
-                var->d_tick = 1; //# var will be current in discrete_step
-              else
-                var->d_tick = 0; //# var (if alg) will need to be evaled
-            }
             var++;
           }
         }
       }
+      
+      rk_level = 4;
+      for (li = 0; li < 2; li++) {
+        len = RARRAY(comp_rb_ary[li])->len;
+        comp_ary = RARRAY(comp_rb_ary[li])->ptr;
+        for (ci = 0; ci < len; ci++) {
+          Data_Get_Struct(comp_ary[ci], ComponentShadow, comp_shdw);
+          var_count = comp_shdw->var_count;
+          var = (ContVar *)(&FIRST_CONT_VAR(comp_shdw));
+          end_var = &var[var_count];
+
+          while (var < end_var) {
+            if (var->flow &&
+                var->rk_level < rk_level &&
+                !var->algebraic)
+              (*var->flow)((ComponentShadow *)comp_shdw);
+            
+            if (var->rk_level == 4)
+              var->d_tick = 1; //# var will be current in discrete_step
+            else
+              var->d_tick = 0; //# var (if alg) will need to be evaled
+            var++;
+          }
+        }
+      }
+
       d_tick = 1; //# alg flows need to be recalculated
       rk_level = 0;
     } # assumed that comp_ary[i] was a Component--enforced by World#create

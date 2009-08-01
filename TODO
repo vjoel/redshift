@@ -59,29 +59,10 @@ Syntax
 
 Semantics
 
-  divide discrete cycle into 2 phases:
-  
-    - indep. calculation (RHS, create, eval guard expr)
-    
-    - assign, export, check guard truth value
-
   register event observers:
     on comp=>event do ... end
 
   Does permissive make sense?
-
-  Should actions be allowed to occur on the same discrete step as R/E/G ?
-    
-    action {}
-    reset ...
-    action {}
-    # all three on the same step?
-    
-    it would be useful to do a common computation that is needed for
-    several resets
-    
-    this could make use of the "local" framework, or be separate (even more
-      local -- to just the reset)
 
   Add a #connect method:
   
@@ -108,9 +89,6 @@ Semantics
     
     (do we need to specify :x ??)
 
-  one phase should be able to have both events and resets
-    because we evaluate Events in parallel with Resets
-  
   inheritance among states:
   
     "state Foo has everything that Bar has, plus ...."
@@ -258,8 +236,8 @@ Semantics
 
 Implementation
 
-  remove -fPIC and -g (if not debug) from CFLAGS
-    add -march=i686 -msse2 -mfpmath=sse
+  remove -g (if not debug) from CFLAGS
+    add -march=i686 -msse2 -mfpmath=sse (keep -fPIC?)
     or whatever current hw is (how to determine that?)
 
   possible to use only 1 tmp value for rk4?

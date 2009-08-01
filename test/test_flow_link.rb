@@ -39,7 +39,6 @@ class Flow_UsingLink < FlowTestComponent
 end
 
 # test links in flows
-# this was originally used to nail a bug in translate, maybe it's not needed
 
 class Flow_UsingLink2 < FlowTestComponent
   class Sub < Component
@@ -73,8 +72,7 @@ class Flow_UsingLink2 < FlowTestComponent
   end
 end
 
-# another test, maybe somewhat redundant, but what the hell
-# in this case, we compare a system of equations in one component
+# compare a system of equations in one component
 # with the same system distributed among several
 
 class Flow_UsingLink3 < FlowTestComponent

@@ -1,3 +1,7 @@
+redshift 1.2.3
+
+- Fixed a bug in step_continuous introduced with the "diff_list" optimization.
+
 redshift 1.2.2
 
 - Added post actions.

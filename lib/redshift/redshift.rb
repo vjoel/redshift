@@ -63,15 +63,6 @@ module RedShift
     worlds
   end
 
-#  def run(*args)
-#    if @@world
-#      @@world.run(*args)
-#    else
-#      raise "No world specified."
-#    end
-#  end
-#  module_function :run
-  
 #  class Warning < Exception; end
 #  
 #  # Warn with string str and skipping n stack frames.
@@ -102,10 +93,6 @@ module RedShift
 
   def RedShift.require_target
     require $REDSHIFT_TARGET
-  end
-
-  class World
-    autoload(:ZenoDebugger, "redshift/mixins/zeno-debugger")
   end
 
 end # module RedShift

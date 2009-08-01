@@ -100,12 +100,12 @@ class Component
   # numbered in the order which this method was called on them and not
   # necessarily in order of creation.
   def comp_id
-    unless @comp_id
-      @@next_comp_id ||= 0
-      @comp_id = @@next_comp_id
-      @@next_comp_id += 1
-    end
-    @comp_id
+    @comp_id ||= Component.next_comp_id
+  end
+  
+  @next_comp_id = -1
+  def Component.next_comp_id
+    @next_comp_id += 1
   end
   
   def to_s

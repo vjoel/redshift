@@ -11,6 +11,10 @@ ZENO_UNLIMITED = -1
 class World
   include Enumerable
   
+  autoload(:ZenoDebugger, "redshift/mixins/zeno-debugger")
+  autoload(:ZenoDebugger_DetectEmptyTransitions,
+                          "redshift/mixins/zeno-debugger")
+
   class ComponentList < EnumerableOperator::Sum
     def inspect
       to_a.inspect # looks better in irb

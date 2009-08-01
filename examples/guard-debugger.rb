@@ -2,16 +2,20 @@ require 'redshift'
 
 include RedShift
 
-# This example is a simple debugger for stepping through guards.
-
+# This example is a simple debugger for stepping through guards. It's not
+# intended to be useful as a debugger, but to show how hook methods can be
+# used to develop debuggers.
+#
 # See examples/step-discrete-hook.rb for more examples of hook methods.
+#
+# See mixins/debugger.rn and examples/debugger.rb for a more useful debugger.
 
 class DebuggingWorld < World
   def hook_eval_guard(comp, guard, enabled, trans, dest)
     puts "%-30p %-30p %-8s %6d" %
          [comp, guard, enabled ? "enabled" : nil, discrete_step]
     if enabled and dest != comp.state
-      puts "Changing to state #{dest}"
+      puts "%-30s %-30s %-s" % [nil, nil, "#{comp.state} => #{dest}"]
     end
     puts "press <enter> to continue"
     gets

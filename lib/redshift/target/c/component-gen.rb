@@ -470,9 +470,16 @@ module RedShift
       def define_guards(guards)
         guards.map! do |g|
           case g
-          when GuardWrapper, GuardPhaseItem, Proc
+          when GuardPhaseItem, Proc
             # already saw this guard, as in: transition [S, T] => U
             g
+          
+          when Class
+            if g < GuardWrapper
+              g
+            else
+              raise "What is #{g.inspect}?"
+            end
 
           when String
             define_guard(g)
@@ -499,7 +506,8 @@ module RedShift
 
             item
 
-          else raise "What is #{g.inspect}?"
+          else
+            raise "What is #{g.inspect}?"
           end
         end
       end

@@ -5,6 +5,8 @@ class RedShift::World
   # even without ZenoDebugger, RedShift will still detect zeno problems by
   # raising a ZenoError when world.zeno_counter > world.zeno_limit, if
   # zeno_limit >= 0.
+  #
+  # ZenoDebugger is compatible with other kinds of debuggers.
 
   module ZenoDebugger
 
@@ -12,7 +14,7 @@ class RedShift::World
     # default.
     attr_accessor :debug_zeno
 
-    # Zeno output goes to this writable IO, $stderr by default.
+    # Zeno output goes to this object, $stderr by default, using #<<.
     attr_accessor :zeno_io
 
     # Can be used to see which components are causing trouble.
@@ -66,17 +68,23 @@ class RedShift::World
     
     def report_zeno
       f = zeno_io
+      
+      ag = active_G
 
-      active_G = zeno_watch_list & curr_G
-      f.puts '-'*30 + " Zeno step: #{zeno_counter} " + '-'*30
-      f.puts "    active component counts: P: #{curr_P.size}," +
-             " E: #{curr_E.size}, R: #{curr_R.size}, G: #{active_G.size}"
-      f.puts 'P:  ' + curr_P.map{|c|c.inspect}.join("\n    ")
-      f.puts 'E:  ' + curr_E.map{|c|c.inspect}.join("\n    ")
-      f.puts 'R:  ' + curr_R.map{|c|c.inspect}.join("\n    ")
-      f.puts 'G:  ' + active_G.map{|c|c.inspect}.join("\n    ")
+      f << '-'*30 + " Zeno step: #{zeno_counter} " + '-'*30 + "\n"
+      f << "    active component counts: P: #{curr_P.size}," +
+             " E: #{curr_E.size}, R: #{curr_R.size}, G: #{ag.size}" + "\n"
+      f << 'P:  ' + curr_P.map{|c|c.inspect}.join("\n    ") + "\n"
+      f << 'E:  ' + curr_E.map{|c|c.inspect}.join("\n    ") + "\n"
+      f << 'R:  ' + curr_R.map{|c|c.inspect}.join("\n    ") + "\n"
+      f << 'G:  ' + ag.map{|c|c.inspect}.join("\n    ") + "\n"
     end
-
+    
+    # Returns list of components that appear to be active and in Guard phase.
+    def active_G
+      active_G = zeno_watch_list & curr_G
+    end
+    
   end
 
   # Include this module in your World class if you want the Zeno debugger to
@@ -90,7 +98,9 @@ class RedShift::World
 
   module ZenoDebugger_DetectEmptyTransitions
     include ZenoDebugger
+    
     def hook_start_transition(comp, trans, dest)
+      super if defined?(super)
       self.zeno_watch_list |= [comp]
     end
   end

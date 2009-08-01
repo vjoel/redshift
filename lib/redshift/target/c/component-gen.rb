@@ -324,9 +324,25 @@ module RedShift
       def define_constant(kind, var_names)
         var_names.collect do |var_name|
           var_name = var_name.intern if var_name.is_a? String
+          
           if kind == :strict
             shadow_attr_reader var_name => "double #{var_name}"
-            ## let assign when state==nil, as for strictly_continuous
+            exc2 = shadow_library.declare_class ContinuousAssignmentError
+            msg2 = "\\\\nCannot set #{var_name}; it is strictly constant."
+            
+            class_eval %{
+              define_c_method :#{var_name}= do
+                arguments :value
+                body %{
+                  if (!NIL_P(shadow->state))
+                    rb_raise(#{exc2}, #{msg2.inspect});
+                  shadow->#{var_name} = NUM2DBL(value);
+                  d_tick++;
+                }
+                returns "value"
+              end
+            }
+            
           else
             shadow_attr_accessor var_name => "double #{var_name}"
           end

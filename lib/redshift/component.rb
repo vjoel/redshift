@@ -81,11 +81,18 @@ class Component
   def inspect data = nil
     s = ": #{state}" if state
     
+    cts = self.class.constant_variables
+    unless cts.empty?
+      ct = cts.map {|name,kind| name.to_s}.sort.map do |name|
+          "#{name} = #{send(name)}"
+        end
+      ct = "; #{ct.join(", ")}"
+    end
+    
     cvs = self.class.continuous_variables
     unless cvs.empty?
       cv = cvs.map {|name,kind| name.to_s}.sort.map do |name|
-          val = self.instance_eval(name.to_s) ## make faster
-          "#{name} = #{val}"
+          "#{name} = #{send(name)}"
         end
       cv = "; #{cv.join(", ")}"
     end
@@ -93,14 +100,13 @@ class Component
     lvs = self.class.link_type
     unless lvs.empty?
       lv = lvs.map {|name,type| name.to_s}.sort.map do |name|
-          val = self.instance_eval(name.to_s) ## make faster
-          "#{name} = #{val || 'nil'}"
+          "#{name} = #{send(name) || 'nil'}"
         end
       lv = "; #{lv.join(", ")}"
     end
     
     d = "; #{data}" if data
-    "<#{self}#{s}#{cv}#{lv}#{d}>"
+    "<#{self}#{s}#{ct}#{cv}#{lv}#{d}>"
   end
   
   def initialize(world)

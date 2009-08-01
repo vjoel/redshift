@@ -22,6 +22,7 @@ class World
     end
     
     def [](idx)
+      warn "World#[] is deprecated"
       to_a[idx] ## very inefficient
     end
     

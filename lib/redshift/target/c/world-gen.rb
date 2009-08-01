@@ -1077,7 +1077,6 @@ class World
               if (RTEST(cur_syncs(comp_shdw))) {
                 move_comp(comp, shadow->prev_awake, shadow->curr_S);
                 comp_shdw->tmp.trans.idx = (len - cur)/4;
-                // ### overflow?
               }
               else
                 move_comp(comp, shadow->prev_awake, shadow->curr_T);

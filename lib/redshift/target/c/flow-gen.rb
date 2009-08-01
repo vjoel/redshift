@@ -115,6 +115,9 @@ module RedShift; class Flow
           elsif /\A[eE]\z/ =~ var
             translation[expr] = expr # scientific notation
           
+          elsif cl.const_defined?(var)
+            translation[expr] = cl.const_get(var)
+          
           elsif external_constant?(var)
             translation[expr] = expr
             

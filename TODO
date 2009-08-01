@@ -3,6 +3,8 @@ Publishing RedShift
 
   core for 1.3 release
     
+    clean up world (save/load etc)
+    make delay work with var timestep
     export event _to_ comp?
     sync with event value test?
     transition local vars
@@ -382,9 +384,7 @@ Implementation
 
   Debug mode that uses hooks to add extra checking:
   
-    - d_tick rollover check
-    
-    - trans.idx overflow check
+    - rollover check for d_tick, step_count
     
     - check_strict (and make it *not* the default)
 

@@ -319,14 +319,15 @@ module RedShift
     protected :var_count=
 
     shadow_struct.declare :bits => %{\
-      unsigned    strict    : 1; //# is cur state strict?
-      unsigned    checked   : 1; //# have the guards been checked?
-      unsigned    has_diff  : 1; //# cur state has diff flows?
-      unsigned    diff_list : 1; //# on diff_list of comps with diff flows?
-      unsigned    sleepable : 1; //# can sleep in this state waiting for q?
+      unsigned    strict    :  1; //# is cur state strict?
+      unsigned    checked   :  1; //# have the guards been checked?
+      unsigned    has_diff  :  1; //# cur state has diff flows?
+      unsigned    diff_list :  1; //# on diff_list of comps with diff flows?
+      unsigned    sleepable :  1; //# can sleep in this state waiting for q?
+      unsigned    unused    : 11;
       union {
         struct {
-          unsigned idx      : 11; //# index of next transition after sync failure
+          unsigned idx      : 16; //# index of next transition after sync failure
         } trans;
       } tmp;
     }

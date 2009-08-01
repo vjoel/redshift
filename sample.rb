@@ -30,19 +30,25 @@ class Ball < Component
   
  	Falling =
     State.new "Falling",
-      [(EulerDifferentialFlow.new "y", "v"),
+      [(AlgebraicFlow.new "y_err",
+          "t = world.clock_now
+           (@y0 + @v0 * t + 0.5 * @a * t ** 2 - y).abs"),
+       (RK4DifferentialFlow.new "y", "v"),
        (EulerDifferentialFlow.new "v", "a")],
       [Transition.new nil, Stopped,
         proc {y <= 0},
-        [Event.new(:dent)], nil]
+        [Event.new(:dent)], proc {self.v = -v}]
 	
   Falling.attach Ball
   
   def set_defaults
     @state = Falling
-    @y = 100.0
-    @v = 0.0
+    @y0 = 100.0
+    @v0 = 0.0
+    @y = @y0
+    @v = @v0
     @a = -9.8
+    @y_err
     def self.dent
       nil
     end
@@ -52,16 +58,12 @@ class Ball < Component
   end
   
   def dent
-   y < 0 ? -y : 0
+   y.abs
   end
   
   def inspect
-#    super
-    print "y is nil.\n" if @y == nil
-    print "v is nil.\n" if @v == nil
-    print "a is nil.\n" if @a == nil
-
-    printf "y = %8.4f, v = %8.4f, a = %8.4f%16s", @y, @v, @a, @state.name
+    printf "y = %8.4f, v = %8.4f, y_err = %8.6f%16s",
+           @y, @v, y_err, @state.name
   end
 
 end # class Ball

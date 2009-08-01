@@ -15,12 +15,16 @@ Semantics
 
   math
     complex numbers
-    matrices
+    matrices, lapack, etc
   
   metaclasses
   
   discrete evolution
-    more flexibility: start actions as well as finish actions
+    more flexibility:
+      start actions as well as finish actions
+      (before/after)
+    transitions like in statechart
+    parametric transitions?
 
   
 Implementation
@@ -32,9 +36,14 @@ Implementation
     flows
     guards
     dual mode
+  
+  garbage collection
+    nil out the components array, do GC, reconstruct components array
+    do this periodically if user sets flag
 
   math
     mixing runge-kutta 4 with euler
+      justify '$RK_level < 2'
     var step
     symbolic integration
 
@@ -54,6 +63,9 @@ User interface
 
   command-line debugger
     inspect methods
+  
+  run command
+    should add dt, zeno, time (in sec) in optBlock
     
   gui debugger
   output to gnuplot
@@ -61,6 +73,15 @@ User interface
 Documentation
 
   differences from cshift
+    event semantics like lambda-shift
     no mixing scopes in create, as in "create(Foo, x := x)"
     'self.x = ...'
-    
+    during discrete phase, cached algebraic flows do not change
+      they do not have function semantics
+      evaluated only once per timestep
+      this is consistent with diff flows
+      semantics is the same during continuous phase (and faster)
+        except for no extra side effects
+   
+   restrictions
+     singleton methods cannot be exported (see Event)

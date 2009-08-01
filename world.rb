@@ -44,13 +44,13 @@ class World
     @components[c.id] = c
   end
 
-  def run(steps = 1) # should add dt, zeno
+  def run(steps = 1)
     
     step_discrete
     while (steps -= 1) >= 0
       break if clock_now > @clock_finish
-      step_continuous
       @step_count += 1
+      step_continuous
       step_discrete
     end
     
@@ -59,10 +59,7 @@ class World
 
   def step_continuous
   
-    # the following code is not thread-safe
-    # it needs to acquire a semaphore on $RK_level
-
-    $RK_level = 4
+    $RK_level = 4   # need SEMAPHORE
     @components.each_value do |c|
       c.step_continuous @time_step
     end
@@ -73,6 +70,8 @@ class World
 
   def step_discrete
   
+    $RK_level = nil # need SEMAPHORE
+
     done = false
     zeno_counter = 0
     

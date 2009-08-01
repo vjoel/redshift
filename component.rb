@@ -1,21 +1,18 @@
 module RedShift
 
-#require 'formula.rb'
 require 'event.rb'
 require 'transition.rb'
 require 'flow.rb'
 require 'state.rb'
-#require 'variable.rb'
-#require 'input.rb'
 
 
+Enter = State.new "Enter", nil, nil
+Exit = State.new "Exit", nil, nil
+  
 class Component
 
 #  @@states = {Component => [Enter, Exit]}
 
-  Enter = State.new "Enter", nil, nil
-  Exit = State.new "Exit", nil, nil
-  
 	attr_reader :world
 	attr_reader :state
 	attr_reader :active_transition

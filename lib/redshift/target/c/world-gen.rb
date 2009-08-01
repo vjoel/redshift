@@ -58,6 +58,15 @@ class World
     }
   end
   
+  sf = shadow_library_source_file
+  sf.declare :get_shadow => %{
+    inline ComponentShadow *get_shadow(VALUE comp)
+    {
+      assert(rb_obj_is_kind_of(comp, #{sf.declare_class Component}));
+      return (ComponentShadow *)DATA_PTR(comp);
+    }
+  }
+
   define_c_method :step_continuous do
     declare :locals => %{
       VALUE             comp_rb_ary, *comp_ary;
@@ -67,13 +76,6 @@ class World
       long              ci;
       ComponentShadow  *comp_shdw;
     }.tabto(0)
-    declare :step_continuous_subs => %{
-      inline ComponentShadow *get_shadow(VALUE comp)
-      {
-        assert(rb_obj_is_kind_of(comp, #{declare_class Component}));
-        return (ComponentShadow *)DATA_PTR(comp);
-      }
-    }
     body %{
       time_step = shadow->time_step;    //# assign global
       comp_rb_ary = shadow->curr_G;
@@ -128,7 +130,14 @@ class World
 #  end
   
   discrete_step_definer = proc do
-  
+    parent.declare :static_locals => %{
+      static VALUE      ExitState, GuardWrapperClass, ExprWrapperClass;
+      static VALUE      ProcClass, EventClass, ResetClass, GuardClass;
+      static VALUE      DynamicEventClass;
+      static VALUE      guard_phase_sym, proc_phase_sym;
+      static VALUE      event_phase_sym, reset_phase_sym;
+    }.tabto(0)
+    
     declare :locals => %{
       VALUE             comp;
       ComponentShadow  *comp_shdw;
@@ -137,11 +146,6 @@ class World
       long              i;
       long              all_were_g, all_are_g;
       int               started_events;
-      static VALUE      ExitState, GuardWrapperClass, ExprWrapperClass;
-      static VALUE      ProcClass, EventClass, ResetClass, GuardClass;
-      static VALUE      DynamicEventClass;
-      static VALUE      guard_phase_sym, proc_phase_sym;
-      static VALUE      event_phase_sym, reset_phase_sym;
     }.tabto(0)
     
     insteval_proc = declare_symbol :insteval_proc
@@ -149,12 +153,8 @@ class World
     gpi = Component::GuardPhaseItem
     epi = Component::EventPhaseItem
     
-    declare :step_discrete_subs => %{
-      inline ComponentShadow *get_shadow(VALUE comp)
-      {
-        assert(rb_obj_is_kind_of(comp, #{declare_class Component}));
-        return (ComponentShadow *)DATA_PTR(comp);
-      }
+    # put these in another include file?
+    parent.declare :step_discrete_subs => %{
       inline VALUE cur_procs(ComponentShadow *comp_shdw)
       {
         VALUE procs = RARRAY(comp_shdw->phases)->ptr[comp_shdw->cur_ph];
@@ -228,7 +228,7 @@ class World
 
         return event_value != Qnil; //# Qfalse is a valid event value.
       }
-      inline int guard_enabled(VALUE comp, VALUE guards)
+      inline int guard_enabled(VALUE comp, VALUE guards, int started_events)
       {
         int i;
         assert(BUILTIN_TYPE(guards) == T_ARRAY);
@@ -265,7 +265,7 @@ class World
         }
         return 1;
       }
-      inline void start_trans(ComponentShadow  *comp_shdw,
+      inline void start_trans(ComponentShadow *comp_shdw,
                               VALUE trans, VALUE dest, VALUE phases)
       {
         comp_shdw->trans  = trans;
@@ -289,7 +289,8 @@ class World
         comp_shdw->dest   = Qnil;
         comp_shdw->phases = Qnil;
       }
-      inline void enter_next_phase(VALUE comp, VALUE list)
+      inline void enter_next_phase(VALUE comp, VALUE list,
+                                   #{World.shadow_struct.name} *shadow)
       {
         ComponentShadow *comp_shdw = get_shadow(comp);
         struct RArray *phases = RARRAY(comp_shdw->phases);
@@ -344,7 +345,7 @@ class World
              comp_shdw = get_shadow(comp),              \\
              1)                                         \\
              : 0;                                       \\
-           enter_next_phase(comp, lc))
+           enter_next_phase(comp, lc, shadow))
 
       int dummy;
     '.tabto(0)
@@ -401,7 +402,8 @@ class World
             assert(len >= 4);
             
             guard = ptr[--len];
-            enabled = !RTEST(guard) || guard_enabled(comp, guard);
+            enabled = !RTEST(guard) ||
+                      guard_enabled(comp, guard, started_events);
             
             //%% hook_eval_guard(comp, guard, INT2BOOL(enabled),
             //%%                 ptr[len-3], ptr[len-2]);

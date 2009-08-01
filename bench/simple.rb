@@ -30,8 +30,7 @@ class Base < RedShift::Component
 end
 
 class Tester < Base
-  link :tester => Tester,
-       :thing  => Thing
+  link :thing  => Thing
   flow {
     alg  "xx = 3*x"
     diff "y' = xx"
@@ -55,16 +54,21 @@ end
 
 #----------------------------------#
 
-w = nil
+n_obj = 1000
+n_iter = 100
+
+# 10, 100_000 ==> 8.87 seconds
+
+world = nil
 $steps = [
-  ["commit", proc { w = RedShift::World.new { time_step 0.05 } }],
-  ["create", proc { 10000.times do w.create Tester end }],
-  ["run",    proc { w.run 1000 }]
+  ["commit", proc { world = RedShift::World.new {|w| w.time_step = 0.05} }],
+  ["create", proc { n_obj.times do world.create Tester end }],
+  ["run",    proc { world.run n_iter }]
 ]
 
 END {
-  puts "time_step = #{w.time_step}"
-  puts "clock = #{w.clock}"
-  t = w.find { |c| c.is_a? Tester }
-  p t
+#  puts "time_step = #{world.time_step}"
+#  puts "clock = #{world.clock}"
+#  t = world.find { |c| c.is_a? Tester }
+#  p t
 }

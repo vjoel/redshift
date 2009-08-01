@@ -17,10 +17,17 @@ class Object
   end
 end
 
-case ARGV[0]
+bench_flag = ARGV.delete("b") || ARGV.delete("bench")
+profile_flag = ARGV.delete("p") || ARGV.delete("profile")
+rbprof_flag = ARGV.delete("rbprof")
 
-when /\Ab(ench)?\z/
-  require ARGV[1]; steps = $steps
+prog_name = ARGV.shift
+
+$REDSHIFT_CLIB_NAME = prog_name
+
+case
+when bench_flag
+  require prog_name; steps = $steps
   require 'benchmark'
   include Benchmark
   bm(12) do |test|
@@ -31,8 +38,8 @@ when /\Ab(ench)?\z/
     end
   end
 
-when /\Ap(rofile)?\z/
-  require ARGV[1]; steps = $steps
+when profile_flag
+  require prog_name; steps = $steps
   for step in steps
 #    require 'profile' if step[0] == "run"  # don't profile compilation
     profile (step[0] == "run") do  # only profile run, not compile or create
@@ -40,9 +47,9 @@ when /\Ap(rofile)?\z/
     end
   end
 
-when /\Arbprof\z/
+when rbprof_flag
   require 'rbprof'; rbprofile false
-  require ARGV[1]; steps = $steps
+  require prog_name; steps = $steps
   for step in steps
     if step[0] == "run"  # don't profile compilation
       rbprofile {step[1].call}
@@ -52,7 +59,7 @@ when /\Arbprof\z/
   end
 
 else
-  require ARGV[0]; steps = $steps
+  require prog_name; steps = $steps
   for step in steps
     step[1].call
   end

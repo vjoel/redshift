@@ -33,11 +33,13 @@ class Flow
             link = var
             link_cname = "link_#{link}"
             unless translation[link]
-              translation[link] = link_cname
+              translation[link] = "ct.#{link_cname}"
+
+              ct_struct = make_ct_struct(flow_fn, cl)
 
               link_type_ssn = link_type.shadow_struct.name
-              flow_fn.declare link_cname => "#{link_type_ssn} *#{link_cname}"
-              flow_fn.setup   link_cname => "#{link_cname} = shadow->#{link}"
+              ct_struct.declare link_cname => "#{link_type_ssn} *#{link_cname}"
+              flow_fn.setup  link_cname => "ct.#{link_cname} = shadow->#{link}"
             end
             
           elsif (kind = cl.constant_variables[varsym])
@@ -82,24 +84,48 @@ class Flow
     setup << "#{result_var} = #{c_formula}"
   end
   
+  CT_STRUCT_NAME = "Context"
+
+  # Since MSVC doesn't support nested functions...
+  def make_ct_struct(flow_fn, cl)
+    sf = flow_fn.parent
+    ct_struct = sf.declare![CT_STRUCT_NAME]
+
+    if ct_struct
+      ct_struct = ct_struct[1] ## hacky
+
+    else
+      ct_struct = sf.declare_struct(CT_STRUCT_NAME)
+
+      ct_struct.declare :shadow => "#{cl.shadow_struct.name} *shadow"
+
+      flow_fn.declare :ct => "#{CT_STRUCT_NAME} ct"
+      flow_fn.setup   :ct_shadow => "ct.shadow = shadow"
+    end
+
+    ct_struct
+  end
+  
   # l.x  ==>  get_l__x()->value_n
   def translate_link(link, var, translation, flow_fn, cl, expr, rk_level)
     link_type = cl.link_type[link.intern]
     raise(NameError, "\nNo such link, #{link}") unless link_type
     flow_fn.include link_type.shadow_library_include_file
-
+    
     link_cname = "link_#{link}"
     get_var_cname = "get_#{link}__#{var}"
+
+    ct_struct = make_ct_struct(flow_fn, cl)
 
     varsym = var.intern
     if link_type.constant_variables[varsym]
       var_type = :constant
     elsif link_type.continuous_variables[varsym]
       var_type = :continuous
-
+      
       checked_var_cname = "checked_#{link}__#{var}" ## not quite unambig.
-      flow_fn.declare checked_var_cname => "int #{checked_var_cname}"
-      flow_fn.setup   checked_var_cname => "#{checked_var_cname} = 0"
+      ct_struct.declare checked_var_cname => "int #{checked_var_cname}"
+      flow_fn.setup     checked_var_cname => "ct.#{checked_var_cname} = 0"
 
       link_cs_ssn = link_type.cont_state_class.shadow_struct.name
       link_cs_cname = "link_cs_#{link}"
@@ -113,52 +139,56 @@ class Flow
       unless translation[link]
         translation[link] = link_cname
         link_type_ssn = link_type.shadow_struct.name
-        flow_fn.declare link_cname => "#{link_type_ssn} *#{link_cname}"
-        flow_fn.setup   link_cname => "#{link_cname} = shadow->#{link}"
+        ct_struct.declare link_cname => "#{link_type_ssn} *#{link_cname}"
+        flow_fn.setup     link_cname => "ct.#{link_cname} = shadow->#{link}"
       end ## same as below
 
       if var_type == :continuous
-        flow_fn.declare link_cs_cname => "#{link_cs_ssn} *#{link_cs_cname}"
+        ct_struct.declare link_cs_cname => "#{link_cs_ssn} *#{link_cs_cname}"
       end
     end
+
+    sf = flow_fn.parent
 
     exc = flow_fn.declare_class(NilLinkError) ## class var
     msg = "Link #{link} is nil in component %s"
     insp = flow_fn.declare_symbol(:inspect) ## class var
-    str = "STR2CSTR(rb_funcall(shadow->self, #{insp}, 0))"
+    str = "STR2CSTR(rb_funcall(ct->shadow->self, #{insp}, 0))"
 
     case var_type
     when :continuous
-      cs_cname = link_cs_cname
-      flow_fn.declare get_var_cname => %{
-        inline ContVar *#{get_var_cname}(void) {
-          if (!#{checked_var_cname}) {
-            #{checked_var_cname} = 1;
-            if (!#{link_cname})
+      cs_cname = "ct->#{link_cs_cname}"
+      cont_var = "#{cs_cname}->#{var}"
+      sf.declare get_var_cname => %{
+        inline static ContVar *#{get_var_cname}(#{CT_STRUCT_NAME} *ct) {
+          struct #{cl.shadow_struct.name} *shadow;
+          if (!ct->#{checked_var_cname}) {
+            ct->#{checked_var_cname} = 1;
+            if (!ct->#{link_cname})
               rb_raise(#{exc}, #{msg.inspect}, #{str});
-            #{cs_cname} = (#{link_cs_ssn} *)#{link_cname}->cont_state;
-            if (#{cs_cname}->#{var}.algebraic) {
-              if (#{cs_cname}->#{var}.rk_level < rk_level ||
-                 (rk_level == 0 && #{cs_cname}->#{var}.d_tick != d_tick))
-                (*#{cs_cname}->#{var}.flow)((ComponentShadow *)#{link_cname});
+            #{cs_cname} = (#{link_cs_ssn} *)ct->#{link_cname}->cont_state;
+            if (#{cont_var}.algebraic) {
+              if (#{cont_var}.rk_level < rk_level ||
+                 (rk_level == 0 && #{cont_var}.d_tick != d_tick))
+                (*#{cont_var}.flow)((ComponentShadow *)ct->#{link_cname});
             }
           }
-          return &(#{cs_cname}->#{var});
+          return &(#{cont_var});
         }
       } ## algebraic test is same as above
 
-      translation[expr] = "#{get_var_cname}()->value_#{rk_level}"
+      translation[expr] = "#{get_var_cname}(&ct)->value_#{rk_level}"
     
     when :constant
-      flow_fn.declare get_var_cname => %{
-        inline double #{get_var_cname}(void) {
-          if (!#{link_cname})
+      sf.declare get_var_cname => %{
+        inline static double #{get_var_cname}(#{CT_STRUCT_NAME} *ct) {
+          if (!ct->#{link_cname})
             rb_raise(#{exc}, #{msg.inspect}, #{str});
-          return (#{link_cname}->#{var});
+          return ct->#{link_cname}->#{var};
         }
       } ## algebraic test is same as above
 
-      translation[expr] = "#{get_var_cname}()"
+      translation[expr] = "#{get_var_cname}(&ct)"
     end
 
   end    
@@ -414,7 +444,6 @@ class CexprGuard < Flow ## Kinda funny...
       
       strict = false
       
-      ## should use some other file (likewise for Flows)
       shadow_library_source_file.define(guard_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"
         return_type "int"
@@ -469,7 +498,6 @@ class Expr < Flow ## Kinda funny...
       # We need the struct
       shadow_library_source_file.include(cl.shadow_library_include_file)
       
-      ## should use some other file (likewise for Flows)
       shadow_library_source_file.define(expr_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"
         return_type "double"

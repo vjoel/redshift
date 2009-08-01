@@ -194,14 +194,38 @@ class Component
   end
   
   
+#  def flows state = @state
+#    Component.flows type, state
+#  end
+#  
+#  def transitions state = @state
+#    Component.transitions type, state
+#  end
+  
+#=begin
+# This improves speed by about 15%, but
+# need to clear cache for *each* instance when
+# flows and trans change, or else flow defs will
+# not take effect until state changes (maybe ok?)
   def flows state = @state
-    Component.flows type, state
+    if @flow_cache_state == state
+      @flow_cache
+    else
+      @flow_cache_state = state
+      @flow_cache = Component.flows type, state
+    end
   end
   
   def transitions state = @state
-    Component.transitions type, state
+    if @trans_cache_state == state
+      @cache_transitions
+    else
+      @trans_cache_state = state
+      @cache_transitions = Component.transitions type, state
+    end
   end
-  
+#=end
+
   def states
     Component.states type    
   end

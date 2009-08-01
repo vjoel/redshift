@@ -11,12 +11,12 @@ Syntax
 / flows, transitions, etc.
     deftly handle multiple actions in a transition, etc.
       (chain the blocks?)
-  state S1, S2, ... should set S as init state?
-  running
-    run N { dt = ...; zeno = ... }
-    run_while, run_until
-? input, output, connect
+? state S1, S2, ... should set S as init state
+? input, output, connect -- see tank_monit.rb
   c-shift translator (both ways)
+  redshift parser to make flows etc. nicer
+    invoke by putting /usr/bin/env redshift in header
+    allows nedit syntax mode for redshift
 
 Semantics
 
@@ -26,7 +26,7 @@ Semantics
 /   Exit transition
 /   trans.name = nil to prevent hiding
   inheritance from mixins
-  indeterminate transitions chosen randomly?
+? indeterminate transitions chosen randomly
 
   math
     fixed point, rationals
@@ -40,14 +40,17 @@ Semantics
       start actions as well as finish actions
       (before/after)
       enter and exit blocks for each state
+      start_when and finish_when to implement sync
     transitions like in statechart
     parametric transitions?
     attach :all, ...
     syncronization
       explicit?
-    allow event of transition to be a block or proc returning the events
+?   allow event of transition to be a block or proc returning the events
   
 Implementation
+
+  use eval %{ ... } instead of eval <<END ... END
 
   use alias instead of def in Event#(un)export
     or use extend_object
@@ -85,7 +88,7 @@ x   do this periodically if user sets flag
   unit tests
     integrator (start with solution involving diff'able fns)
       solve eqn in complex vars with and without Complex class
-    inheritance
+/   inheritance
     transitions and events
   
   system tests
@@ -99,27 +102,33 @@ x   do this periodically if user sets flag
 
 User interface
 
-  command-line debugger
+  command-line debugger, interactive redshift (irs)
     inspect methods
     catch ^C --> redshift should break into debugger, by default
-    'run' in a thread
+    'run' in a thread, or in sub-irb shell (with self = world)
     send event from outside
   
   run command
-    should add dt, zeno, time (in sec) in optBlock
+    should add dt, zeno, steps, time (in sec) in optBlock
+      run N { dt = ...; zeno = ... }
     pass block to run before/after each timestep
+    run_while, run_until
+      steps N, time T, continuous, discrete
+      run { while {...} }
+    next_transition
   
   nedit syntax coloring
     
   gui debugger
 
 / output to gnuplot
+    use pipe for simple animation?
 
 Examples
   http server for simulation, html interface
   matrices
   distributed
-  persistence
+/ persistence
 
 Documentation
 
@@ -128,6 +137,7 @@ Documentation
     simulation semantics
       event semantics like lambda-shift
     programming language semantics
+      input/output/connect not needed because vars are untyped
       inheritance
         ruby inheritance of attrs, methods
         transitions, flows, states, events
@@ -144,6 +154,8 @@ Documentation
       fixnums vs. floats
         fix / fix ==> fix
       end of line-- finish with op or comma or \ to continue
+      fwd refs
+      no error checking with "@x = ..." if x doesn't already exist
     during discrete phase, cached algebraic flows do not change
       they do not have function semantics
       evaluated only once per timestep
@@ -158,3 +170,7 @@ Documentation
    restrictions
      singleton methods cannot be exported (see Event)
      singleton methods will be lost in World#save
+
+  performance notes
+    don't call run repeatedly, call run n with a block
+      otherwise discrete step happens 2x each time

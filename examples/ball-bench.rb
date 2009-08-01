@@ -1,8 +1,9 @@
 #!/usr/bin/env ruby
 require 'redshift/redshift'
-require 'plot/plot'
+require 'benchmark'
 
 include RedShift
+include Benchmark
 
 class Observer < Component
 
@@ -14,12 +15,12 @@ class Observer < Component
 
   transition (Observing => Observing) {
     guard {ball.impact}
-    action {print "\n\t ***** Time of impact #{world.clock}.\n\n"}
+#    action {print "\n\t ***** Time of impact #{world.clock}.\n\n"}
   }
   
   transition (Observing => Exit) {
     guard {world.clock >= 20.0}
-    action {print "\n\n ***** Observer leaving.\n\n"}
+#    action {print "\n\n ***** Observer leaving.\n\n"}
   }
   
 end
@@ -28,7 +29,7 @@ class Ball < Component
 
   attr_accessor :a
   
-  state :Falling,:Rising
+   state :Falling,:Rising
   
   flow (Falling, Rising) {
   
@@ -81,30 +82,27 @@ class Ball < Component
 
 end # class Ball
 
-w = World.new {
-  time_step 0.01
-}
+n = 10
 
-ball = w.create(Ball) {@a = -9.8}
-obs = w.create(Observer) {@ball = ball}
+bm(12) do |test|
+  test.report("Run:") do
+    w = World.new {
+      time_step 0.01
+    }
 
-y = [[w.clock, ball.y]]
+    n.times do
+      ball = w.create(Ball) {@a = -9.8}
+      obs = w.create(Observer) {@ball = ball}
+    end
 
-while w.size > 0 do
+  w.run 2260  # 20% savings in run time
+#  2260.times { w.run 1 }
 
-  t = w.clock
-  if t == t.floor
-    print "\nTime #{t}\n"
+#    while w.size > 0 do
+#      w.run
+#    end
+
   end
-  p ball unless ball.state == Exit
-  
-  w.run
-  
-  y << [w.clock, ball.y]
 end
 
-Plot.new ('gnuplot') {
-  add y, 'title "height" with lines'
-  show
-  pause 5
-}
+puts "_________________________________________________________________"

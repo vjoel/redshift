@@ -15,12 +15,6 @@ class ZWorld < World
   # debugging shell.
   include ZenoDebugger
   
-  # Try commenting out the action clause in Z. Without the following line,
-  # the Zeno debugger will not be able to watch instances of Z. The cost
-  # of this line is a recompilation and a small run-time speed hit. Note
-  # that only one of these "include" lines is needed.
-#  include ZenoDebugger::DetectEmptyTransitions
-  
   def report_zeno
     super # the normal zeno output
     
@@ -35,7 +29,7 @@ class ZWorld < World
       @zeno_shell_started = true
     end
     
-    z = zeno_watch_list[0]
+    z = curr_T[0] ###zeno_watch_list[0]
     IRB.start_session(binding, self)
     
   end

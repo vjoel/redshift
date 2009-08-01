@@ -970,6 +970,14 @@ class World
           //## optimize: only keep comps with var->ck_strict on this list
           //## option to skip this check
         }
+        
+        //# Check for zeno problem.
+        if (shadow->zeno_limit >= 0) {
+          shadow->zeno_counter++;
+          if (shadow->zeno_counter > shadow->zeno_limit)
+            rb_funcall(shadow->self, #{declare_symbol :step_zeno}, 0);
+        }
+        
         EACH_COMP_DO(shadow->curr_T) {
           if (comp_shdw->state == ExitState)
             remove_comp(comp, shadow->curr_T, shadow);
@@ -980,13 +988,6 @@ class World
         assert(RARRAY(shadow->prev_awake)->len == 0);
 
         //%% hook_end_step();
-        
-        //# Check for zeno problem.
-        if (shadow->zeno_limit >= 0) {
-          shadow->zeno_counter++;
-          if (shadow->zeno_counter > shadow->zeno_limit)
-            rb_funcall(shadow->self, #{declare_symbol :step_zeno}, 0);
-        }
       }
       
       move_all_comps(shadow->strict_sleep, shadow->awake);

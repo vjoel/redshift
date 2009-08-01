@@ -15,9 +15,11 @@ class RedShift::World
     attr_accessor :debug_zeno
 
     # Zeno output goes to this object, $stderr by default, using #<<.
-    attr_accessor :zeno_io
+    attr_accessor :zeno_output
 
-    # Can be used to see which components are causing trouble.
+    # Can be used to see which components are causing trouble. Ny default,
+    # the output covers all compontents taking transitions. However, you
+    # can use this attr to focus more narrowly.
     attr_accessor :zeno_watch_list
     
     # How many zeno steps before the debugger gives up. Set to ZENO_UNLIMITED to
@@ -27,15 +29,8 @@ class RedShift::World
     
     def initialize
       @debug_zeno       ||= $REDSHIFT_DEBUG_ZENO
-      @zeno_io          ||= $stderr
-      @zeno_watch_list  ||= []
-      
+      @zeno_output      ||= $stderr
       super
-    end
-
-    def step_discrete
-      super
-      zeno_watch_list.clear
     end
 
     # This method is called for each discrete step after the zeno_limit has been
@@ -54,55 +49,21 @@ class RedShift::World
       if debug_zeno and
          (debug_zeno_limit == RedShift::ZENO_UNLIMITED or
           zeno_counter < debug_zeno_limit)
-        self.zeno_watch_list |= select {|c| c.trans}
         report_zeno if zeno_counter >= 2*zeno_limit
-
       else
         super
       end
     end
     
-    # Reports to zeno_io the list of active components. (Unless you are
-    # using ZenoDebugger_DetectEmptyTransitions, you will not see active
-    # components that take only transitions with no phases other than
-    # guards
+    HEADER = '-'*10 + " Zeno step: %d; Components: %d; Active: %d " + '-'*10 + "\n"
     
+    # Reports to zeno_output the list of active components.
     def report_zeno
-      f = zeno_io
-      
-      ag = active_G
+      f = zeno_output
+      active = zeno_watch_list || curr_T
 
-      f << '-'*30 + " Zeno step: #{zeno_counter} " + '-'*30 + "\n"
-      f << "    active component counts: P: #{curr_P.size}," +
-             " E: #{curr_E.size}, R: #{curr_R.size}, G: #{ag.size}" + "\n"
-      f << 'P:  ' + curr_P.map{|c|c.inspect}.join("\n    ") + "\n"
-      f << 'E:  ' + curr_E.map{|c|c.inspect}.join("\n    ") + "\n"
-      f << 'R:  ' + curr_R.map{|c|c.inspect}.join("\n    ") + "\n"
-      f << 'G:  ' + ag.map{|c|c.inspect}.join("\n    ") + "\n"
-    end
-    
-    # Returns list of components that appear to be active and in Guard phase.
-    def active_G
-      active_G = zeno_watch_list & curr_G
-    end
-    
-  end
-
-  # Include this module in your World class if you want the Zeno debugger to
-  # detect components that take only transitions with no phases other than
-  # guards. Detected components will be added to the zeno_watch_list.
-  #
-  # Including this module may force a brief recompilation, which requires that a
-  # C compiler be installed.
-  #
-  # This module automatically includes ZenoDebugger, as well.
-
-  module ZenoDebugger::DetectEmptyTransitions
-    include ZenoDebugger
-    
-    def hook_start_transition(comp, trans, dest)
-      super if defined?(super)
-      self.zeno_watch_list |= [comp]
+      f << HEADER % [zeno_counter, components.size, curr_T.size]
+      f << '  ' + active.map{|c|c.inspect}.join("\n  ") + "\n"
     end
   end
 end

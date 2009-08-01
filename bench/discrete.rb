@@ -1,4 +1,5 @@
 # Measures performance of redshift for pure discrete event simulation.
+# See also the queue.rb benchmark.
 
 require 'redshift'
 
@@ -43,7 +44,6 @@ module Discrete
       guard :target => :awake
       event :awake
     end
-    ## should have a version of this using queued events
   end
   
   def self.make_world n_sleeper=1, n_watchers=0

@@ -126,6 +126,51 @@ class Flow_AlgebraicToEmptyFlow < FlowTestComponent
 end
 
 
+# Test what happens during an action when an algebraic flow's inputs change.
+# The alg flow's value *does* change during the action, if any of the links
+# or numerical variables (including constants) that it depends on change.
+
+class Flow_AlgebraicAction < FlowTestComponent
+  continuous :x, :y
+  constant :k
+  link :other => self
+  flow {alg " x = other.y + k "}
+  
+  @@first = true
+  
+  setup do
+    self.other = self
+    if @@first
+      @@first = false
+      @other = create(Flow_AlgebraicAction) {|c| c.y = 5}
+    end
+  end
+  
+  transition Enter => Exit do
+    action do
+      next unless @other
+      
+      @x_values = []
+      @x_values << x
+      other.y = 1
+      @x_values << x
+      other.y = 2
+      @x_values << x
+      
+      self.other = @other
+      @x_values << x
+      
+      self.k = 10
+      @x_values << x
+    end
+  end
+
+  def assert_consistent test
+    test.assert_equal([0,1,2,5,15], @x_values) if @x_values
+  end
+end
+
+
 #-----#
 
 require 'test/unit'
@@ -154,6 +199,7 @@ class TestFlow < Test::Unit::TestCase
     testers.each { |t| t.assert_consistent self }
     @world.run 1000 do
       testers.each { |t| t.assert_consistent self }
+#      testers.reject! { |t| t.state == Exit }
     end
     testers.each { |t| t.finish self }
   end

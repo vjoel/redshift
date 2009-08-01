@@ -359,18 +359,16 @@ class World
     '.tabto(0)
     
     comp_id = declare_class RedShift::Component
+    get_const = proc {|k| "rb_const_get(#{comp_id}, #{declare_symbol k})"}
     init %{
-      ExitState     = rb_const_get(#{comp_id}, #{declare_symbol :Exit});
-      ProcClass     = rb_const_get(#{comp_id}, #{declare_symbol :ProcPhase});
-      EventClass    = rb_const_get(#{comp_id}, #{declare_symbol :EventPhase});
-      ResetClass    = rb_const_get(#{comp_id}, #{declare_symbol :ResetPhase});
-      GuardClass    = rb_const_get(#{comp_id}, #{declare_symbol :GuardPhase});
-      GuardWrapperClass
-                    = rb_const_get(#{comp_id}, #{declare_symbol :GuardWrapper});
-      ExprWrapperClass
-                    = rb_const_get(#{comp_id}, #{declare_symbol :ExprWrapper});
-      DynamicEventClass
-               = rb_const_get(#{comp_id}, #{declare_symbol :DynamicEventValue});
+      ExitState     = #{get_const[:Exit]};
+      ProcClass     = #{get_const[:ProcPhase]};
+      EventClass    = #{get_const[:EventPhase]};
+      ResetClass    = #{get_const[:ResetPhase]};
+      GuardClass    = #{get_const[:GuardPhase]};
+      GuardWrapperClass = #{get_const[:GuardWrapper]};
+      ExprWrapperClass  = #{get_const[:ExprWrapper]};
+      DynamicEventClass = #{get_const[:DynamicEventValue]};
 
       guard_phase_sym = ID2SYM(#{declare_symbol :guard});
       proc_phase_sym  = ID2SYM(#{declare_symbol :proc});
@@ -476,8 +474,8 @@ class World
             //## for procs, using code similar to that for guards.
 //#            rb_obj_instance_eval(1, &RARRAY(procs)->ptr[i], comp);
 //# rb_iterate(my_instance_eval, comp, call_block, RARRAY(procs)->ptr[i]);
-            d_tick++;   //# each proc may invalidate algebraic flows
-            //## should set flag so that alg flows always update during proc
+//# The following is not needed any more, since writers do it.
+//#            d_tick++;   //# each proc may invalidate algebraic flows
           }
         }
         //%% hook_leave_proc_phase();

@@ -28,6 +28,10 @@ class Component
 
     # link :x => MyComponent, :y => :FwdRefComponent
     def link vars
+      unless vars.is_a? Hash
+        raise SyntaxError, "Arguments to link must of form :var => class, " +
+          "where class can be either a Class or a string denoting class name"
+      end
       vars.each do |var_name, var_type|
         link_type[var_name.to_sym] = var_type
       end

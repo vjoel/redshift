@@ -357,27 +357,29 @@ module RedShift
         var_names.collect do |var_name|
           var_name = var_name.intern if var_name.is_a? String
           
+          shadow_attr_reader var_name => "double #{var_name}"
+
           if kind == :strict
-            shadow_attr_reader var_name => "double #{var_name}"
             exc2 = shadow_library.declare_class ContinuousAssignmentError
             msg2 = "Cannot reset strictly constant #{var_name} in #{self}."
-            
-            class_eval %{
-              define_c_method :#{var_name}= do
-                arguments :value
+          end
+
+          class_eval %{
+            define_c_method :#{var_name}= do
+              arguments :value
+              if kind == :strict
                 body %{
                   if (!NIL_P(shadow->state))
                     rb_raise(#{exc2}, #{msg2.inspect});
-                  shadow->#{var_name} = NUM2DBL(value);
-                  d_tick++;
                 }
-                returns "value"
               end
-            }
-            
-          else
-            shadow_attr_accessor var_name => "double #{var_name}"
-          end
+              body %{
+                shadow->#{var_name} = NUM2DBL(value);
+                d_tick++;
+              }
+              returns "value"
+            end
+          }
         end
       end
 
@@ -435,7 +437,11 @@ module RedShift
             "Linked type must be a subclass of Component: #{var_name}"
           end
 
-          shadow_attr_accessor var_name => [var_type]
+          (r,w), = shadow_attr_accessor(var_name => [var_type])
+          w.body %{
+            d_tick++;
+          }
+
           shadow_library_include_file.include(
             var_type.shadow_library_include_file)
           

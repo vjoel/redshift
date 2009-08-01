@@ -19,6 +19,13 @@ Syntax
 
       equations can use '=='
 
+  reset syntax:
+  
+    reset do
+      x 3
+      y "x+2"
+      z { (x-y).abs }
+
   check for symbol conflicts
     user attributes may conflict with Component's attrs
     ditto for flows and other methods defined in subclasses
@@ -29,6 +36,13 @@ Syntax
    Enter=>Enter ?
 
 Semantics
+
+  Should actions be allowed to occur on the same discrete step as R/E/G ?
+    
+    action {}
+    reset ...
+    action {}
+    # all three on the same step?
 
   Add a #connect method:
   
@@ -66,12 +80,23 @@ Semantics
   events, actions, resets):
     
     transition do
-      transient :x
+      local :x
       action do
-        transient.x = y
+        local.x = y
       end
-      reset :z => proc { transient.x }
+      reset :z => proc { local.x }
     end
+
+    transition do
+      action do |local|
+        local.x = y   # or local["x"] = y
+      end
+      reset :z => proc { |local| local.x }
+    end
+    
+    use || or use standard name
+    predeclare or use method_missing or use hash or:
+      local { Hash.new } # or struct_with :x, :y
 
   a transition that can happen only once per discrete step, to easily
   prevent zeno pb (useful for utility transitions, such as output)

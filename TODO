@@ -30,6 +30,31 @@ Syntax
 
 Semantics
 
+  Add a #connect method:
+  
+    link :comp => [C, :x, :y, :z]
+    ...
+    action do
+      self.comp = C.new
+      connect :comp, :x => :x_in_c, ...
+    end
+    
+  or:
+    
+    link :comp => Connector(:x)
+    action/setup do
+      other = create(SomeComp)
+      connect [:comp, :x] => [other, :y]
+    end
+    flow do
+      "  u'  =  comp.x  "
+    end
+    
+    creates a new connector component so that neither self nor SomeComp
+    nor other need to know statically the offset of the other guy's var
+    
+    (do we need to specify :x ??)
+
   one phase should be able to have both events and resets
     because we evaluate Events in parallel with Resets
   
@@ -59,9 +84,15 @@ Semantics
   "finalizers" for components -- called when component exits, world
    is finalized, or app quits
   
+    more generally, code that executes when a given state is entered:
+    
+    state Exit do
+      # do some finalization stuff here
+    end
+  
   abstract classes
   
-  resets for links
+  resets for links and constants (see test_constant)
   
   input events (in place of interrupts?)
   
@@ -153,33 +184,6 @@ Semantics
 
 Implementation
 
-  Add a #connect method:
-  
-    link :comp => [C, :x, :y, :z]
-    ...
-    action do
-      self.comp = C.new
-      connect :comp, :x => :x_in_c, ...
-    end
-    
-  or:
-    
-    link :comp => Connector(:x)
-    action/setup do
-      other = create(SomeComp)
-      connect [:comp, :x] => [other, :y]
-    end
-    flow do
-      "  u'  =  comp.x  "
-    end
-    
-    creates a new connector component so that neither self nor SomeComp
-    nor other need to know statically the offset of the other guy's var
-    
-    (do we need to specify :x ??)
-
-  constants and links should be resettable (see test_constant)
-
   share mark and free funcs where possible (e.g., guards)
   
   guards should not be written in numerical order (".._0", "..._1"), but
@@ -195,6 +199,8 @@ Implementation
     profiling
       use valgrind, gprof, etc. to profile the C code
     compare with shift, matlab
+    
+    why do some simulations (TO4230) alternate between fast and slow?
   
   run time error checking
     more 'if $DEBUG ...' checks

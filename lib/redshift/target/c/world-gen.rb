@@ -295,8 +295,6 @@ class World
           comp_shdw->state = comp_shdw->dest;
           __update_cache(comp_shdw);
         }
-        else
-          comp_shdw->state = comp_shdw->dest;
         comp_shdw->trans  = Qnil;
         comp_shdw->dest   = Qnil;
         comp_shdw->phases = Qnil;
@@ -343,20 +341,18 @@ class World
 
       #define EACH_COMP_DO(lc)                          \\
       for (list = RARRAY(lc), list_i = list->len - 1;   \\
-           list_i >= 0 ? (                              \\
+           list_i >= 0 && (                             \\
              comp = list->ptr[list_i],                  \\
              comp_shdw = get_shadow(comp),              \\
-             1)                                         \\
-             : 0;                                       \\
+             1);                                        \\
            list_i--)
 
       #define EACH_COMP_ADVANCE(lc)                     \\
       for (list = RARRAY(lc);                           \\
-           list->len ? (                                \\
+           list->len && (                               \\
              comp = list->ptr[list->len - 1],           \\
              comp_shdw = get_shadow(comp),              \\
-             1)                                         \\
-             : 0;                                       \\
+             1);                                        \\
            enter_next_phase(comp, lc, shadow))
 
       int dummy;
@@ -563,12 +559,7 @@ class World
 
         //# Clear old event values from previous step.
         //#   (As of v1.1.32, considered as part of reset phase)
-        ptr = RARRAY(shadow->prev_active_E)->ptr;
-        len = RARRAY(shadow->prev_active_E)->len;
-        for (i = len; i > 0; i--) {
-          comp = *ptr++;
-          comp_shdw = get_shadow(comp);
-
+        EACH_COMP_DO(shadow->prev_active_E) {
           rb_mem_clear(RARRAY(comp_shdw->event_values)->ptr,
                        RARRAY(comp_shdw->event_values)->len);
         }
@@ -576,12 +567,7 @@ class World
         
         //# Export new event values.
         //#   (As of v1.1.32, considered as part of reset phase)
-        ptr = RARRAY(shadow->active_E)->ptr;
-        len = RARRAY(shadow->active_E)->len;
-        for (i = len; i > 0; i--) {
-          comp = *ptr++;
-          comp_shdw = get_shadow(comp);
-
+        EACH_COMP_DO(shadow->active_E) {
           SWAP_VALUE(comp_shdw->event_values, comp_shdw->next_event_values);
         }
         

@@ -7,7 +7,6 @@ include RedShift
 
 class Receiver < Component
   queue :q
-  def wake_for_queue; puts "wake_for_queue"; end ###
   
   transition do
     wait :q => /time is now 2/

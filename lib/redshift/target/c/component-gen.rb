@@ -17,6 +17,24 @@ module RedShift
       sub.shadow_library_file file_name
     end
     
+    def self.queue_sleepable_states
+      @queue_sleepable_states ||= begin
+        raise Library::CommitError unless committed?
+        h = {}
+        states.values.each do |st|
+          trs = all_transitions(st)
+          next if trs.empty? # inert
+          sleepable = trs.all? do |t, d|
+            t.guard && t.guard.any? do |g|
+              g.kind_of? Component::QMatch
+            end
+          end
+          h[st] = true if sleepable
+        end
+        h
+      end
+    end
+    
     after_commit do
       # This is necessary because cont_state_class is lazy. ContState classes
       # not defined at this point don't need to be committed.
@@ -303,6 +321,7 @@ module RedShift
       unsigned    checked   : 1; //# have the guards been checked?
       unsigned    has_diff  : 1; //# cur state has diff flows?
       unsigned    diff_list : 1; //# on diff_list of comps with diff flows?
+      unsigned    sleepable : 1; //# can sleep in this state waiting for q?
     }
 
     class << self
@@ -1045,7 +1064,14 @@ module RedShift
     def self.cached_outgoing_transition_data s
       raise Library::CommitError if $REDSHIFT_DEBUG and not committed?
       @cached_outgoing_transition_data ||= {}
-      @cached_outgoing_transition_data[s] ||= outgoing_transition_data(s)
+      @cached_outgoing_transition_data[s] ||= begin
+        ary = outgoing_transition_data(s)
+        if queue_sleepable_states[s]
+          ary[-1] |= 0x02 ## yuck!
+        end
+        ary.freeze
+        ary
+      end
     end
     
     def outgoing_transition_data
@@ -1072,8 +1098,9 @@ module RedShift
         long        i;
         long        count;
         VALUE      *flows;
-        VALUE       strict;
         int         has_diff;
+        struct RArray *ary;
+        int         flags;
       }.tabto(0)
 
       body %{
@@ -1084,8 +1111,10 @@ module RedShift
         shadow->outgoing = rb_funcall(shadow->self,
                            #{declare_symbol :outgoing_transition_data}, 0);
 
-        strict = rb_funcall(shadow->outgoing, #{declare_symbol :last}, 0);
-        shadow->strict = RTEST(strict);
+        ary = RARRAY(shadow->outgoing);
+        flags = FIX2INT(ary->ptr[ary->len-1]);
+        shadow->strict = flags & 0x01;
+        shadow->sleepable = !!(flags & 0x02);
 
         //# Cache flows.
         flow_table = rb_funcall(rb_obj_class(shadow->self),

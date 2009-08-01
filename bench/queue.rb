@@ -38,7 +38,6 @@ module Queue
   end
   
   class Receiver < RedShift::Component
-    def wake_for_queue; end ###
     queue :q
     transition do
       wait :q
@@ -88,5 +87,5 @@ end
 if __FILE__ == $0
   require File.join(File.dirname(__FILE__), 'bench')
   puts "queue:"
-  Queue.do_bench_one(10, 1000, 10) {|l| puts l}
+  Queue.do_bench_one(*ARGV.map{|s|s.to_i}) {|l| puts l}
 end

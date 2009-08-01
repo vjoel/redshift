@@ -72,7 +72,7 @@ class World
     self.active_E = []; self.prev_active_E = []
     self.awake = []; self.prev_awake = []
     self.strict_sleep = []; self.inert = []
-    self.diff_list = []
+    self.diff_list = []; self.queue_sleep = {}
     @components = ComponentList.new  \
       awake, prev_awake, curr_T, strict_sleep, inert # _not_ diff_list
 

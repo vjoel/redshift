@@ -14,8 +14,6 @@ end
 class OtherMessage; end
 
 class Receiver < Component
-  def wake_for_queue; puts "wake_for_queue"; end ###
-
   queue :q1, :q2 # same as attr_reader :q, plus initialize q to a new queue
   
   transition do

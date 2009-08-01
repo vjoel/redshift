@@ -130,8 +130,7 @@ class Component
       ary.reverse_each do |list| # since step_discrete reads them in reverse
         result.concat list
       end
-      result << all_strict # just a faster way to return mult. values
-      result.freeze
+      result << (all_strict ? 1 : 0) # other bits are used elsewhere
       result
     end
     

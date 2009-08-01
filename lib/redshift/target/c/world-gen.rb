@@ -42,10 +42,12 @@ class World
   shadow_attr_accessor :strict_sleep => Array
   shadow_attr_accessor :inert => Array
   shadow_attr_accessor :diff_list => Array
+  shadow_attr_accessor :queue_sleep => Hash
   protected \
     :curr_A, :curr_P, :curr_CR, :curr_T,
     :active_E=, :prev_active_E=, :awake=,
-    :strict_sleep=, :inert=, :diff_list=
+    :strict_sleep=, :inert=, :diff_list=,
+    :queue_sleep=
   
   shadow_attr_accessor :time_step     => "double   time_step"
   shadow_attr_accessor :zeno_limit    => "long     zeno_limit"
@@ -282,6 +284,13 @@ class World
         else
           nl->ptr[nl->len++] = comp;
         --RARRAY(list)->len;
+      }
+      inline static void move_comp_to_hash(VALUE comp, VALUE list, VALUE hash)
+      {
+        struct RArray *l = RARRAY(list);
+        assert(l->ptr[l->len-1] == comp);
+        rb_hash_aset(hash, comp, Qtrue);
+        --l->len;
       }
       inline static void move_all_comps(VALUE list, VALUE next_list)
       { //## this could be faster using memcpy
@@ -843,7 +852,7 @@ class World
           if (shadow->discrete_step == 0)
             comp_shdw->checked = 0;
           
-          len = RARRAY(comp_shdw->outgoing)->len - 1; //# last is strict flag
+          len = RARRAY(comp_shdw->outgoing)->len - 1; //# last is flags
 
           if (len == 0) {
             move_comp(comp, shadow->prev_awake, shadow->inert);
@@ -902,8 +911,14 @@ class World
           }
           
           if (!enabled) {
+            VALUE qrc;
             if (comp_shdw->strict)
               move_comp(comp, shadow->prev_awake, shadow->strict_sleep);
+            else if (comp_shdw->sleepable &&
+                (qrc = rb_ivar_get(comp_shdw, #{declare_symbol :@queue_ready_count}),
+                 qrc == Qnil || qrc == INT2FIX(0))) {
+              move_comp_to_hash(comp, shadow->prev_awake, shadow->queue_sleep);
+            }
             else
               move_comp(comp, shadow->prev_awake, shadow->awake);
             comp_shdw->checked = 1;

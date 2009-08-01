@@ -343,6 +343,21 @@ class Component
       end
     end
   end
+  
+  def inc_queue_ready_count
+    if @queue_ready_count == 0 || !@queue_ready_count
+      @queue_ready_count = 1
+      if world.queue_sleep.delete(self)
+        world.awake << self
+      end
+    else
+      @queue_ready_count += 1
+    end
+  end
+  
+  def dec_queue_ready_count
+    @queue_ready_count -= 1
+  end
 end
 
 # The asymmetry between these two states is that components in Enter are active

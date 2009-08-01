@@ -34,7 +34,7 @@ module RedShift
         @clock = clock
         @step = step
         @q << obj
-        @component.wake_for_queue if was_empty
+        @component.inc_queue_ready_count if was_empty
       end
       
       self
@@ -42,14 +42,23 @@ module RedShift
   
     alias << push
     
+    class QueueEmptyError < StandardError; end
+    
     # When popping from a queue, the result may be an instance
     # of SimultaneousQueueEntries, which should probably be handled specially.
     def pop
-      @q.shift
+      if @q.empty?
+        raise QueueEmptyError, "tried to pop empty queue in #{@component.inspect}"
+      end
+      obj = @q.shift
+      @component.dec_queue_ready_count if @q.empty?
+      obj
     end
     
     def unpop obj
+      was_empty = @q.empty?
       @q.unshift obj
+      @component.inc_queue_ready_count if was_empty
     end
     
     # Called from guard evaluation in step_discrete. Returns true if at least

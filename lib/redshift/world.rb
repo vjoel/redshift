@@ -209,7 +209,10 @@ class World
   
   def inspect
     if @started
-      sprintf "<%s: %d step%s, %s #{@time_unit}%s, %d component%s>",
+      digits = -Math.log10(time_step).floor
+      digits = 0 if digits < 0
+      puts "<%s: %d step%s, %.#{digits}f #{@time_unit}%s, %d component%s>"
+      sprintf "<%s: %d step%s, %.#{digits}f #{@time_unit}%s, %d component%s>",
         @name,
         step_count, ("s" if step_count != 1),
         clock, ("s" if clock != 1),

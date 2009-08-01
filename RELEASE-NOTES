@@ -1,3 +1,7 @@
+redshift 1.1.48
+
+- Added new benchmark framework, and the discrete and constinuous benchmarks.
+
 redshift 1.1.47
 
 - Optimization for 'inert' components.

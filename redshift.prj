@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 1.1 47)
-(Parent-Version redshift 1.1 46)
+(Project-Version redshift 1.1 48)
+(Parent-Version redshift 1.1 47)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Tue, 01 Jan 2008 13:59:17 -0800")
+(Checkin-Time "Wed, 16 Jan 2008 22:19:12 -0800")
 (Checkin-Login vjoel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -304,7 +304,7 @@
 ;; Files added by populate at Thu, 16 May 2002 00:16:02 -0700,
 ;; to version 1.0.7(w), by tercel:
 
-  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.11 644))
+  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.12 644))
 
 ;; Files added by populate at Thu, 16 May 2002 00:16:26 -0700,
 ;; to version 1.0.7(w), by tercel:
@@ -390,7 +390,7 @@
   (lib/redshift/target/c.rb (redshift/b/33_c.rb 1.3 644))
   (lib/redshift/target/c/library.rb (redshift/b/34_library.rb 1.3 644))
   (lib/redshift/target/c/flow-gen.rb (redshift/b/35_flow-gen.r 1.10 644))
-  (lib/redshift/target/c/component-gen.rb (redshift/b/36_component- 1.23 644))
+  (lib/redshift/target/c/component-gen.rb (redshift/b/36_component- 1.24 644))
   (lib/redshift/syntax.rb (redshift/b/37_syntax.rb 1.14 644))
   (lib/redshift/state.rb (redshift/b/38_state.rb 1.1 644))
   (lib/redshift/redshift.rb (redshift/b/39_redshift.r 1.8 644))
@@ -428,7 +428,7 @@
 ;; Files added by populate at Fri, 28 May 2004 14:39:08 -0700,
 ;; to version 1.1.10(w), by vjoel:
 
-  (TODO (redshift/b/49_TODO 1.21 644))
+  (TODO (redshift/b/49_TODO 1.22 644))
 
 ;; Files added by populate at Fri, 28 May 2004 19:33:23 -0700,
 ;; to version 1.1.10(w), by vjoel:
@@ -469,6 +469,15 @@
 ;; to version 1.1.43(w), by vjoel:
 
   (test/test_strict_reset_error.rb (redshift/c/5_test_stric 1.1 644))
+
+;; Files added by populate at Wed, 16 Jan 2008 22:04:21 -0800,
+;; to version 1.1.47(w), by vjoel:
+
+  (bench/inert.rb (redshift/c/6_inert.rb 1.1 644))
+  (bench/discrete.rb (redshift/c/7_discrete.r 1.1 644))
+  (bench/continuous.rb (redshift/c/8_continuous 1.1 644))
+  (bench/bench (redshift/c/9_bench 1.1 755))
+  (bench/bench.rb (redshift/c/10_bench.rb 1.1 644))
 )
 (Merge-Parents)
 (New-Merge-Parents)

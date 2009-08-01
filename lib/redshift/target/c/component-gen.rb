@@ -464,7 +464,7 @@ module RedShift
             link_variables[var_name] = [var_type, strictness]
           end
 
-          unless var_type < Component
+          unless var_type <= Component
             raise TypeError,
             "Linked type must be a subclass of Component: #{var_name}"
           end

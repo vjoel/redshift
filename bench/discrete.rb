@@ -1,0 +1,98 @@
+# Measures performance of redshift for pure discrete event simulation.
+
+require 'redshift'
+
+include RedShift
+
+module Discrete
+  class Clock < Component
+    # the only continuous var in the whole system
+    strictly_continuous :time
+    flow {
+      diff " time' = 1 "
+    }
+  end
+  
+  class Awakener < Component
+    export :awake
+  end
+  
+  class Sleeper < Awakener
+    link :clock => Clock
+    
+    constant :next_wakeup
+    constant :period
+    
+    setup do
+      self.next_wakeup = period
+    end
+    
+    transition do
+      guard " clock.time >= next_wakeup "
+      reset :next_wakeup => " clock.time + period "
+        ## need something between strict and not:
+        ## only changes at end of discrete update, and so
+        ## strictness optimizations still apply
+      event :awake
+    end
+  end
+  
+  class Watcher < Awakener
+    link :target => Awakener
+    transition do
+      guard :target => :awake
+      event :awake
+    end
+    ## should have a version of this using queued events
+  end
+  
+  def self.make_world n_sleeper=1, watchers=0
+    w = World.new
+    clock = w.create(Clock)
+    n_sleeper.times do |i|
+      sleeper = w.create(Sleeper) do |c|
+        c.clock = clock
+        c.period = ((i % 99)+1) / 10.0
+      end
+      target = sleeper
+      watchers.times do
+        target = w.create(Watcher) do |c|
+          c.target = target
+        end
+      end
+    end
+    w
+  end
+
+  def self.do_bench
+    [ [       1, 1_000_000   ],
+      [      10,   100_000   ],
+      [     100,    10_000   ],
+      [   1_000,     1_000   ],
+      [  10_000,       100   ],
+      [ 100_000,        10   ] ].each do
+      |     n_c,       n_s|
+      
+      [0, 1, 5].each do |watcher|
+        do_bench_one(n_c, n_s, watcher) {|r| yield r}
+      end
+    end
+  end
+  
+  def self.do_bench_one(n_c, n_s, n_w)
+    w = make_world(n_c, n_w)
+    r = bench do
+      w.run(n_s)
+    end
+
+    yield "  - %10d comps X %10d steps X %5d watchers: %8.2f" %
+      [n_c, n_s, n_w, r]
+  end
+end
+
+if __FILE__ == $0
+  require File.join(File.dirname(__FILE__), 'bench')
+  puts "discrete:"
+  Discrete.do_bench_one(100, 10_000, 2) {|l| puts l}
+end
+

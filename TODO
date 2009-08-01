@@ -21,6 +21,10 @@ Bugs
   
 Syntax
 
+  should be possible to allow:
+  
+    reset x => ... instead of reset :x => ...
+
   replace strictly_* with strict_* and alias back for compat
 
   express flows, guards, etc, in ruby syntax and use something to parse:
@@ -127,6 +131,11 @@ Semantics
         local.x = y   # or local["x"] = y
       end
       reset :z => proc { |local| local.x }
+    end
+    
+    transition do
+      reset local.x => "y*2", :y => "local.x - 3"
+      action { local.x += 1}
     end
     
     use || or use standard name
@@ -251,11 +260,14 @@ Implementation
 
   possible to use only 1 tmp value for rk4?
 
-  optimization: record which components have no guards; don't look at them
-    during discrete update
-  
   optimization: transitive closure of strict sleep, based on declaration
     that prevents setters
+  
+  optimization: weaken "strict" so that resets can apply at end of
+    discrete update, but still get all the optimizations (see bench/discrete.rb)
+  
+  optimizations: record strictness for alg exprs; they only need to be
+    re-evaluated  if (not strict) and (d_tick has changed)
 
   Allow c-coded actions:
   

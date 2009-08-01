@@ -1,0 +1,78 @@
+project       = 'redshift'
+title         = 'RedShift'
+description   = 'Hybrid automata language embedded in Ruby:'
+destination   = 'vjoel@redshift.sourceforge.net:redshift/htdocs'
+
+files = %w{
+  README
+  RELEASE-NOTES
+  bench/run
+  bench/simple.rb
+  bench/strictness.rb
+  doc/FAQ.txt
+  doc/algorithms.txt
+  doc/debug.txt
+  doc/discrete.txt
+  doc/efficiency.txt
+  doc/flow.txt
+  doc/goals.txt
+  doc/inherit.txt
+  doc/limitations.txt
+  doc/migrate.txt
+  doc/redshift-intro.kpr
+  doc/redshift.txt
+  doc/rk4.txt
+  doc/syntax.txt
+  doc/talk.doc
+  doc/talk.txt
+  doc/world.txt
+  examples/algebraic.rb
+  examples/ball.rb
+  examples/bench.rb
+  examples/complex.rb
+  examples/differential.rb
+  examples/guard-debugger.rb
+  examples/inherit.rb
+  examples/persist-ball.rb
+  examples/sample.rb
+  examples/step-discrete-profiler.rb
+  examples/vehicle.rb
+  examples/zeno.rb
+  install.rb
+  lib/redshift.rb
+  lib/redshift/component.rb
+  lib/redshift/meta.rb
+  lib/redshift/mixins/zeno-debugger.rb
+  lib/redshift/redshift.rb
+  lib/redshift/state.rb
+  lib/redshift/syntax.rb
+  lib/redshift/target/c.rb
+  lib/redshift/target/c/component-gen.rb
+  lib/redshift/target/c/flow-gen.rb
+  lib/redshift/target/c/library.rb
+  lib/redshift/target/c/world-gen.rb
+  lib/redshift/target/spec.rb
+  lib/redshift/world.rb
+  test/test.rb
+  test/test_constant.rb
+  test/test_discrete.rb
+  test/test_discrete_isolated.rb
+  test/test_exit.rb
+  test/test_flow.rb
+  test/test_flow_link.rb
+  test/test_flow_sub.rb
+  test/test_flow_trans.rb
+  test/test_inherit.rb
+  test/test_inherit_event.rb
+  test/test_inherit_flow.rb
+  test/test_inherit_link.rb
+  test/test_inherit_setup.rb
+  test/test_inherit_state.rb
+  test/test_inherit_transition.rb
+  test/test_numerics.rb
+  test/test_reset.rb
+  test/test_setup.rb
+  test/test_strict_continuity.rb
+  test/test_strictness_error.rb
+  test/test_world.rb
+}

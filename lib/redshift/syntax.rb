@@ -230,6 +230,7 @@ module TransitionSyntax
         when Array;   guard << arg            # [:link, :event] ## , value] ?
         when String;  guard << arg.strip      # "<expression>"
         when Proc;    guard << arg            # proc { ... }
+        when Symbol;  guard << arg            # :method
         else          raise SyntaxError
         end
         ## should define, for each link, a class method which returns
@@ -252,8 +253,9 @@ module TransitionSyntax
       end
     end
     
-    def procedure(&bl)
+    def procedure(meth = nil, &bl)
       proc_phase = Component::ProcPhase.new
+      proc_phase << meth if meth
       proc_phase << bl if bl
       @phases << proc_phase
     end

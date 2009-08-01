@@ -12,20 +12,27 @@ include RedShift
 
 n_components = 100
 n_seconds = 100
-$use_slow_guard = true
 
 class ProfilingExample < Component
   continuous :x
+  
+  def x_less_than_0
+    x < 0
+  end
+  
+  def reset_x
+    self.x = 2
+  end
+  
   transition do
+#    guard :x_less_than_0  # 36.1 ms
+#    guard {x < 0}         # 61.0 ms
+    guard "x < 0"         #  3.2 ms
 
-    if $use_slow_guard
-      guard {x < 0}       # 95.2 ms
-    else
-      guard "x < 0"       #  3.2 ms
-    end
-
-    action {self.x = 2}   #  5.8 ms
-    reset :x => 2         #  0.3 ms
+#    action :reset_x       #  1.8 ms
+#    action {self.x = 2}   #  4.5 ms
+    
+    reset :x => 2         #  1.3 ms
   end
   flow { diff "x' = -1" }
 end
@@ -48,7 +55,7 @@ class ProfilingWorld < World
   def hook_enter_guard_phase
     @guard_start = cpu_time
   end
-  
+
   def hook_leave_guard_phase
     t = cpu_time
     @guard_time += t - @guard_start

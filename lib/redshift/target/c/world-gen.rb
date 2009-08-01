@@ -235,32 +235,41 @@ class World
         for (i = 0; i < RARRAY(guards)->len; i++) {
           VALUE guard = RARRAY(guards)->ptr[i];
 
-          switch (BUILTIN_TYPE(guard)) {
-          case T_DATA:
-            if (RBASIC(guard)->klass == rb_cProc) {
-              if (!RTEST(rb_funcall(comp, #{insteval_proc}, 1, guard)))
-                return 0;   //## faster way to call instance_eval ???
-            }
-            else {
-              assert(!rb_obj_is_kind_of(guard, rb_cProc));
+          if (SYMBOL_P(guard)) {
+            if (!RTEST(rb_funcall(comp, SYM2ID(guard), 0)))
+              return 0;
+          }
+          else {
+            switch (BUILTIN_TYPE(guard)) {
+            case T_DATA:
+              if (RBASIC(guard)->klass == rb_cProc) {
+                if (!RTEST(rb_funcall(comp, #{insteval_proc}, 1, guard)))
+                  return 0;   //## faster way to call instance_eval ???
+              }
+              else {
+                assert(!rb_obj_is_kind_of(guard, rb_cProc));
+                if (!test_cexpr_guard(comp, guard))
+                  return 0;
+              }
+              break;
+
+            case T_ARRAY:
+              if (!started_events || !test_event_guard(comp, guard))
+                return 0;
+              break;
+
+            case T_CLASS:
+              assert(RTEST(rb_funcall(guard, #{declare_symbol "<"},
+                1, GuardWrapperClass)));
+              guard = rb_funcall(guard, #{declare_symbol :instance}, 0);
+              RARRAY(guards)->ptr[i] = guard;
               if (!test_cexpr_guard(comp, guard))
                 return 0;
+              break;
+
+            default:
+              assert(0);
             }
-            break;
-          case T_ARRAY:
-            if (!started_events || !test_event_guard(comp, guard))
-              return 0;
-            break;
-          case T_CLASS:
-            assert(RTEST(rb_funcall(guard, #{declare_symbol "<"},
-              1, GuardWrapperClass)));
-            guard = rb_funcall(guard, #{declare_symbol :instance}, 0);
-            RARRAY(guards)->ptr[i] = guard;
-            if (!test_cexpr_guard(comp, guard))
-              return 0;
-            break;
-          default:
-            assert(0);
           }
         }
         return 1;
@@ -459,7 +468,15 @@ class World
           
           for (i = 0; i < RARRAY(procs)->len; i++) {
             //%% hook_call_proc(comp, RARRAY(procs)->ptr[i]);
-            rb_funcall(comp, #{insteval_proc}, 1, RARRAY(procs)->ptr[i]);
+            VALUE val = RARRAY(procs)->ptr[i];
+            
+            if (SYMBOL_P(val))
+              rb_funcall(comp, SYM2ID(val), 0);
+            else
+              rb_funcall(comp, #{insteval_proc}, 1, val);
+            //## this tech. could be applied in EVENT and RESET.
+            //## also, component-gen can make use of this optimization
+            //## for procs, using code similar to that for guards.
 //#            rb_obj_instance_eval(1, &RARRAY(procs)->ptr[i], comp);
 //# rb_iterate(my_instance_eval, comp, call_block, RARRAY(procs)->ptr[i]);
             d_tick++;   //# each proc may invalidate algebraic flows

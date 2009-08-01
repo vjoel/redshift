@@ -1,5 +1,6 @@
 module RedShift
-
+  HAVE_DEFINE_METHOD = Module.private_instance_methods.include?("define_method")
+  
   class Component
     include CShadow
     shadow_library RedShift.library
@@ -481,12 +482,31 @@ module RedShift
         CexprGuard.new(expr).guard_wrapper(self)
       end
 
+      def make_guard_method_name
+        @guard_ids ||= 0
+        @guard_ids += 1
+        "__guard_method_impl__#{@guard_ids}".intern
+      end
+
       def define_guards(guards)
         guards.map! do |g|
           case g
-          when GuardPhaseItem, Proc
+          when GuardPhaseItem, Symbol
             # already saw this guard, as in: transition [S, T] => U
             g
+          
+          when Proc
+            if HAVE_DEFINE_METHOD
+              meth = Component.make_guard_method_name
+              class_eval do
+                define_method(meth, &g)
+              end
+              ## Currently, methods defined with define_method are a little
+              ## slower to invoke in ruby.
+              meth
+            else
+              g # a proc is slower than a method when called from step_discrete
+            end
           
           when Class
             if g < GuardWrapper

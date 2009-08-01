@@ -1,3 +1,10 @@
+redshift 1.1.59
+
+- Optimization: use diff_list in step_continuous to scan just those components
+  that have diff flows.
+
+- Improved bechmark framework and outputs; added new benchmarks.
+
 redshift 1.1.58
 
 - Event values may now be C exprs. Use #literal to force literal string/proc.

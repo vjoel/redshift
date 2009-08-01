@@ -1,0 +1,86 @@
+#!/usr/bin/env ruby
+
+require 'yaml'
+require 'argos'
+require 'object-diff'
+
+defaults = {
+  "d"   => 0.01
+}
+optdef = {
+  "d"   => proc {|d| Float(d)}
+}
+opts = defaults.merge(Argos.parse_options(ARGV, optdef))
+
+case ARGV.size
+when 2
+  b0, b1 = [0,1].map {|i| YAML.load(File.read(ARGV[i]))}
+when 1
+  b0 = YAML.load(File.read(ARGV[0]))
+  b1 = YAML.load($stdin.read)
+end
+
+module Enumerable
+  def show_results depth=0
+    if size > 1 and depth > 0
+      puts
+      depth*2
+    elsif size == 1 and (first_value.size rescue 0) == 1
+      puts
+      depth*2
+    else
+      0
+    end
+  end
+end
+
+class Hash
+  def first_value
+    values.first
+  end
+  
+  def show_results depth=0
+    indent = super
+
+    keys.sort.each do |key|
+      val = self[key]
+      case val
+      when Numeric
+        printf "%#{indent}s%#{64-indent}s: %+8.2f\n", "", key, val
+      else
+        printf "%#{indent}s: ", key
+        val.show_results depth + 1
+      end
+    end
+  end
+end
+
+class Array
+  def first_value
+    first
+  end
+  
+  def show_results depth=0
+    indent = super
+    
+    each do |val|
+      case val
+      when Numeric
+        printf "%#{indent}s- %+8.2f\n", "", val
+      else
+        printf "%#{indent}s- ", ""
+        val.show_results depth + 1
+      end
+    end
+  end
+end
+
+class Numeric
+  def diff other
+    super / to_f
+  end
+end
+
+d_min = opts["d"]
+diffs = b0.diff(b1).filter {|d| d.abs >= d_min}
+diffs.show_results

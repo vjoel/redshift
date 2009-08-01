@@ -258,6 +258,10 @@ Semantics
 
 Implementation
 
+  remove -fPIC and -g (if not debug) from CFLAGS
+    add -march=i686 -msse2 -mfpmath=sse
+    or whatever current hw is (how to determine that?)
+
   possible to use only 1 tmp value for rk4?
 
   optimization: transitive closure of strict sleep, based on declaration

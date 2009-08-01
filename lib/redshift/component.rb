@@ -197,7 +197,7 @@ class Component
 
     yield if block_given?
 
-    init_strict_flags
+    init_flags
     update_cache
     clear_ck_strict # update_cache leaves these set assuming finishing a trans
   end

@@ -270,9 +270,11 @@ module RedShift
 
     ### check for phases->len < 256
     shadow_struct.declare :bits => %{\
-      unsigned    cur_ph   : 8; //# index of upcoming ph
-      unsigned    strict   : 1; //# is cur state strict?
-      unsigned    checked  : 1; //# have the guards been checked?
+      unsigned    cur_ph    : 8; //# index of upcoming ph
+      unsigned    strict    : 1; //# is cur state strict?
+      unsigned    checked   : 1; //# have the guards been checked?
+      unsigned    has_diff  : 1; //# cur state has diff flows?
+      unsigned    diff_list : 1; //# on diff_list of comps with diff flows?
     }
 
     class << self
@@ -731,7 +733,7 @@ module RedShift
 
     end
 
-    define_c_method :init_strict_flags do
+    define_c_method :init_flags do
       declare :locals => %{
         ContVar    *vars;
         long        var_count;
@@ -744,6 +746,9 @@ module RedShift
       svi = declare_symbol :strict_var_indexes
         ## really only need to call this once (per class)
       body %{
+        shadow->has_diff  = 0;
+        shadow->diff_list = 0;
+
         vars = (ContVar *)&FIRST_CONT_VAR(shadow);
         var_count = shadow->var_count;
 
@@ -818,8 +823,11 @@ module RedShift
         long        count;
         VALUE      *flows;
         VALUE       strict;
+        int         has_diff;
       }.tabto(0)
 
+      ##world_ssn = RedShift::World.shadow_struct.name
+      world_ssn = "RedShift_o_World_Shadow" ## chicken or egg?
       body %{
         var_count = shadow->var_count;
         vars = (ContVar *)&FIRST_CONT_VAR(shadow);
@@ -836,6 +844,7 @@ module RedShift
                      #{declare_symbol :flow_table}, 0);
           //## could use after_commit to cache this method call
         flow_array = rb_hash_aref(flow_table, shadow->state);
+        has_diff = 0;
 
         if (flow_array != Qnil) {
           #{"Check_Type(flow_array, T_ARRAY);\n" if $REDSHIFT_DEBUG}
@@ -853,6 +862,8 @@ module RedShift
               Data_Get_Struct(flows[i], #{flow_wrapper_type}, flow_wrapper);
               var->flow         = flow_wrapper->flow;
               var->algebraic    = flow_wrapper->algebraic;
+              if (!var->algebraic)
+                has_diff = 1;
               if (var->flow && var->algebraic && var->strict &&
                   var->d_tick > 0) { //# did anyone rely on the strictness?
                 var->value_1    = var->value_0;
@@ -883,6 +894,23 @@ module RedShift
             var->algebraic  = 0;
             var->d_tick     = 0;
           }
+        }
+        
+        if (has_diff && !shadow->has_diff) {
+          if (!shadow->diff_list) {
+            #{world_ssn} *world_shadow;
+            Data_Get_Struct(shadow->world, #{world_ssn}, world_shadow);
+
+            if (world_shadow->diff_list) { //# 0 if loading
+              rb_ary_push(world_shadow->diff_list, shadow->self);
+            }
+            shadow->diff_list = 1;
+          }
+          shadow->has_diff = 1;
+        }
+        else if (!has_diff && shadow->has_diff) {
+          //# defer taking comp off the diff_list
+          shadow->has_diff = 0;
         }
       }
     end

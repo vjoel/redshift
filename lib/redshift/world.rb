@@ -73,10 +73,11 @@ class World
     self.next_P = []; self.next_E = []; self.next_R = []; self.next_G = []
     self.active_E = []; self.prev_active_E = []
     self.strict_sleep = []; self.finishers = []; self.inert = []
+    self.diff_list = []
     @components = ComponentList.new  \
       curr_P, curr_E, curr_R, curr_G,
       next_P, next_E, next_R, next_G,
-      strict_sleep, inert
+      strict_sleep, inert # _not_ diff_list
 
     options = default_options
 

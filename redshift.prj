@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 1.1 58)
-(Parent-Version redshift 1.1 57)
+(Project-Version redshift 1.1 59)
+(Parent-Version redshift 1.1 58)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Sat, 26 Jan 2008 19:15:48 -0800")
+(Checkin-Time "Thu, 07 Feb 2008 20:02:04 -0800")
 (Checkin-Login vjoel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -304,7 +304,7 @@
 ;; Files added by populate at Thu, 16 May 2002 00:16:02 -0700,
 ;; to version 1.0.7(w), by tercel:
 
-  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.22 644))
+  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.23 644))
 
 ;; Files added by populate at Thu, 16 May 2002 00:16:26 -0700,
 ;; to version 1.0.7(w), by tercel:
@@ -360,7 +360,7 @@
 ;; Files added by populate at Sun, 16 May 2004 11:11:34 -0700,
 ;; to version 1.0.23(w), by vjoel:
 
-  (doc/goals.txt (redshift/b/26_goals.txt 1.1 644))
+  (doc/goals.txt (redshift/b/26_goals.txt 1.2 644))
   (doc/flow.txt (redshift/b/27_flow.txt 1.2 644))
   (doc/FAQ.txt (redshift/b/28_FAQ.txt 1.1 644))
 
@@ -384,18 +384,18 @@
 ;; Files added by populate at Sun, 16 May 2004 11:13:45 -0700,
 ;; to version 1.0.23(w), by vjoel:
 
-  (lib/redshift/world.rb (redshift/b/30_world.rb 1.16 644))
+  (lib/redshift/world.rb (redshift/b/30_world.rb 1.17 644))
   (lib/redshift/target/spec.rb (redshift/b/31_spec.rb 1.1 644))
-  (lib/redshift/target/c/world-gen.rb (redshift/b/32_world-gen. 1.28 644))
+  (lib/redshift/target/c/world-gen.rb (redshift/b/32_world-gen. 1.29 644))
   (lib/redshift/target/c.rb (redshift/b/33_c.rb 1.3 644))
-  (lib/redshift/target/c/library.rb (redshift/b/34_library.rb 1.3 644))
+  (lib/redshift/target/c/library.rb (redshift/b/34_library.rb 1.4 644))
   (lib/redshift/target/c/flow-gen.rb (redshift/b/35_flow-gen.r 1.12 644))
-  (lib/redshift/target/c/component-gen.rb (redshift/b/36_component- 1.30 644))
+  (lib/redshift/target/c/component-gen.rb (redshift/b/36_component- 1.31 644))
   (lib/redshift/syntax.rb (redshift/b/37_syntax.rb 1.18 644))
   (lib/redshift/state.rb (redshift/b/38_state.rb 1.1 644))
   (lib/redshift/redshift.rb (redshift/b/39_redshift.r 1.8 644))
   (lib/redshift/meta.rb (redshift/b/40_meta.rb 1.11 644))
-  (lib/redshift/component.rb (redshift/b/41_component. 1.18 644))
+  (lib/redshift/component.rb (redshift/b/41_component. 1.19 644))
 
 ;; Files added by populate at Sun, 16 May 2004 11:14:12 -0700,
 ;; to version 1.0.23(w), by vjoel:
@@ -428,7 +428,7 @@
 ;; Files added by populate at Fri, 28 May 2004 14:39:08 -0700,
 ;; to version 1.1.10(w), by vjoel:
 
-  (TODO (redshift/b/49_TODO 1.27 644))
+  (TODO (redshift/b/49_TODO 1.28 644))
 
 ;; Files added by populate at Fri, 28 May 2004 19:33:23 -0700,
 ;; to version 1.1.10(w), by vjoel:
@@ -473,16 +473,37 @@
 ;; Files added by populate at Wed, 16 Jan 2008 22:04:21 -0800,
 ;; to version 1.1.47(w), by vjoel:
 
-  (bench/inert.rb (redshift/c/6_inert.rb 1.1 644))
+  
   (bench/discrete.rb (redshift/c/7_discrete.r 1.3 644))
-  (bench/continuous.rb (redshift/c/8_continuous 1.2 644))
-  (bench/bench (redshift/c/9_bench 1.2 755))
+  (bench/continuous.rb (redshift/c/8_continuous 1.3 644))
+  (bench/bench (redshift/c/9_bench 1.3 755))
   (bench/bench.rb (redshift/c/10_bench.rb 1.1 644))
 
 ;; Files added by populate at Fri, 18 Jan 2008 14:29:08 -0800,
 ;; to version 1.1.51(w), by vjoel:
 
   (bench/half-strict.rb (redshift/c/11_half-stric 1.2 644))
+
+;; Files added by populate at Mon, 04 Feb 2008 22:40:14 -0800,
+;; to version 1.1.58(w), by vjoel:
+
+  (bench/diff-bench (redshift/c/12_diff-bench 1.1 755))
+
+;; Files added by populate at Wed, 06 Feb 2008 11:37:25 -0800,
+;; to version 1.1.58(w), by vjoel:
+
+  (bench/formula.rb (redshift/c/13_formula.rb 1.1 644))
+
+;; Files added by populate at Thu, 07 Feb 2008 16:39:10 -0800,
+;; to version 1.1.58(w), by vjoel:
+
+  (bench/inertness.rb (redshift/c/14_inertness. 1.1 644))
+  (bench/alg-state.rb (redshift/c/15_alg-state. 1.1 644))
+
+;; Files deleted by depopulate at Thu, 07 Feb 2008 20:02:01 -0800,
+;; from version 1.1.58(w), by vjoel:
+
+  ; (bench/inert.rb ())
 )
 (Merge-Parents)
 (New-Merge-Parents)

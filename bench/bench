@@ -13,9 +13,12 @@ end
 pat = ARGV.pop
 pat = pat ? Regexp.new(pat) : //
 %w{
+  alg-state
   continuous
   discrete
+  formula
   half-strict
+  inertness
 }.grep(pat).each do |name|
   bench_one(name)
 end

@@ -1,6 +1,6 @@
 These are the goals that drive the design of the discrete and continuous update algorithms:
 
-1. Independence on component ordering.
+1. Independence on component ordering. [Determinism]
 
   This is why any number of transitions, related or unrelated, can be in
   progress at the same time.

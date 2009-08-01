@@ -44,11 +44,12 @@ class World
   shadow_attr_accessor :strict_sleep => Array
   shadow_attr_accessor :finishers => Array
   shadow_attr_accessor :inert => Array
+  shadow_attr_accessor :diff_list => Array
   protected \
     :curr_P=, :curr_E=, :curr_R=, :curr_G=,
     :next_P=, :next_E=, :next_R=, :next_G=,
     :active_E=, :prev_active_E=, :strict_sleep=,
-    :finishers=, :inert=
+    :finishers=, :inert=, :diff_list=
   
   shadow_attr_accessor :time_step    => "double   time_step"
   shadow_attr_accessor :zeno_limit   => "long     zeno_limit"
@@ -125,39 +126,59 @@ class World
     }.tabto(0)
     body %{
       time_step = shadow->time_step;    //# assign global
+      
       comp_rb_ary[0] = shadow->curr_G;
       comp_rb_ary[1] = shadow->inert;
-      
-      for (rk_level = 0; rk_level <= 4; rk_level++) { //# assign global
-        for (li = 0; li < 2; li++) {
-          len = RARRAY(comp_rb_ary[li])->len;
-          comp_ary = RARRAY(comp_rb_ary[li])->ptr;
-          for (ci = 0; ci < len; ci++) {
-            Data_Get_Struct(comp_ary[ci], ComponentShadow, comp_shdw);
-            var_count = comp_shdw->var_count;
-            var = (ContVar *)(&FIRST_CONT_VAR(comp_shdw));
-            end_var = &var[var_count];
+      for (li = 0; li < 2; li++) {
+        len = RARRAY(comp_rb_ary[li])->len;
+        comp_ary = RARRAY(comp_rb_ary[li])->ptr;
+        for (ci = 0; ci < len; ci++) {
+          Data_Get_Struct(comp_ary[ci], ComponentShadow, comp_shdw);
+          var_count = comp_shdw->var_count;
+          var = (ContVar *)(&FIRST_CONT_VAR(comp_shdw));
+          end_var = &var[var_count];
 
-            while (var < end_var) {
-              if (rk_level == 0) {
-                var->rk_level = 0;
-                if (!var->flow)
-                  var->value_1 = var->value_2 = var->value_3 = var->value_0;
-              }
-              else {
-                if (var->flow &&
-                    var->rk_level < rk_level &&
-                    !var->algebraic)
-                  (*var->flow)((ComponentShadow *)comp_shdw);
-                if (rk_level == 4) {
-                  if (var->rk_level == 4)
-                    var->d_tick = 1; //# var will be current in discrete_step
-                  else
-                    var->d_tick = 0; //# var (if alg) will need to be evaled
-                }
-              }
-              var++;
+          while (var < end_var) {
+            var->rk_level = 0;
+            if (!var->flow) {
+              var->value_1 = var->value_2 = var->value_3 = var->value_0;
             }
+            var->d_tick = 0;
+            var++;
+          }
+        }
+      }
+            
+      for (rk_level = 1; rk_level <= 4; rk_level++) { //# assign global
+        len = RARRAY(shadow->diff_list)->len;
+        comp_ary = RARRAY(shadow->diff_list)->ptr;
+        for (ci = 0; ci < len; ci++) {
+          Data_Get_Struct(comp_ary[ci], ComponentShadow, comp_shdw);
+          
+          if (rk_level == 1 && !comp_shdw->has_diff) {
+            if (ci < len-1)
+              comp_ary[ci] = comp_ary[len-1];
+            len = RARRAY(shadow->diff_list)->len = len-1;
+            comp_shdw->diff_list = 0;
+            continue;
+          }
+          
+          var_count = comp_shdw->var_count;
+          var = (ContVar *)(&FIRST_CONT_VAR(comp_shdw));
+          end_var = &var[var_count];
+
+          while (var < end_var) {
+            if (var->flow &&
+                var->rk_level < rk_level &&
+                !var->algebraic)
+              (*var->flow)((ComponentShadow *)comp_shdw);
+            if (rk_level == 4) {
+              if (var->rk_level == 4)
+                var->d_tick = 1; //# var will be current in discrete_step
+              else
+                var->d_tick = 0; //# var (if alg) will need to be evaled
+            }
+            var++;
           }
         }
       }

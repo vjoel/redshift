@@ -1,16 +1,22 @@
 # Measures performance of redshift as a pure integrator.
-#
-# Formulas are minimal to factor out C library time.
+# using more complex formulas than in continuous.rb.
+
+# Try replacing
+#   CFLAGS   =  -fPIC -g -O2 
+# with
+#   CFLAGS   = -O2 -march=i686 -msse2 -mfpmath=sse
+
+$CFLAGS="-O2 -march=i686 -msse2 -mfpmath=sse"
 
 require 'redshift'
 
 include RedShift
 
-module Continuous
+module Formula
   class C < Component
     strictly_continuous :x, :y
     flow do
-      diff " x' =   y "
+      diff " x' =   pow(y,3) + sqrt(fabs(sin(y))) "
       diff " y' =  -x "
     end
   end
@@ -27,12 +33,11 @@ module Continuous
   end
 
   def self.do_bench
-    [ [       1, 1_000_000],
-      [      10,   100_000],
-      [     100,    10_000],
-      [   1_000,     1_000],
-      [  10_000,       100],
-      [ 100_000,        10] ].each do
+    [ [       1, 100_000],
+      [      10,  10_000],
+      [     100,   1_000],
+      [   1_000,     100],
+      [  10_000,      10] ].each do
       |     n_c,     n_s|
       
       w = make_world(n_c)
@@ -48,23 +53,14 @@ end
 
 if __FILE__ == $0
 
-  require 'bench'
-  w = Continuous.make_world(1000)
-  time = bench do
-    w.run(1000)
-  end
-  p time
-
-exit
   require File.join(File.dirname(__FILE__), 'bench')
   puts "continuous:"
-  Continuous.do_bench {|l| puts l}
-#  puts "continuous:", (1..3).map {Continuous.do_bench}
+  Formula.do_bench {|l| puts l}
   
   if false
     require 'ruby-prof'
 
-    w = Continuous.make_world(10_000)
+    w = Formula.make_world(10_000)
     result = RubyProf.profile do
       w.run(10)
     end
@@ -72,5 +68,6 @@ exit
     printer = RubyProf::GraphPrinter.new(result)
     printer.print(STDOUT, 0)
   end
+
 end
 

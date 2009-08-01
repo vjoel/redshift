@@ -32,6 +32,7 @@ module RedShift
       return if committed?
       precommit
 
+      ## this makes it a little trickier to use gdb
       use_work_dir $REDSHIFT_WORK_DIR do
         # $REDSHIFT_SKIP_BUILD is normally handled in redshift/target/c.rb.
         # useful for: turnkey; fast start if no changes; manual lib edits

@@ -355,6 +355,8 @@ class World
       DynamicEventClass
                = rb_const_get(#{comp_id}, #{declare_symbol :DynamicEventValue});
     }
+    e_idx, v_idx, i_idx = 
+      [:E_IDX, :V_IDX, :I_IDX].map {|c| Component::EventPhaseItem.const_get c}
     body %{
       //%% hook_begin();
       
@@ -462,8 +464,8 @@ class World
           ptr = RARRAY(events)->ptr;
           len = RARRAY(events)->len;
           for (i = len; i > 0; i--, ptr++) {
-            int   event_idx = FIX2INT(RARRAY(*ptr)->ptr[2]);
-            VALUE event_val = RARRAY(*ptr)->ptr[1];
+            int   event_idx = FIX2INT(RARRAY(*ptr)->ptr[#{i_idx}]);
+            VALUE event_val = RARRAY(*ptr)->ptr[#{v_idx}];
             
             //## maybe this distinction should be made clear in the array
             //## itself.
@@ -471,7 +473,8 @@ class World
                 rb_obj_is_kind_of(event_val, DynamicEventClass))
               event_val = rb_funcall(comp, #{insteval_proc}, 1, event_val);
 
-            //%% hook_export_event(comp, RARRAY(*ptr)->ptr[0], event_val);
+            //%% hook_export_event(comp, RARRAY(*ptr)->ptr[#{e_idx}],
+            //%%   event_val);
             RARRAY(comp_shdw->next_event_values)->ptr[event_idx] = event_val;
           }
 
@@ -537,7 +540,10 @@ class World
                   else
                     new_value = eval_expr(comp, reset);
               }
-              //%% hook_do_reset(comp, INT2NUM(i), rb_float_new(new_value));
+              
+              //%% hook_do_reset(comp,
+              //%%   rb_funcall(comp_shdw->cont_state->self,#{declare_symbol :var_at_index},1,INT2NUM(i)),
+              //%%   rb_float_new(new_value));
               var->value_1 = new_value;
             }
           }
@@ -607,6 +613,7 @@ class World
         args = argstr.split(/,\s+/)
           # crude parser--no ", " within args, but may be multiline
         args.unshift(args.size)
+        ## enclose the following in if(shadow->hook) {...}
         %{rb_funcall(shadow->self, #{meth.declare_symbol hook},
              #{args.join(", ")})}
       end

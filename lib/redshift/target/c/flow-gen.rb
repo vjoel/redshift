@@ -169,6 +169,8 @@ class AlgebraicFlow
     flow_name = "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}"
     
     Component::FlowWrapper.make_subclass flow_name do
+      @inspect_str = "#{var_name} = #{flow.formula}"
+
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
       
@@ -250,6 +252,8 @@ class EulerDifferentialFlow
     flow_name = "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}"
     
     Component::FlowWrapper.make_subclass flow_name do
+      @inspect_str = "#{var_name} = #{flow.formula}"
+
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
       
@@ -307,6 +311,8 @@ class RK4DifferentialFlow
     flow_name = "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}"
     
     Component::FlowWrapper.make_subclass flow_name do
+      @inspect_str = "#{var_name} = #{flow.formula}"
+
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
       
@@ -395,6 +401,8 @@ class CexprGuard < Flow ## Kinda funny...
     guard_name = "guard_#{cl_cname}_#{g_cname}"
     
     Component::GuardWrapper.make_subclass guard_name do
+      @inspect_str = guard.formula.inspect
+
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
       
@@ -450,6 +458,8 @@ class Expr < Flow ## Kinda funny...
     expr_name = "expr_#{cl_cname}_#{ex_cname}"
     
     Component::ExprWrapper.make_subclass expr_name do
+      @inspect_str = expr.formula.inspect
+
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
       

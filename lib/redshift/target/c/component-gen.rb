@@ -63,6 +63,8 @@ module RedShift
       include Singleton
       include CShadow; shadow_library Component
       persistent false
+      def inspect; self.class.inspect_str; end
+      class << self; attr_reader :inspect_str; end
     end
 
     # FunctionWrappers wrap function pointers for access from ruby.
@@ -107,7 +109,7 @@ module RedShift
     class ContVarDescriptor
       attr_reader :name, :kind
       def initialize name, index_delta, cont_state, kind
-        @name = name  ## name needed?
+        @name = name
         @index_delta = index_delta
         @cont_state = cont_state
         @kind = kind
@@ -132,6 +134,10 @@ module RedShift
       
       def vars
         self.class.vars
+      end
+      
+      def var_at_index(idx)
+        self.class.var_at_index(idx)
       end
 
       class << self
@@ -185,6 +191,11 @@ module RedShift
             @cumulative_var_count = vars.size
           end
           @cumulative_var_count
+        end
+        
+        def var_at_index(idx)
+          @var_at_index ||= {}
+          @var_at_index[idx] ||= vars.values.find {|var| var.index == idx}
         end
       end
     end
@@ -458,39 +469,37 @@ module RedShift
 
       def define_guards(guards)
         guards.map! do |g|
-
-          # Some cases return g because we might have already seen this
-          # guard, as in: transition [S, T] => U do guard ... end
-
           case g
+          when GuardWrapper, GuardPhaseItem, Proc
+            # already saw this guard, as in: transition [S, T] => U
+            g
+
           when String
             define_guard(g)
-
+          
           when Array
             var_name, event_name = g
 
-            if event_name.is_a?(Fixnum)
-              g
-
-            else
-              var_type = link_type[var_name]
-              event_idx = var_type.exported_events[event_name]
-              unless event_idx
-                raise "Can't find #{g.inspect} in list of events, " +
-                      "#{var_type.exported_events.inspect}."
-              end
-
-              result = [var_name, event_idx]
-
-              after_commit do
-                result[0] = calc_link_offset(var_name)
-              end
-
-              result
+            var_type = link_type[var_name]
+            event_idx = var_type.exported_events[event_name]
+            
+            unless event_idx
+              raise "Can't find event #{event_name.inspect} in events of" +
+                    " #{var_type}, linked from #{self} as #{var_name.inspect}."
             end
 
-          else
-            g
+            item = GuardPhaseItem.new
+            item.event_index = event_idx
+            item.link = var_name
+            item.event = event_name
+
+            after_commit do
+              item.link_offset = calc_link_offset(var_name)
+            end
+
+            item
+
+          else raise "What is #{g.inspect}?"
           end
         end
       end
@@ -502,10 +511,7 @@ module RedShift
       end
       
       def define_resets(phase)
-        raise unless phase.size == 1
-        h = phase.shift
-        raise unless h.is_a?(Hash)
-        
+        h = phase.value_map
         h.keys.sort_by{|k|k.to_s}.each do |var|
           expr = h[var]
           cont_var = cont_state_class.vars[var]

@@ -1,5 +1,6 @@
 require 'singleton'
 require 'superhash'
+require 'accessible-index'
 require 'redshift/state'
 require 'redshift/meta'
 
@@ -55,10 +56,42 @@ class Component
   attach_state(:Enter)
   attach_state(:Exit)
 
-  class ProcPhase  < Array; end
-  class EventPhase < Array; end
-  class ResetPhase < Array; end
-  class GuardPhase < Array; end
+  # These classes are derived from Array for efficient access to contents
+  # from C code.
+  class XArray < Array
+    def inspect; "<#{self.class.name.split("::")[-1]}: #{super}>"; end
+  end
+  
+  class ProcPhase  < XArray; end
+  class EventPhase < XArray; end
+  class ResetPhase < XArray
+    attr_accessor :value_map
+    def inspect
+      "<ResetPhase: #{value_map.inspect}>"
+    end
+  end
+  class GuardPhase < XArray; end
+  
+  class PhaseItem < XArray; extend AccessibleIndex; end
+  
+  class EventPhaseItem < PhaseItem
+    E_IDX = 0; V_IDX = 1; I_IDX = 2
+    index_accessor :event => E_IDX, :value => V_IDX, :index => I_IDX
+
+    def value=(val)
+      self[V_IDX] = Component::DynamicEventValue.new(&val) rescue val
+    end
+
+    def inspect; "<Event #{event}: #{value.inspect}>"; end
+  end
+  
+  class GuardPhaseItem < PhaseItem
+    LINK_OFFSET_IDX = 0; EVENT_INDEX_IDX = 1; LINK_IDX = 2; EVENT_IDX = 3
+    index_accessor :link_offset => LINK_OFFSET_IDX,
+                   :event_index => EVENT_INDEX_IDX,
+                   :link => LINK_IDX, :event => EVENT_IDX
+    def inspect; "<Guard #{link}.#{event}>"; end
+  end
 
   class DynamicEventValue < Proc; end
   

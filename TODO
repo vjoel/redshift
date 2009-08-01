@@ -24,7 +24,30 @@ Syntax
     or just use a consistent naming scheme to keep internals separate?
 
 Semantics
-      
+  
+  abstract classes
+  
+  resets for links
+  
+  input events (in place of interrupts?)
+  
+    as opposed to normal events, which are output (pull vs. push)
+  
+  "together {}" clause in transitions
+  
+    or some other way of making resets and events parallel
+  
+    together do
+      before [do..end | "c_func()"]
+      reset ...
+      event ...
+      after [do..end | "c_func()"]
+    end
+  
+  abort guards
+  
+  wait/sleep
+  
   exception handler clauses in transitions (or use interrupts?)
     on LockFailed { |var, value| ... }
   
@@ -88,6 +111,12 @@ Semantics
 
 Implementation
 
+  unified internal rep. or phases
+  
+  insert a mnemonic for quick detection of phase type in discrete update
+
+  distribute Init_clib better
+  
   optimization
     profiling
       use valgrind, gprof, etc. to profile the C code

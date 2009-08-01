@@ -190,19 +190,14 @@ module TransitionSyntax
     
     def method_missing event_name, *args, &bl
       if args.size > 1 or (args.size == 1 and bl)
-        raise SyntaxError, "Too many arguments"
+        raise SyntaxError, "Too many arguments in event specifier"
       end
       
-      value =
-        if bl
-          Component::DynamicEventValue.new(&bl)
-        elsif args.size > 0
-          args[0]
-        else
-          true
-        end
-        
-      @events << [event_name, value]
+      item = Component::EventPhaseItem.new
+      item.event = event_name
+      item.value = bl || (args.size > 0 && args[0]) || true
+
+      @events << item
     end
     
     def initialize(block)
@@ -229,7 +224,8 @@ module TransitionSyntax
       
       args.each do |arg|
         case arg
-        when Hash;    guard.concat(arg.sort)  # { :link => :event }
+        when Hash;    guard.concat(arg.sort_by {|l,e| l.to_s})
+                                              # { :link => :event }
         ## need something like [:set_link, :event]
         when Array;   guard << arg            # [:link, :event] ## , value] ?
         when String;  guard << arg.strip      # "<expression>"
@@ -274,7 +270,7 @@ module TransitionSyntax
       end
       
       resets = Component::ResetPhase.new
-      resets << h # interim format -- entries change before commit
+      resets.value_map = h
       @phases << resets
     end
     
@@ -283,10 +279,17 @@ module TransitionSyntax
       for arg in args
         case arg
         when Symbol, String
-          events << [arg, true]
+          item = Component::EventPhaseItem.new
+          item.event = arg
+          item.value = true
+          events << item
+        
         when Hash
-          for e, v in arg
-            events << [e, v]
+          arg.sort_by {|e,v| e.to_s}.each do |e,v|
+            item = Component::EventPhaseItem.new
+            item.event = e
+            item.value = v
+            events << item
           end
         else
           raise SyntaxError, "unrecognized event specifier #{arg}."
@@ -368,8 +371,9 @@ def Component.transition(edges = {}, &block)
     trans.phases.each do |phase|
       case phase
       when Component::EventPhase
-        phase.each do |event|
-          event << export(event[0])[0] # cache index
+        phase.each do |event_phase_item|
+          event_phase_item.index = export(event_phase_item.event)[0]
+            # cache index
         end
       end
     end

@@ -90,6 +90,21 @@ class Flow_AlgebraicErrors < FlowTestComponent
   end
 end
 
+# Assignments to continuous vars force update of alg flows
+
+class Flow_AlgUpdate_Assignment < FlowTestComponent
+  flow {alg "y = x"}
+  continuous :x
+
+  def assert_consistent test
+    return if world.clock > 1
+    test.assert_equal_float(0, y, 1E-10);
+    self.x = 1
+    test.assert_equal_float(1, y, 1E-10);
+    self.x = 0
+  end
+end
+
 ## TO DO ##
 =begin
  
@@ -147,9 +162,6 @@ class TestFlow < RUNIT::TestCase
 end
 
 END {
-  Dir.mkdir "tmp" rescue SystemCallError
-  Dir.chdir "tmp"
-
   RUNIT::CUI::TestRunner.run(TestFlow.suite)
 
 #  require 'plot/plot'

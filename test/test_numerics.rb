@@ -31,9 +31,8 @@ class TestNumerics < RUNIT::TestCase
   end
 end
 
-END {
-  Dir.mkdir "tmp" rescue SystemCallError
-  Dir.chdir "tmp"
+## should test NaN, Inf, precision, etc.
 
+END {
   RUNIT::CUI::TestRunner.run(TestNumerics.suite)
 }

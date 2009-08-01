@@ -2,6 +2,23 @@ module RedShift
   
 class Component
 
+  class << self
+    def exported_events
+      @exported_events ||= self == Component ? Hash.new :
+        SuperHash.new(superclass.exported_events)
+    end
+    
+    def export(*events)
+      for event in events
+        unless exported_events[event]
+          shadow_attr_accessor event => Object
+          protected "#{event}=".intern
+          exported_events[event] = true
+        end
+      end
+    end
+  end
+  
   ## Simplify all this with SuperHash -- flatten hashes at commit, cache them
   
   @@flows = {}
@@ -13,7 +30,6 @@ class Component
   @@cached_transitions_values = {}
   
   @@cached_states = {}
-###  @@cached_events = {}
   
   @@caching_in_use = false    # refers to per-instance cache
 
@@ -87,9 +103,6 @@ class Component
       
       for t in new_transitions
         transitions[src][t.name] = [t, dest]
-###        for e in t.events
-###          e.attach self
-###        end
       end
       
       for cl, in @@transitions
@@ -98,7 +111,6 @@ class Component
             @@cached_transitions[cl][src] = nil
           end
           @@cached_states[cl] = nil
-###          @@cached_events[cl] = nil
         end
       end
       
@@ -200,25 +212,6 @@ class Component
     @@cached_states[cl] = _states
   end
   
-    
-###  def Component.events cl, state
-###    if not @@cached_events[cl] or
-###       not @@cached_events[cl][state]
-###      @@cached_events[cl] ||= {}
-###      @@cached_events[cl][state] = []
-###      for t, d in transitions cl, state
-###        @@cached_events[cl][state] |= t.events
-###      end
-###    end
-###    
-###    @@cached_events[cl][state]
-###  end
-  
-  
-  # Caching a reference to the computed flows and transitions
-  # in the component itself improves speed by about 15%, with
-  # a small cost when adding new flows/transitions.
-  #
   def flows s = state
     if @flow_cache_state == s
       @flow_cache
@@ -260,10 +253,6 @@ class Component
   def states
     Component.states type    
   end
-  
-###  def events s = state
-###    Component.events type, s
-###  end
   
   def self.define_guard guard
     guard.guard_wrapper self

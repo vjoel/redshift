@@ -73,6 +73,140 @@ class Flow_UsingLink2 < FlowTestComponent
   end
 end
 
+# another test, maybe somewhat redundant, but what the hell
+# in this case, we compare a system of equations in one component
+# with the same system distributed among several
+
+class Flow_UsingLink3 < FlowTestComponent
+  class Sub1 < Component; end
+  class Sub2 < Component; end
+
+  class Sub1
+    flow do
+      diff "x'  = 3*y + sub2.f"
+      diff "y'  = x + y*(0.1 * sub2.z - 0.2 * sub2.g)"
+#     diff "z'  = (f + y + z) * 0.1"
+#     alg  "f   = 0.3*(x + g) + 0.02"
+#     alg  "g   = 2*z + h"
+      alg  "h   = y - sub2.z + 1"
+    end
+    link :sub2 => Sub2
+  end
+  
+  class Sub2
+    flow do
+#     diff "x'  = 3*y + f"
+#     diff "y'  = x + y*(0.1 * z - 0.2 * g)"
+      diff "z'  = (f + sub1.y + z) * 0.1"
+      alg  "f   = 0.3*(sub1.x + g) + 0.02"
+      alg  "g   = 2*z + sub1.h"
+#     alg  "h   = y - z + 1"
+    end
+    link :sub1 => Sub1
+  end
+  
+  link :sub1 => Sub1
+  link :sub2 => Sub2
+  
+  setup do
+    self.sub1 = create Sub1
+    self.sub2 = create Sub2
+    
+    sub1.sub2 = sub2
+    sub2.sub1 = sub1
+  end
+  
+  flow do
+    diff "x'  = 3*y + f"
+    diff "y'  = x + y*(0.1 * z - 0.2 * g)"
+    diff "z'  = (f + y + z) * 0.1"
+    alg  "f   = 0.3*(x + g) + 0.02"
+    alg  "g   = 2*z + h"
+    alg  "h   = y - z + 1"
+  end
+  
+  def assert_consistent test
+    cmp = proc do |x, y| 
+      test.assert_equal_float(x, y, 0.00000000001,
+      "in #{state.name} after #{world.clock} sec,\n")
+    end
+    
+    cmp[x,sub1.x]
+    cmp[y,sub1.y]
+    cmp[z,sub2.z]
+    cmp[f,sub2.f]
+    cmp[g,sub2.g]
+    cmp[h,sub1.h]
+  end
+end
+
+# test "lnk ? lnk.z : w" and "lnk1 = lnk2 ? x : y"
+
+class Flow_Boolean < FlowTestComponent
+  class Sub < Component
+    flow {alg "x = 1"}
+  end
+  link :sub0 => Sub
+  link :sub1 => Sub
+  link :sub2 => Sub
+  setup {
+    self.sub1 = create Sub
+    self.sub2 = sub1
+  }
+  flow {
+    alg "y0 = sub1 ? sub1.x : 0"
+    alg "y1 = sub0 ? 0 : sub2.x"
+    alg "y2 = sub1 == sub2 ? sub1.x : 0"
+  }
+  def assert_consistent test
+    cmp = proc do |x, y| 
+      test.assert_equal_float(x, y, 0.00000000001,
+      "in #{state.name} after #{world.clock} sec,\n")
+    end
+    
+    cmp[1,y0]
+    cmp[1,y1]
+    cmp[1,y2]
+  end
+end
+
+# test error handling of nil links
+
+class Flow_NilLink < FlowTestComponent
+  class Sub < Component
+    continuous :z
+  end
+  link :nl => Sub
+  continuous :x
+  flow {alg "y = x ? nl.z : 0"}
+  def assert_consistent test
+    self.x = 1
+    begin
+      y
+      test.assert_fail("Didn't detect nil link.")
+    rescue Exception => e
+## why does e seem to change type to CircularityError when asserting?
+#      unless e.type == Flow::NilLinkError
+#        test.assert_fail("Wrong kind of exception: #{e.type}")
+#      end
+#    puts e.type, e.message; exit
+#      test.assert_kind_of(Flow::NilLinkError, e)
+    end
+#    test.assert_exception(Flow::NilLinkError) {y}
+  end
+end
+
+# test self links
+
+class Flow_SelfLink < FlowTestComponent
+  link :sl => Flow_SelfLink
+  setup {self.sl = self; self.y=1; self.z=1}
+  flow {diff "y' = sl.y"; diff "z'=z"}
+  def assert_consistent test
+    test.assert_equal_float(z, y, 0.00000000001)
+  end
+end
+
 # test dynamic reconfiguration in flows
 
 class Flow_Reconfig < FlowTestComponent
@@ -133,7 +267,7 @@ class TestFlow < RUNIT::TestCase
     @world = nil
   end
   
-  def test_flow
+  def test_flow_link
     testers = []
     ObjectSpace.each_object(Class) do |cl|
       if cl <= FlowTestComponent and
@@ -143,7 +277,7 @@ class TestFlow < RUNIT::TestCase
     end
     
     testers.each { |t| t.assert_consistent self }
-    @world.run 1000 do
+    @world.run 100 do
       testers.each { |t| t.assert_consistent self }
     end
     testers.each { |t| t.finish self }
@@ -151,9 +285,6 @@ class TestFlow < RUNIT::TestCase
 end
 
 END {
-  Dir.mkdir "tmp" rescue SystemCallError
-  Dir.chdir "tmp"
-
   RUNIT::CUI::TestRunner.run(TestFlow.suite)
 
 #  require 'plot/plot'

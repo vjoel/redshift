@@ -10,3 +10,5 @@ test order of def
   same for links, flows
 
 =end
+
+puts "** test_inherit_event not written yet **"

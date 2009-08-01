@@ -10,12 +10,28 @@ class LinkTestComponent < Component
 end
 
 class Link_1 < LinkTestComponent
-  setup {self.foo = Foo.new}
+  setup {self.foo = create Foo}
+  def assert_consistent test
+    test.assert_equal(LinkTestComponent::Foo, foo.type)
+  end
 end
 
 class Link_2 < LinkTestComponent
   class Bar < Foo; end
 ###  link :foo => Bar ### ==> "already exists"
+end
+
+# test forward references
+class Link_FwdRef < Component
+  link :fwd => :FwdRefClass
+  setup {self.fwd = create FwdRefClass}
+  def assert_consistent test
+    test.assert_equal(1, fwd.x)
+  end
+end
+
+class FwdRefClass < Component
+  flow {alg "x = 1"}
 end
 
 #-----#
@@ -50,8 +66,5 @@ class TestInheritLink < RUNIT::TestCase
 end
 
 END {
-  Dir.mkdir "tmp" rescue SystemCallError
-  Dir.chdir "tmp"
-
   RUNIT::CUI::TestRunner.run(TestInheritLink.suite)
 }

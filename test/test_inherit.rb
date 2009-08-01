@@ -128,8 +128,5 @@ class TestInherit < RUNIT::TestCase
 end
 
 END {
-  Dir.mkdir "tmp" rescue SystemCallError
-  Dir.chdir "tmp"
-
   RUNIT::CUI::TestRunner.run(TestInherit.suite)
 }

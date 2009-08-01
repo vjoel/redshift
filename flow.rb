@@ -72,11 +72,11 @@ All functions in math.h are available in the expression. The library is geberate
 
 * To statically link to other C files, simply place them in the same dir as the library (you may need to create the dir yourself unless the RedShift program has already run). To include a .h file, simply do the following somewhere in your Ruby code:
 
-  RedShift::CLib.include "my-file.h"
+  RedShift.library.include "my-file.h"
   
 or
   
-  RedShift::CLib.include "<lib-file.h>"
+  RedShift.library.include "<lib-file.h>"
 
 The external functions declared in the .h file will be available in cflow expressions.
 
@@ -116,79 +116,115 @@ class Flow    ## rename to equation?
     cl.type_data_class.add_flow [state, cont_var] => flow_wrapper(cl, state)
   end
   
+  class NilLinkError < StandardError; end
+  
   def translate flow_fn, result_var, rk_level, cl
     translation = {}
     setup = []    ## should use accumulator
     
     c_formula = @formula.dup
     
-    re = /(?:([A-Za-z_]\w*)\.)?([A-Za-z_]\w*)(?!\w*\s*[?(])/
+    re = /(?:([A-Za-z_]\w*)\.)?([A-Za-z_]\w*)(?!\w*\s*[(])/
     
     c_formula.gsub! re do |expr|
+
       unless translation[expr]
         link, var = $1, $2
+        
         if link
-          # link.var  ==>  shadow->link->cont_state->var.value_n
+          # l.x  ==>  get_l__x()->value_n
+          link_type = cl.link_type[link.intern]
+          raise(NameError, "\nNo such link, #{link}") unless link_type
+          link_cs_ssn = link_type.cont_state_class.shadow_struct.name
+
           link_cname = "link_#{link}"
-          link_cs_cname = "link_#{link}_cs"
-          unless translation[link]
-            # link  ==>  shadow->link (but don't sub this into expr)
-            translation[link] = link_cname # just so we know we've seen it
+          link_cs_cname = "link_cs_#{link}"
+          checked_var_cname = "checked_#{link}__#{var}" ## not quite unambig.
+          get_var_cname = "get_#{link}__#{var}"
+          
+          flow_fn.declare checked_var_cname => "int #{checked_var_cname}"
+          flow_fn.setup   checked_var_cname => "#{checked_var_cname} = 0"
+          
+          unless translation[link + "."]
+            translation[link + "."] = true # just so we know we've handled it
             
-            link_type = cl.link_type link.intern
-            raise "No such link, #{link}" unless link_type
-
-            link_type_ssn = link_type.shadow_struct.name
-            link_cs_ssn = link_type.cont_state_class.shadow_struct.name
+            unless translation[link]
+              translation[link] = link_cname
+              link_type_ssn = link_type.shadow_struct.name
+              flow_fn.declare link_cname => "#{link_type_ssn} *#{link_cname}"
+              flow_fn.setup   link_cname => "#{link_cname} = shadow->#{link}"
+            end ## same as below
             
-            flow_fn.declare link_cname => %{
-              #{link_type_ssn} *#{link_cname};
-              #{link_cs_ssn} *#{link_cs_cname};
-            }
-
-            exc = flow_fn.declare_class(RuntimeError)
-            msg = "Link #{link} is nil in component %s"
-            insp = flow_fn.declare_symbol(:inspect)
-            str = "STR2CSTR(rb_funcall(shadow->self, #{insp}, 0))"
-            flow_fn.setup link_cname => %{
-              #{link_cname} = shadow->#{link};
-              if (!#{link_cname})
-                rb_raise(#{exc}, #{msg.inspect}, #{str});
-              #{link_cs_cname} = (#{link_cs_ssn} *)#{link_cname}->cont_state;
-            } ## some redundancy
+            flow_fn.declare link_cs_cname => "#{link_cs_ssn} *#{link_cs_cname}"
           end
-          var_cname = "#{link_cname}__dot__#{var}"
+          
+          exc = flow_fn.declare_class(NilLinkError) ## class var
+          msg = "Link #{link} is nil in component %s"
+          insp = flow_fn.declare_symbol(:inspect) ## class var
+          str = "STR2CSTR(rb_funcall(shadow->self, #{insp}, 0))"
+
           sh_cname = link_cname
           cs_cname = link_cs_cname
-        else
-          # var ==> cont_state->var.value_n
-          var_cname = "var_#{var}"
-          sh_cname = "shadow"
-          cs_cname = "cont_state"
+          flow_fn.declare get_var_cname => %{
+            inline ContVar *#{get_var_cname}(void) {
+              if (!#{checked_var_cname}) {
+                #{checked_var_cname} = 1;
+                if (!#{link_cname})
+                  rb_raise(#{exc}, #{msg.inspect}, #{str});
+                #{cs_cname} = (#{link_cs_ssn} *)#{link_cname}->cont_state;
+                if (#{cs_cname}->#{var}.algebraic) {
+                  if (#{cs_cname}->#{var}.rk_level < rk_level ||
+                     (rk_level == 0 && #{cs_cname}->#{var}.d_tick != d_tick))
+                    (*#{cs_cname}->#{var}.flow)(#{sh_cname});
+                }
+              }
+              return &(#{cs_cname}->#{var});
+            }
+          } ## algebraic test is same as below
+
+          translation[expr] = "#{get_var_cname}()->value_#{rk_level}"
+          
+        else # expr == 'var'
+          link_type = cl.link_type[var.intern]
+          
+          if link_type
+            # l ==> link_l
+            link = var
+            link_cname = "link_#{link}"
+            unless translation[link]
+              translation[link] = link_cname
+
+              link_type_ssn = link_type.shadow_struct.name
+              flow_fn.declare link_cname => "#{link_type_ssn} *#{link_cname}"
+              flow_fn.setup   link_cname => "#{link_cname} = shadow->#{link}"
+            end
+            
+          else ## if var on list of cont var
+            # x ==> var_x
+            var_cname = "var_#{var}"
+            sh_cname = "shadow"
+            cs_cname = "cont_state"
+            translation[var] = var_cname
+
+            flow_fn.declare var_cname => "double    #{var_cname}"
+            flow_fn.setup var_cname => %{
+              if (#{cs_cname}->#{var}.algebraic) {
+                if (#{cs_cname}->#{var}.rk_level < rk_level ||
+                   (rk_level == 0 && #{cs_cname}->#{var}.d_tick != d_tick))
+                  (*#{cs_cname}->#{var}.flow)(#{sh_cname});
+              }
+            }
+            setup << %{
+              #{var_cname} = #{cs_cname}->#{var}.value_#{rk_level};
+            }.tabto(0).split("\n")
+          
+          ## elsif... else error
+          end
+          
         end
-        flow_fn.declare var_cname => "double    #{var_cname}"
-        flow_fn.setup var_cname => %{
-          if (#{cs_cname}->#{var}.algebraic) {
-            if (#{cs_cname}->#{var}.rk_level < rk_level ||
-               (rk_level == 0 && #{cs_cname}->#{var}.d_tick != d_tick))
-              (*#{cs_cname}->#{var}.flow)(#{sh_cname});
-          }
-        }
-        setup << %{
-          #{var_cname} = #{cs_cname}->#{var}.value_#{rk_level};
-        }.tabto(0).split("\n")
-        translation[expr] = var_cname
       end
       translation[expr]
     end
-    
-    # handle the case of link_var in "x' = link_var ? link_var.y : z"
-###    c_formula.gsub! /([A-Za-z_]\w*)(?=\s*\?)/ do |expr|
-###      translation[expr] = "link_" + $1
-      ### Hack, hack.
-      ### does not handle case where link_var appears without '.', as in
-      ### "x' = link_var ? 0 : 1"
-###    end
     
     setup << "#{result_var} = #{c_formula}"
   end

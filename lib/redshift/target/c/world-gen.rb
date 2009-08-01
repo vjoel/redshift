@@ -1091,6 +1091,8 @@ class World
       move_all_comps(shadow->strict_sleep, shadow->awake);
 
       //%% hook_end();
+      shadow->discrete_step = 0;
+      shadow->zeno_counter = 0;
     }
     
     # only call this when all defs have been added

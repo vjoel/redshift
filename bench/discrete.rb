@@ -41,7 +41,7 @@ module Discrete
   class Watcher < Awakener
     link :target => Awakener
     transition do
-      guard :target => :awake
+      sync :target => :awake
       event :awake
     end
   end

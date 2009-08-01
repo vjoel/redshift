@@ -1,28 +1,3 @@
-test: lnk=>strict ==> lnk=>nonstrict
-
-better sync syntax to avoid the :l=>:e, :l=>:f prob
-  sync {l.e, l.f} ?
-
-add check for values of event after sync
-  (and then repeat sync loop)
-  "sync :l => {:e => 3}" or better syntax
-
-        when Hash;    @guards.concat(arg.sort_by {|l,e| l.to_s})
-                                              # { :link => :event }
-        ## need something like [:set_link, :event]
-        when Array;   @guards << arg            # [:link, :event] ## , value] ?
-        
-        ## should define, for each link, a TransitionParser method which returns
-        ## a dummy link object that responds to #event and returns
-        ## a dummy event that responds to #==(value) so that you can write
-        ##
-        ##   guard link_var.some_event == 123
-        ##
-        ## instead of
-        ##
-        ##  [:link_var, :some_event, 123]
-
-
 Publishing RedShift
 ===================
 
@@ -34,7 +9,7 @@ Publishing RedShift
 
   doc, tutorial, web site
 
-  tests
+  clean up tests, examples
   
   user tools
     zeno and other debuggers
@@ -109,6 +84,19 @@ Bugs
   
 Syntax
 
+  better sync syntax to avoid the :l=>:e, :l=>:f prob
+    sync {l.e, l.f} ?
+  
+  should define, for each link, a TransitionParser method which returns
+    a dummy link object that responds to #event and returns
+    a dummy event that responds to #==(value) so that you can write
+    
+      guard link_var.some_event == 123
+    
+    instead of
+    
+    [:link_var, :some_event, 123]
+    
   should be possible to allow:
   
     reset x => ... instead of reset :x => ...
@@ -147,6 +135,13 @@ Syntax
 
 Semantics
 
+  make event values available in link expressions:
+    reset :x => "lnk.e + 2"
+
+  add check for values of event after sync
+    (and then repeat sync loop)
+    "sync :l => {:e => 3}" or better syntax
+  
   option to initialize all float vars to NaN?
 
   ideas from Verilog?

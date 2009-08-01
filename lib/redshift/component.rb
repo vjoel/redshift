@@ -201,9 +201,13 @@ class Component
   VAR_TYPES = [:constant_variables, :continuous_variables, :link_variables,
     :input_variables]
   
-  def inspect data = nil
+  def inspect opts = nil
     old_inspecting = Thread.current[:inspecting]
     Thread.current[:inspecting] = self
+    if opts
+      float_fmt = opts["float_fmt"]
+      data = opts["data"]
+    end
     
     items = []
     
@@ -218,7 +222,18 @@ class Component
         unless var_list.empty?
           strs = var_list.map {|vname,info| vname.to_s}.sort.map do |vname|
             begin
-              "#{vname} = #{send(vname) || "nil"}"
+              val = send(vname)
+              val = case val
+              when Float
+                float_fmt ? float_fmt % val : val
+              when Component
+                val.to_s
+              else
+                val.inspect
+              end
+              
+              "#{vname} = #{val}"
+              
             rescue CircularDefinitionError
               "#{vname}: CIRCULAR"
             rescue UnconnectedInputError

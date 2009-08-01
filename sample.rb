@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-require 'redshift.rb'
+require 'redshift/redshift.rb'
 
 include RedShift
 

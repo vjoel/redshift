@@ -1,8 +1,8 @@
 # Copyright (c) 2001, Joel VanderWerf
 # Distributed under the Ruby license. See www.ruby-lang.org.
 
-require 'world.rb'
-require 'component.rb'
+require 'redshift/world.rb'
+require 'redshift/component.rb'
 
 module RedShift
 

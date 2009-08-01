@@ -15,7 +15,8 @@ Semantics
 /   trans.name = nil to prevent hiding
 
   math
-    complex numbers
+    fixed point, rationals
+/   complex numbers
     matrices, lapack, etc
   
   metaclasses
@@ -26,7 +27,7 @@ Semantics
       (before/after)
     transitions like in statechart
     parametric transitions?
-    'all' in Transition#from
+    attach :all, ...
 
   
 Implementation
@@ -39,7 +40,7 @@ Implementation
     guards
     dual mode
   
-  garbage collection
+/  garbage collection
     nil out the components array, do GC, reconstruct components array
     do this periodically if user sets flag
 
@@ -67,7 +68,7 @@ Implementation
   
   persistence
   
-  distrubuted processing
+  distributed processing
 
 User interface
 
@@ -95,7 +96,9 @@ Documentation
         occlusion of inherited trans./flows by name
           using nil to prevent occlusion
     no mixing scopes in create, as in "create(Foo, x := x)"
-    warning about 'self.x = ...'
+    warning about:
+      'self.x = ...'
+      associativity of and/or
     during discrete phase, cached algebraic flows do not change
       they do not have function semantics
       evaluated only once per timestep

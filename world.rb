@@ -7,6 +7,8 @@ class World
   include OptionBlock
   
   Infinity = 1.0/0.0
+  
+  $RK_level = nil
 
   option_block_defaults \
     :name         =>  '"World #{@@count}"',
@@ -96,6 +98,16 @@ class World
   
   def clock_now
     @step_count * @time_step
+  end
+  
+  def collect
+    @components = {}
+    GC.start
+    ObjectSpace.each_object(Component) do |c|
+      if c.world == self
+        @components[c.id] = c
+      end
+    end
   end
       
 end # class World

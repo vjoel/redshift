@@ -73,9 +73,13 @@ class EulerDifferentialFlow < Flow
       def #{@getter}
         if $RK_level and $RK_level < 2
           @#{@var}_prev
+        elsif @#{@var}
+          @#{@var}
         else
-          @#{@var} ||
-            @#{@var} = @#{@var}_prev + (#{@formula_str}) * @dt
+          save_RK_level = $RK_level
+          $RK_level = 0
+          @#{@var} = @#{@var}_prev + (#{@formula_str}) * @dt
+          $RK_level = save_RK_level
         end
       end
 
@@ -120,8 +124,8 @@ class RK4DifferentialFlow < Flow
           if not @#{@var}_F2
             save_RK_level = $RK_level
             $RK_level = 1
-            #{@getter} if not @#{@var}_F1
             @#{@var}_F2 = (#{@formula_str}) * @dt
+            #{@getter} if not @#{@var}_F1
             $RK_level = save_RK_level
           end
           @#{@var}_prev + @#{@var}_F2 / 2
@@ -130,8 +134,8 @@ class RK4DifferentialFlow < Flow
           if not @#{@var}_F3
             save_RK_level = $RK_level
             $RK_level = 2
-            #{@getter} if not @#{@var}_F2
             @#{@var}_F3 = (#{@formula_str}) * @dt
+            #{@getter} if not @#{@var}_F2
             $RK_level = save_RK_level
           end
           @#{@var}_prev + @#{@var}_F3
@@ -140,8 +144,8 @@ class RK4DifferentialFlow < Flow
           if not @#{@var}_F4   # always true
             save_RK_level = $RK_level
             $RK_level = 3
-            #{@getter} if not @#{@var}_F3
             @#{@var}_F4 = (#{@formula_str}) * @dt
+            #{@getter} if not @#{@var}_F3
             $RK_level = save_RK_level
           end
           @#{@var} =

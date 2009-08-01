@@ -1,9 +1,9 @@
 module RedShift
 
-require 'event.rb'
-require 'transition.rb'
-require 'flow.rb'
-require 'state.rb'
+require 'redshift/event.rb'
+require 'redshift/transition.rb'
+require 'redshift/flow.rb'
+require 'redshift/state.rb'
 
 
 Enter = State.new :Enter

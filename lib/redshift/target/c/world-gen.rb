@@ -6,6 +6,15 @@ class World
   shadow_library_file "World"
   shadow_library_source_file.include(Component.shadow_library_include_file)
 
+  shadow_library_include_file.declare :cv_cache_entry => %{
+    typedef struct {
+      double *dbl_ptr;
+      double value;
+    } CVCacheEntry;
+  }
+  
+  CV_CACHE_SIZE = 64
+  
   World.subclasses.each do |sub|
     file_name = CGenerator.make_c_name(sub.name).to_s
     sub.shadow_library_file file_name
@@ -38,6 +47,18 @@ class World
   
   shadow_attr_reader   :discrete_step   => "long  discrete_step"
   shadow_attr_reader   :discrete_phase  => Symbol
+
+  shadow_struct.declare :constant_value_cache => %{
+    CVCacheEntry *constant_value_cache;
+    int cv_cache_size;
+    int cv_cache_used;
+  }
+  new_method.attr_code %{
+    shadow->constant_value_cache = 0;
+    shadow->cv_cache_size = 0;
+    shadow->cv_cache_used = 0;
+  }
+  free_function.free "free(shadow->constant_value_cache)"
   
   class << self
     # Redefines World#new so that a library commit happens first.
@@ -351,6 +372,50 @@ class World
             move_comp(comp, list, shadow->next_G);
         }
       }
+      
+      static void cache_new_constant_value(
+        double *dbl_ptr, double value,
+               #{World.shadow_struct.name} *shadow)
+      {
+        CVCacheEntry *entry;
+        
+        if (!shadow->constant_value_cache) {
+          int n = #{CV_CACHE_SIZE};
+          shadow->constant_value_cache = malloc(n*sizeof(CVCacheEntry));
+          shadow->cv_cache_size = n;
+          shadow->cv_cache_used = 0;
+        }
+        if (shadow->cv_cache_used == shadow->cv_cache_size) {
+          int n_bytes;
+          shadow->cv_cache_size *= 2;
+          n_bytes = shadow->cv_cache_size*sizeof(CVCacheEntry);
+          shadow->constant_value_cache = realloc(
+            shadow->constant_value_cache, n_bytes);
+          if (!shadow->constant_value_cache) {
+            rb_raise(#{declare_class NoMemoryError},
+                "Out of memory trying to allocate %d bytes for CV cache.",
+                n_bytes);
+          }
+        }
+        entry = &shadow->constant_value_cache[shadow->cv_cache_used];
+        entry->dbl_ptr = dbl_ptr;
+        entry->value = value;
+        shadow->cv_cache_used += 1;
+      }
+      static void assign_new_constant_values(
+        #{World.shadow_struct.name} *shadow)
+      {
+        if (shadow->cv_cache_used) {
+          int i;
+          CVCacheEntry *entry;
+
+          entry = shadow->constant_value_cache;
+          for (i = shadow->cv_cache_used; i > 0; i--, entry++) {
+            *entry->dbl_ptr = entry->value;
+          }
+          shadow->cv_cache_used = 0;
+        }
+      }
     }.tabto(0)
     
     declare :step_discrete_macros => '
@@ -542,9 +607,13 @@ class World
         EACH_COMP_DO(shadow->curr_R) {
           ContVar  *var     = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
           VALUE     resets  = cur_resets(comp_shdw);
+          
+          VALUE     cont_resets   = RARRAY(resets)->ptr[0]; //##check len!
+          VALUE     const_resets  = RARRAY(resets)->ptr[1];
+          VALUE     link_resets   = RARRAY(resets)->ptr[2];
 
-          ptr = RARRAY(resets)->ptr;
-          len = RARRAY(resets)->len;
+          ptr = RARRAY(cont_resets)->ptr;
+          len = RARRAY(cont_resets)->len;
           assert(len <= comp_shdw->var_count);
 
           for (i = 0; i < len; i++, var++, ptr++) {
@@ -557,7 +626,7 @@ class World
               
               if (var->algebraic)
                 rb_raise(#{declare_class AlgebraicAssignmentError},
-                    "variable has algebraic flow");
+                    "variable has algebraic flow"); //## do statically?
               
               switch(TYPE(reset)) {
                 case T_FIXNUM:
@@ -579,6 +648,35 @@ class World
               //%%   rb_float_new(new_value));
               var->value_1 = new_value;
             }
+          }
+          
+          ptr = RARRAY(const_resets)->ptr;
+          len = RARRAY(const_resets)->len;
+          for (i = 0; i < len; i++) {
+            VALUE   pair    = ptr[i];
+            int     offset  = NUM2INT(RARRAY(pair)->ptr[0]);
+            VALUE   reset   = RARRAY(pair)->ptr[1];
+            double new_value;
+            
+            switch(TYPE(reset)) {
+              case T_FIXNUM:
+              case T_BIGNUM:
+              case T_FLOAT:
+                new_value = NUM2DBL(reset);
+                break;
+              default:
+                if (RBASIC(reset)->klass == rb_cProc)
+                  new_value =
+                    NUM2DBL(rb_funcall(comp, #{insteval_proc}, 1, reset));
+                else
+                  new_value = eval_expr(comp, reset);
+            }
+            
+            //%% hook_do_reset_constant(comp,
+            //%%     RARRAY(pair)->ptr[2], rb_float_new(new_value));
+            cache_new_constant_value(
+              (double *)((char *)comp_shdw + offset),
+              new_value, shadow);
           }
         }
         //%% hook_leave_reset_phase();
@@ -603,10 +701,15 @@ class World
             ContVar  *var     = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
             VALUE     resets  = cur_resets(comp_shdw);
 
-            len = RARRAY(resets)->len;
+            VALUE     cont_resets   = RARRAY(resets)->ptr[0]; //##check len!
+            VALUE     const_resets  = RARRAY(resets)->ptr[1];
+            VALUE     link_resets   = RARRAY(resets)->ptr[2];
+
+            len = RARRAY(cont_resets)->len;
             for (i = len; i > 0; i--, var++)
               var->value_0 = var->value_1;
           }
+          assign_new_constant_values(shadow);
           d_tick++;   //# resets may invalidate algebraic flows
         }
         

@@ -1,6 +1,12 @@
 To do
 =====
 
+Project
+
+  Subversion, gems, etc.
+  
+  Docs and tutorial
+
 Bugs
 
   Make sure the arrays used internally are not shared:
@@ -48,6 +54,12 @@ Syntax
     matches on name of states
 
 Semantics
+
+  divide discrete cycle into 2 phases:
+  
+    - indep. calculation (RHS, create, eval guard expr)
+    
+    - assign, export, check guard truth value
 
   register event observers:
     on comp=>event do ... end
@@ -138,8 +150,6 @@ Semantics
     end
   
   abstract classes
-  
-  resets for links and constants (see test_constant)
   
   input events (in place of interrupts?)
   
@@ -233,6 +243,12 @@ Semantics
   world class, which the class could override as needed
 
 Implementation
+
+  optimization: record which components have no guards; don't look at them
+    during discrete update
+  
+  optimization: transitive closure of strict sleep, based on declaration
+    that prevents setters
 
   Allow c-coded actions:
   

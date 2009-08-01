@@ -387,6 +387,7 @@ module RedShift
       def define_constant(kind, var_names)
         var_names.collect do |var_name|
           var_name = var_name.intern if var_name.is_a? String
+          add_var_to_calc_offset_method(var_name)
           
           (r,w), = shadow_attr_accessor var_name => "double #{var_name}"
           w.body "d_tick++"
@@ -424,21 +425,33 @@ module RedShift
         end
       end
     
-      def calc_link_offset(link_sym)
-        raise "#{link_sym} is not a valid link in #{self.class}"
+      def calc_offset(var_sym)
+        raise "#{var_sym} is not a valid constant or link in #{self.class}"
+      end
+      
+      def calc_offset_method
+        @calc_offset_method ||= define_c_class_method :calc_offset do
+            arguments :var_sym
+            declare :offset => "int offset"
+            returns %{rb_call_super(1, &var_sym)}
+            # or we could embed superclass.calc_offset_method.body!
+          end
+      end
+      
+      def add_var_to_calc_offset_method var_name
+        ssn = shadow_struct.name
+        calc_offset_method.body %{
+          if (var_sym == #{shadow_library.literal_symbol(var_name)}) {
+            offset = (char *)&(((struct #{ssn} *)0)->#{var_name}) - (char *)0;
+            return INT2FIX(offset);
+          }
+        } ## can we just use offsetof() ?
       end
 
       def define_links
         own_links = link_variables.own
         return if own_links.empty?
         
-        calc_link_offset_method = define_c_class_method :calc_link_offset do
-          arguments :link_sym
-          declare :offset => "int offset"
-          returns %{rb_call_super(1, &link_sym)}
-          # or we could embed superclass.calc_link_offset_method.body!
-        end
-
         ssn = shadow_struct.name
         
         own_links.keys.sort_by{|k|k.to_s}.each do |var_name|
@@ -471,12 +484,7 @@ module RedShift
           shadow_library_include_file.include(
             var_type.shadow_library_include_file)
           
-          calc_link_offset_method.body %{
-            if (link_sym == #{shadow_library.literal_symbol(var_name)}) {
-              offset = (char *)&(((struct #{ssn} *)0)->#{var_name}) - (char *)0;
-              return INT2FIX(offset);
-            }
-          } ## can we just use offsetof() ?
+          add_var_to_calc_offset_method(var_name)
         end
       end
       
@@ -583,7 +591,7 @@ module RedShift
             item.event = event_name
 
             after_commit do
-              item.link_offset = calc_link_offset(var_name)
+              item.link_offset = calc_offset(var_name)
             end
 
             item
@@ -607,11 +615,11 @@ module RedShift
           
           case
           when (cont_var = cont_state_class.vars[var])
-            define_reset_continuous(cont_var, expr, phase)
+            define_reset_continuous(cont_var, expr, phase[0])
           when constant_variables[var]
-            define_reset_constant(var, expr, phase)
+            define_reset_constant(var, expr, phase[1])
           when link_variables[var]
-            define_reset_link(var, expr, phase)
+            define_reset_link(var, expr, phase[2])
           else
             raise "No such variable, #{var}"
           end
@@ -645,7 +653,19 @@ module RedShift
             "Cannot reset strictly constant #{var} in #{self}.", []
         end
         
-        raise "Unimplemented" ###
+        case expr
+        when String
+          reset = define_reset(expr)
+
+          after_commit do
+            phase << [calc_offset(var), reset.instance, var]
+          end
+
+        else
+          after_commit do
+            phase << [calc_offset(var), expr, var]
+          end
+        end
       end
 
       def define_reset_link var, expr, phase

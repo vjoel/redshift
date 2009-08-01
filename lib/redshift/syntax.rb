@@ -285,7 +285,8 @@ module TransitionSyntax
       procedure
     end
     
-    # +h+ is a hash of :var => {value_expr} or "value_expr"
+    # +h+ is a hash of :var => {value_expr} or "value_expr";
+    # {value_expr} is ruby, "value_expr" is C.
     def reset(h)
       badkeys = h.keys.reject {|k| k.is_a?(Symbol)}
       unless badkeys.empty?
@@ -293,6 +294,7 @@ module TransitionSyntax
       end
       
       resets = Component::ResetPhase.new
+      resets.concat [[], [], []] # continuous, constant, link
       resets.value_map = h
       @phases << resets
     end

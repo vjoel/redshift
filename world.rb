@@ -175,12 +175,6 @@ class World
   end
   
   def save filename = @name
-    each { |c|
-      c.instance_eval {
-        @trans_cache_state = nil
-        @cache_transitions = nil
-      }
-    } ## can get rid of this after moving discrete behavior into C code
     File.delete filename rescue SystemCallError
     store = PStore.new filename
     store.transaction do

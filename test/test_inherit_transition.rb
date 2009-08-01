@@ -35,7 +35,7 @@ class Trans_1_1 < Trans_1
     action { }            # override one of several transitions
   end
   def assert_consistent test
-    test.assert_equal(state == Enter ? 0 : 2, @x)
+    test.assert_equal(state == Enter ? 0 : 2, @x, "@x = #@x, state = #{state}")
   end
 end
 

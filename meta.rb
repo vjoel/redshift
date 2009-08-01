@@ -1,13 +1,11 @@
 module RedShift
   
 class Component
-
+  
+  class_superhash2 :flows, :transitions
+  class_superhash :exported_events, :link_type, :states
+  
   class << self
-    def exported_events
-      @exported_events ||= self == Component ? Hash.new :
-        SuperHash.new(superclass.exported_events)
-    end
-    
     def export(*events)
       for event in events
         unless exported_events[event]
@@ -17,219 +15,92 @@ class Component
         end
       end
     end
-  end
-  
-  ## Simplify all this with SuperHash -- flatten hashes at commit, cache them
-  
-  @@flows = {}
-  @@transitions = {}
-
-  @@cached_flows = {}
-  @@cached_flows_values = {}
-  @@cached_transitions = {}
-  @@cached_transitions_values = {}
-  
-  @@cached_states = {}
-  
-  @@caching_in_use = false    # refers to per-instance cache
-
-  def Component.attach_state name
-    const_set name, State.new(name, self)
-  end
-  
-  def Component.attach states, features
-    if features.type != Array
-      features = [features]
-    end
     
-    case states
-      when State;  attach_flows [states], features
-      when Array;  attach_flows states, features
-      when Hash;   attach_transitions states, features
-      else         raise "Bad state list: #{states.inspect}"
-    end
-  end
-  
-
-  def Component.attach_flows states, new_flows
-    flows = @@flows[self] ||= {}
-    
-    for state in states
-      unless state.is_a? State
-        raise TypeError, "Must be a state: #{state}"
+    def link vars # link :x => MyComponent, :y => :FwdRefComponent
+      for var_name, var_type in vars
+        var_name = var_name.intern if var_name.is_a?(String)
+        link_type[var_name] = var_type ## should check < Component??
       end
-      
-      flows[state] ||= {}
-      
-      for f in new_flows
-        flows[state][f.var] = f
-        f.attach self, state
-          # must be done before clearing cache -- see Flow#attach
-      end
-      
-      for cl, in @@flows
-        if cl <= self
-          if @@cached_flows[cl]
-            @@cached_flows[cl][state] = nil
+      before_commit do
+        for var_name, var_type in vars
+          lt = link_type[var_name]
+          unless lt.is_a? Class
+            lt = link_type[var_name] = const_get(lt)
           end
-          @@cached_states[cl] = nil
-        end
-      end
-      
-      if @@caching_in_use
-        ObjectSpace.each_object(Component) do |c|
-          c.clear_flow_cache state
-        end
-      end
-      
-    end
-    
-  end
-  
-  
-  def Component.attach_transitions states, new_transitions
-    transitions = @@transitions[self] ||= {}
-    
-    for src, dest in states
-      unless src.is_a? State
-        raise TypeError, "Source must be a state: #{src}"
-      end
-      
-      unless dest.is_a? State
-        raise TypeError, "Destination must be a state: #{dest}"
-      end
-      
-      transitions[src] ||= {}
-      
-      for t in new_transitions
-        transitions[src][t.name] = [t, dest]
-      end
-      
-      for cl, in @@transitions
-        if cl <= self
-          if @@cached_transitions[cl]
-            @@cached_transitions[cl][src] = nil
-          end
-          @@cached_states[cl] = nil
-        end
-      end
-      
-      if @@caching_in_use
-        ObjectSpace.each_object(Component) do |c|
-          c.clear_trans_cache src
-        end
-      end
-      
-    end
-    
-  end
-  
-  
-  def Component.cached_flows cl, state
-    if @@cached_flows[cl] and
-       @@cached_flows[cl][state]
-      return @@cached_flows[cl][state]
-    end
-    
-    if cl == Component
-      flows = {}
-    else
-      flows = cached_flows(cl.superclass, state).dup
-    end
-    
-    if @@flows[cl] and @@flows[cl][state]
-      flows.update @@flows[cl][state]
-    end
-    
-    (@@cached_flows_values[cl] ||= {})[state] = flows.values
-    (@@cached_flows[cl] ||= {})[state] = flows
-  end
-  
-  def Component.flows cl, state
-    unless @@cached_flows[cl] and
-           @@cached_flows[cl][state]
-      cached_flows cl, state
-    end
-    @@cached_flows_values[cl][state]
-  end  
-  
-  
-  def Component.cached_transitions cl, state
-    if @@cached_transitions[cl] and
-       @@cached_transitions[cl][state]
-      return @@cached_transitions[cl][state]
-    end
-    
-    if cl == Component
-      transitions = {}
-    else
-      transitions = cached_transitions(cl.superclass, state).dup
-    end
-    
-    if @@transitions[cl] and @@transitions[cl][state]
-      transitions.update @@transitions[cl][state]
-    end
-    
-    (@@cached_transitions_values[cl] ||= {})[state] = transitions.values
-    (@@cached_transitions[cl] ||= {})[state] = transitions
-  end
-  
-  def Component.transitions cl, state
-    unless @@cached_transitions[cl] and
-           @@cached_transitions[cl][state]
-      cached_transitions cl, state
-    end
-    @@cached_transitions_values[cl][state]
-  end
-  
-  
-  def Component.states cl
-    if @@cached_states[cl]
-      return @@cached_states[cl]
-    end
-    
-    if cl == Component
-      _states = []
-    else
-      _states = states(cl.superclass).dup
-    end
-    
-    if @@flows[cl]
-      @@flows[cl].each_key do |s|
-        _states |= [s]
-      end
-    end
-    
-    if @@transitions[cl]
-      @@transitions[cl].each do |s, h|
-        _states |= [s]
-        h.each_value do |t|
-          _states |= [t[1]]
+          shadow_attr_accessor var_name => [lt]
         end
       end
     end
-    
-    @@cached_states[cl] = _states
+    ### shadow_attr won't accept redefinition, and anyway there is
+    ###   the contra/co variance problem.
+
+    def attach_state name
+      const_set name, State.new(name, self)
+    end
+
+    def attach states, features
+      if features.type != Array
+        features = [features]
+      end
+
+      case states
+        when State;  attach_flows [states], features
+        when Array;  attach_flows states, features
+        when Hash;   attach_transitions states, features
+        else         raise SyntexError, "Bad state list: #{states.inspect}"
+      end
+    end
+
+    def attach_flows states, new_flows
+      for state in states
+        unless state.is_a? State
+          raise TypeError, "Must be a state: #{state}"
+        end
+
+        fl = flows(state)
+
+        for f in new_flows
+          fl[f.var] = f
+          f.attach self, state
+        end
+      end
+    end
+
+    def attach_transitions states, new_transitions
+      for src, dest in states
+        unless src.is_a? State
+          raise TypeError, "Source must be a state: #{src}"
+        end
+
+        unless dest.is_a? State
+          raise TypeError, "Destination must be a state: #{dest}"
+        end
+
+        tr = transitions(src)
+
+        for t in new_transitions
+          tr[t.name] = [t, dest]
+        end
+      end
+    end
+
+    def cached_transitions s
+      assert committed?
+      @cached_transitions ||= {}
+      @cached_transitions[s] ||= transitions(s).values
+    end
+  end
+
+  def states
+    type.states.keys
   end
   
   def flows s = state
-    if @flow_cache_state == s
-      @flow_cache
-    else
-      @@caching_in_use = true
-      @flow_cache_state = s
-      @flow_cache = Component.flows type, s
-    end
+    type.flows s
   end
   
   def transitions s = state
-    if @trans_cache_state == s
-      @cache_transitions
-    else
-      @@caching_in_use = true
-      @trans_cache_state = s
-      @cache_transitions = Component.transitions type, s
-    end
+    type.cached_transitions s
   end
   
   ## move into C code in __update_cache?
@@ -239,19 +110,6 @@ class Component
       ary << t << d << t.phases << t.guard
     end
     ary
-  end
-  
-  def clear_flow_cache state_changed
-    @flow_cache_state = nil if state_changed == @flow_cache_state
-  end
-
-  def clear_trans_cache state_changed
-    @trans_cache_state = nil if state_changed == @trans_cache_state
-  end
-
-
-  def states
-    Component.states type    
   end
   
   def self.define_guard guard

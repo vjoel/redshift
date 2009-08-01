@@ -440,29 +440,6 @@ class Component
       ## eventually, number values could be stored as ordinary shadow_attrs
       ## to save space and time during continuous step. (Will need to
       ## change Flow#translate.)
-    
-    def link_type
-      @link_type ||= self == Component ? Hash.new :
-        SuperHash.new(superclass.link_type)
-    end
-    
-    def link vars # link :x => MyComponent, :y => :FwdRefComponent
-      for var_name, var_type in vars
-        var_name = var_name.intern if var_name.is_a?(String)
-        link_type[var_name] = var_type ## should check < Component??
-      end
-      before_commit do
-        for var_name, var_type in vars
-          lt = link_type[var_name]
-          unless lt.is_a? Class
-            lt = link_type[var_name] = const_get(lt)
-          end
-          shadow_attr_accessor var_name => [lt]
-        end
-      end
-    end
-    ### shadow_attr won't accept redefinition, and anyway there is
-    ###   the contra/co variance problem.
   
   end
   

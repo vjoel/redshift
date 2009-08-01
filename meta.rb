@@ -9,7 +9,8 @@ class Component
     def export(*events)
       for event in events
         unless exported_events[event]
-          shadow_attr_accessor event => Object  ### should be reader only
+          shadow_attr_accessor :nonpersistent, event => Object
+            ### should be reader only
           protected "#{event}=".intern
           exported_events[event] = true
         end
@@ -85,8 +86,10 @@ class Component
     end
 
     def cached_transitions s
-      assert committed?
-      @cached_transitions ||= {}
+      unless @cached_transitions
+        assert committed?
+        @cached_transitions = {}
+      end
       @cached_transitions[s] ||= transitions(s).values
     end
   end

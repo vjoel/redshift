@@ -200,19 +200,18 @@ class Component
       @load = "shadow->#{@cvar}.value_0 = NUM2DBL(rb_ary_shift(from_array))"
     end
   end
-
-  class FunctionWrapper
+  
+  class SingletonShadowClass
     include Singleton
     include CShadow; shadow_library Component
-    ## no need for persistence, etc. methods
+    persistent false
+    def self._load str; instance; end # may be provided in future versions
+    def _dump depth; ""; end          # of Singleton
+  end
+
+  class FunctionWrapper < SingletonShadowClass
     def initialize
       calc_function_pointer
-    end
-    def self._load str
-      instance  ## why isn't this the default behavior of Singleton
-    end
-    def _dump depth
-      "" ## or nil?
     end
     def self.make_subclass(file_name, &bl)
       cl = Class.new(self)
@@ -239,13 +238,12 @@ class Component
   # one subclass and one instance per component class
   # the flow hash contains flows contributed (not inherited) by this class
   # the flow table is the cumulative hash (by state) of arrays (by var) of flows
-  class TypeData
-    include Singleton
-    include CShadow; shadow_library Component  ## does it need to be?
+  class TypeData < SingletonShadowClass
+    ## does it need to be a shadow?
     shadow_attr_accessor :flow_table => Hash  ## can be ordinary ruby attr
     shadow_attr_accessor :var_count  => "long var_count"
     protected :flow_table=, :var_count=
-    
+
     class << self
       attr_reader :flow_hash, :component_class
       
@@ -356,6 +354,12 @@ class Component
     end
   end
   
+  _load_data_method.extra_code %{
+    rb_funcall(shadow->self, #{library.declare_symbol :restore}, 0);
+  }
+  
+  ### need to protect these globals somehow
+  
   # global rk_level, time_step (not used outside continuous update)
   library.declare :rk_level   => "long    rk_level"
   library.declare :time_step  => "double  time_step"
@@ -376,14 +380,14 @@ class Component
   shadow_attr_accessor :state        => State
   protected :state=
   
-  shadow_attr_reader :outgoing     => Array
-  shadow_attr_reader :trans        => Transition
-  shadow_attr_reader :phases       => Array
-  shadow_attr_reader :dest         => State
+  shadow_attr_reader :nonpersistent, :outgoing     => Array
+  shadow_attr_reader :nonpersistent, :trans        => Transition
+  shadow_attr_reader :nonpersistent, :phases       => Array
+  shadow_attr_reader :nonpersistent, :dest         => State
   
   def active_transition; trans; end
   
-  shadow_attr :cur_ph => "long cur_ph"
+  shadow_attr :nonpersistent, :cur_ph => "long cur_ph"
   
   class << self
   

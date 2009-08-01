@@ -45,6 +45,7 @@ class World
   attr_reader :step_count
   
   def started?; @started; end
+  def running?; @running; end
 
   shadow_attr_writer   :time_step    => "double   time_step"
   shadow_attr_accessor :zeno_limit   => "long     zeno_limit"
@@ -108,7 +109,8 @@ class World
 ##  end
   
   def run(steps = 1)
-  
+    @running = true
+    
     unless @started
       do_setup
       @started = true
@@ -124,6 +126,9 @@ class World
     end ### put this whole loop in C
     
     self
+    
+  ensure
+    @running = false
   end
 
   def step_zeno zeno_counter
@@ -175,6 +180,7 @@ class World
   end
   
   def save filename = @name
+    raise "\nCan't save world during its run method." if @running
     File.delete filename rescue SystemCallError
     store = PStore.new filename
     store.transaction do
@@ -191,9 +197,6 @@ class World
         world = store['world']
         yield store if block_given?
       end
-    end
-    if world
-      world.each { |c| c.restore }
     end
     world
   end

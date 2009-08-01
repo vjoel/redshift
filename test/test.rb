@@ -9,8 +9,6 @@ end
 
 $REDSHIFT_DEBUG=true
 
-require 'redshift/redshift'  # so we only see the warning once
-
 tests = ARGV.empty? ? Dir["test_*.rb"] : ARGV
 tests.sort!
 tests.delete_if {|f| /\.rb\z/ !~ f}
@@ -18,6 +16,8 @@ tests.delete_if {|f| /\.rb\z/ !~ f}
 tests.each do |file|
   puts "_"*50 + "\nStarting #{file}...\n"
   pid = fork {
+    $REDSHIFT_CLIB_NAME = file
+    require 'redshift/redshift'
     load file
   }
   Process.waitpid(pid)

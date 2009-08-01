@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 1.2 37)
-(Parent-Version redshift 1.2 36)
+(Project-Version redshift 1.2 38)
+(Parent-Version redshift 1.2 37)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Sun, 21 Sep 2008 14:28:00 -0700")
+(Checkin-Time "Mon, 29 Sep 2008 13:20:10 -0700")
 (Checkin-Login user)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -304,7 +304,7 @@
 ;; Files added by populate at Thu, 16 May 2002 00:16:02 -0700,
 ;; to version 1.0.7(w), by tercel:
 
-  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.60 644))
+  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.61 644))
 
 ;; Files added by populate at Thu, 16 May 2002 00:16:26 -0700,
 ;; to version 1.0.7(w), by tercel:
@@ -595,18 +595,18 @@
 ;; Files added by populate at Wed, 17 Sep 2008 15:05:32 -0700,
 ;; to version 1.2.35(w), by user:
 
-  (test/test_queue.rb (redshift/c/43_test_queue 1.1 644))
+  (test/test_queue.rb (redshift/c/43_test_queue 1.2 644))
 
 ;; Files added by populate at Fri, 19 Sep 2008 09:49:02 -0700,
 ;; to version 1.2.35(w), by user:
 
-  (examples/queue2.rb (redshift/c/44_queue2.rb 1.1 644))
+  (examples/queue2.rb (redshift/c/44_queue2.rb 1.2 644))
   (examples/queue.rb (redshift/c/45_queue.rb 1.1 644))
 
 ;; Files added by populate at Sun, 21 Sep 2008 13:27:12 -0700,
 ;; to version 1.2.36(w), by user:
 
-  (bench/queue.rb (redshift/c/46_queue.rb 1.1 644))
+  (bench/queue.rb (redshift/c/46_queue.rb 1.2 644))
 )
 (Merge-Parents)
 (New-Merge-Parents)

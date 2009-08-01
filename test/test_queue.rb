@@ -23,6 +23,20 @@ class TestQueue < Test::Unit::TestCase
     @q = RedShift::Queue.new @c
   end
   
+  def test_fifo
+    3.times do |i|
+      @q.push i
+      @w.discrete_step += 1
+    end
+    
+    a = []
+    3.times do
+      a << @q.pop
+    end
+    
+    assert_equal([0,1,2], a)
+  end
+  
   def test_unpop
     @q.push 1
     x = @q.pop

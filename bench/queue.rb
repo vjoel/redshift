@@ -2,10 +2,8 @@
 
 require 'redshift'
 
-include RedShift
-
-module QueueBench
-  class Clock < Component
+module Queue
+  class Clock < RedShift::Component
     # the only continuous var in the whole system
     strictly_continuous :time
     flow {
@@ -13,7 +11,7 @@ module QueueBench
     }
   end
   
-  class Sender < Component
+  class Sender < RedShift::Component
     strict_link :clock => Clock
     
     constant :next_wakeup
@@ -39,7 +37,7 @@ module QueueBench
     end
   end
   
-  class Receiver < Component
+  class Receiver < RedShift::Component
     def wake_for_queue; end ###
     queue :q
     transition do
@@ -51,7 +49,7 @@ module QueueBench
   end
   
   def self.make_world n_sender=1, n_receiver=0
-    w = World.new
+    w = RedShift::World.new
     clock = w.create(Clock)
     n_sender.times do |i|
       sender = w.create(Sender) do |s|
@@ -68,9 +66,9 @@ module QueueBench
   end
 
   def self.do_bench
-    [0, 1, 10, 100, 1_000].each do |n_r|
-      [1, 10, 100, 1_000].each do |n_s|
-        n_steps = 10_000_000 / (n_r * n_s)
+    [1, 10, 100].each do |n_r|
+      [1, 10, 100].each do |n_s|
+        n_steps = 100_000 / (n_r * n_s)
         do_bench_one(n_s, n_steps, n_r) {|r| yield r}
       end
     end
@@ -90,5 +88,5 @@ end
 if __FILE__ == $0
   require File.join(File.dirname(__FILE__), 'bench')
   puts "queue:"
-  QueueBench.do_bench_one(10, 1000, 10) {|l| puts l}
+  Queue.do_bench_one(10, 1000, 10) {|l| puts l}
 end

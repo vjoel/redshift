@@ -20,7 +20,7 @@ class Receiver < Component
   
   transition do
     # is there at least one instance of MyMessage on the *head* of the queue,
-    # with foo==bar?
+    # with foo=="bar"?
     wait :q1 => [MyMessage, proc {|m| m.foo == "bar"}]
     action do
       puts "messages received -- q1: #{q1.pop.inspect}"
@@ -45,8 +45,7 @@ class Receiver < Component
       x = q1.pop
       case x
       when SimultaneousQueueEntries
-        x = x.max # choose the largest, and ignore the smaller,
-                  # -- this is an arbitrary way of handling the case
+        x = x.max # choose the largest, and ignore the smaller, arbitrarily
       end
       puts "max x = #{x}"
     end

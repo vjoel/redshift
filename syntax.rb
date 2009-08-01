@@ -1,4 +1,5 @@
-require 'redshift/component.rb'
+require 'redshift/component'
+require 'redshift/cflow'
 
 module RedShift
 
@@ -97,6 +98,16 @@ class Flow
           raise "parse error in\n\t#{equation}."
         else
           @flows << AlgebraicFlow.new($1.intern, $2.strip)
+        end
+      end
+    end
+    
+    def algebraic_c(*equations)
+      for equation in equations
+        unless equation =~ /^\s*(\w+)\s*=\s*(.*)/m
+          raise "parse error in\n\t#{equation}."
+        else
+          @flows << AlgebraicFlow_C.new($1.intern, $2.strip)
         end
       end
     end

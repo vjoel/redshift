@@ -1,4 +1,4 @@
-require 'option-block/option-block.rb'
+require 'option-block'
 require 'pstore'
 
 module RedShift
@@ -63,8 +63,10 @@ class World
       @step_count += 1
       step_continuous
       step_discrete
+      yield if block_given?
     end
     
+    self
   end
 
 
@@ -84,7 +86,7 @@ class World
     done = false
     zeno_counter = 0
     
-    while !done
+    while not done
     
       done = true
       each { |c| done &= c.step_discrete }
@@ -120,6 +122,14 @@ class World
   
   def size
     @components.size
+  end
+  
+  def inspect
+    sprintf "<%s: %d step%s, %s second%s, %d component%s>",
+      @name,
+      @step_count, ("s" if @step_count != 1),
+      clock, ("s" if clock != 1),
+      size, ("s" if size != 1)
   end
   
   

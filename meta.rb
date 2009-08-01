@@ -13,6 +13,7 @@ class Component
   @@cached_states = {}
   @@cached_events = {}
   
+  @@caching_in_use = false    # refers to per-instance cache
 
   def Component.attach states, features
   
@@ -59,6 +60,12 @@ class Component
         end
       end
       
+      if @@caching_in_use
+        ObjectSpace.each_object(Component) do |c|
+          c.clear_flow_cache state
+        end
+      end
+      
     end
     
   end
@@ -84,6 +91,12 @@ class Component
           end
           @@cached_states[cl] = nil
           @@cached_events[cl] = nil
+        end
+      end
+      
+      if @@caching_in_use
+        ObjectSpace.each_object(Component) do |c|
+          c.clear_trans_cache src
         end
       end
       
@@ -194,23 +207,15 @@ class Component
   end
   
   
-#  def flows state = @state
-#    Component.flows type, state
-#  end
-#  
-#  def transitions state = @state
-#    Component.transitions type, state
-#  end
-  
-#=begin
-# This improves speed by about 15%, but
-# need to clear cache for *each* instance when
-# flows and trans change, or else flow defs will
-# not take effect until state changes (maybe ok?)
+  # Caching a reference to the computed flows and transitions
+  # in the component itself improves speed by about 15%, with
+  # a small cost when adding new flows/transitions.
+  #
   def flows state = @state
     if @flow_cache_state == state
       @flow_cache
     else
+      @@caching_in_use = true
       @flow_cache_state = state
       @flow_cache = Component.flows type, state
     end
@@ -220,11 +225,20 @@ class Component
     if @trans_cache_state == state
       @cache_transitions
     else
+      @@caching_in_use = true
       @trans_cache_state = state
       @cache_transitions = Component.transitions type, state
     end
   end
-#=end
+  
+  def clear_flow_cache state_changed
+    @flow_cache_state = nil if state_changed == @flow_cache_state
+  end
+
+  def clear_trans_cache state_changed
+    @trans_cache_state = nil if state_changed == @trans_cache_state
+  end
+
 
   def states
     Component.states type    

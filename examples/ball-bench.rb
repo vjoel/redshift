@@ -29,7 +29,7 @@ class Ball < Component
 
   attr_accessor :a
   
-   state :Falling,:Rising
+  state :Falling,:Rising
   
   flow (Falling, Rising) {
   
@@ -41,6 +41,9 @@ class Ball < Component
                              0.5 * @a * t_elapsed ** 2 "
     algebraic     " y_err = (true_y - y).abs "
     
+    algebraic_c   " true_y_c = @y0 + @v0 * t_elapsed +
+                               0.5 * @a * t_elapsed ** 2 "
+    algebraic_c   " y_err_c = abs(true_y_c - y) "
   }
   
   transition (Falling => Rising) {
@@ -82,27 +85,31 @@ class Ball < Component
 
 end # class Ball
 
-n = 10
+if __FILE__ == $0
 
-bm(12) do |test|
-  test.report("Run:") do
-    w = World.new {
-      time_step 0.01
-    }
+  n = 10
 
-    n.times do
-      ball = w.create(Ball) {@a = -9.8}
-      obs = w.create(Observer) {@ball = ball}
+  bm(12) do |test|
+    test.report("Run:") do
+      w = World.new {
+        time_step 0.01
+      }
+
+      n.times do
+        ball = w.create(Ball) {@a = -9.8}
+        obs = w.create(Observer) {@ball = ball}
+      end
+
+    w.run 100 # 2260  # 20% savings in run time
+  #  2260.times { w.run 1 }
+
+  #    while w.size > 0 do
+  #      w.run
+  #    end
+
     end
-
-  w.run 2260  # 20% savings in run time
-#  2260.times { w.run 1 }
-
-#    while w.size > 0 do
-#      w.run
-#    end
-
   end
-end
 
-puts "_________________________________________________________________"
+  puts "_________________________________________________________________"
+
+end

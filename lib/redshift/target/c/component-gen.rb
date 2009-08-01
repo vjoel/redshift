@@ -372,11 +372,13 @@ module RedShift
                   cont_state = (#{ssn} *)shadow->cont_state;
                   var = &cont_state->#{var_name};
                   if (var->algebraic &&
-                      (var->strict ? !var->d_tick : var->d_tick != d_tick)) {
+                      (var->strict ? !var->d_tick :
+                       var->d_tick != shadow->world->d_tick)) {
                     (*var->flow)((ComponentShadow *)shadow);
                   }
                   else {
-                    var->d_tick = d_tick;
+                    if (shadow->world)
+                      var->d_tick = shadow->world->d_tick;
                   }
                 }
                 # The d_tick assign above is because we now know that the
@@ -402,7 +404,8 @@ module RedShift
                   body %{
                     cont_state = (#{ssn} *)shadow->cont_state;
                     cont_state->#{var_name}.value_0 = NUM2DBL(value);
-                    d_tick++;
+                    if (shadow->world)
+                      shadow->world->d_tick++;
                     if (cont_state->#{var_name}.algebraic)
                       rb_raise(#{exc}, #{msg.inspect});
                     if (!NIL_P(shadow->state))
@@ -420,7 +423,8 @@ module RedShift
                   body %{
                     cont_state = (#{ssn} *)shadow->cont_state;
                     cont_state->#{var_name}.value_0 = NUM2DBL(value);
-                    d_tick++;
+                    if (shadow->world) 
+                      shadow->world->d_tick++;
                     if (cont_state->#{var_name}.algebraic)
                       rb_raise(#{exc}, #{msg.inspect});
                   }
@@ -438,7 +442,7 @@ module RedShift
           add_var_to_offset_table(var_name)
           
           (r,w), = shadow_attr_accessor var_name => "double #{var_name}"
-          w.body "d_tick++"
+          w.body "if (shadow->world) shadow->world->d_tick++"
 
           if kind == :strict
             exc = shadow_library.declare_class StrictnessError
@@ -498,11 +502,13 @@ module RedShift
                 var = (ContVar *)&FIRST_CONT_VAR(shadow->#{src_comp});
                 var += shadow->#{src_offset};
                 if (var->algebraic &&
-                    (var->strict ? !var->d_tick : var->d_tick != d_tick)) {
+                    (var->strict ? !var->d_tick :
+                     var->d_tick != shadow->world->d_tick)) {
                   (*var->flow)((ComponentShadow *)shadow);
                 }
                 else {
-                  var->d_tick = d_tick;
+                  if (shadow->world)
+                    var->d_tick = shadow->world->d_tick;
                 }
                 value = var->value_0;
                 break;
@@ -611,7 +617,7 @@ module RedShift
           end
 
           (r,w), = shadow_attr_accessor(var_name => [var_type])
-          w.body "d_tick++"
+          w.body "if (shadow->world) shadow->world->d_tick++"
 
           if strictness == :strict
             exc = shadow_library.declare_class StrictnessError

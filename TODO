@@ -7,7 +7,6 @@ Publishing RedShift
     unambiguous sync
     transition local vars
     action %{ pseudo-c-code }
-    thread safety
 
   doc, tutorial, web site
 
@@ -67,9 +66,6 @@ Bugs
 
   Make sure the arrays used internally are not shared:
   call rb_ary_modify() before setting len or etc.
-  
-  discrete_update is not reentrant -- fix by putting globals
-  into world state
   
   what happens if an exception (or throw or break) happens inside
   of a block during discrete_update? (e.g. an action, reset, or

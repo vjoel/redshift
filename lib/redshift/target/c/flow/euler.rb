@@ -21,21 +21,23 @@ module RedShift; class EulerDifferentialFlow
           struct #{cont_state_ssn} *cont_state;
           ContVar  *var;
           double    ddt_#{var_name};
+          double    time_step;
         }
         setup :first => %{
-          if (rk_level == 2 || rk_level == 3)
+          if (shadow->world->rk_level == 2 || shadow->world->rk_level == 3)
             return;
         } ## optimization: in rk_level==4 case, don't need to calc deps
         setup :shadow => %{
           shadow = (#{ssn} *)comp_shdw;
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;
           var = &cont_state->#{var_name};
+          time_step = shadow->world->time_step;
         } # return is necessary--else shadow, cont_state, var are uninitialized
         setup :rk_level => %{
-          rk_level--;
+          shadow->world->rk_level--;
         } # has to happen before referenced alg flows are called in other setups
         body %{
-          switch (rk_level) {
+          switch (shadow->world->rk_level) {
           case 0:
             #{flow.translate(self, "ddt_#{var_name}", 0, cl).join("
             ")};
@@ -53,7 +55,7 @@ module RedShift; class EulerDifferentialFlow
             break;
           }
 
-          rk_level++;
+          shadow->world->rk_level++;
         }
       end
       define_c_method :calc_function_pointer do

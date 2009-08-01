@@ -47,14 +47,20 @@ class World
     :active_E=, :prev_active_E=, :awake=,
     :strict_sleep=, :inert=, :diff_list=
   
-  shadow_attr_accessor :time_step    => "double   time_step"
-  shadow_attr_accessor :zeno_limit   => "long     zeno_limit"
-  shadow_attr_accessor :step_count   => "long     step_count"
-  shadow_attr_accessor :clock_start  => "double   clock_start"
-  shadow_attr_accessor :clock_finish => "double   clock_finish"
-  shadow_attr_accessor :zeno_counter => "long     zeno_counter"
-  
-  shadow_attr_reader   :discrete_step   => "long  discrete_step"
+  shadow_attr_accessor :time_step     => "double   time_step"
+  shadow_attr_accessor :zeno_limit    => "long     zeno_limit"
+  shadow_attr_accessor :step_count    => "long     step_count"
+  shadow_attr_accessor :clock_start   => "double   clock_start"
+  shadow_attr_accessor :clock_finish  => "double   clock_finish"
+  shadow_attr_accessor :zeno_counter  => "long     zeno_counter"
+  shadow_attr_reader   :discrete_step => "long     discrete_step"
+  shadow_attr_accessor :rk_level      => "long     rk_level"
+  shadow_attr_accessor :d_tick        => "long     d_tick"
+
+  new_method.attr_code %{
+    shadow->rk_level = 0;
+    shadow->d_tick   = 1;
+  } # d_tick=1 means alg flows need to be recalculated
 
   shadow_struct.declare :constant_value_cache => %{
     CVCacheEntry *constant_value_cache;
@@ -96,7 +102,7 @@ class World
   end
   
   define_c_method :bump_d_tick do
-    body "d_tick++"
+    body "shadow->d_tick++"
   end
   
   slif = shadow_library_include_file
@@ -118,8 +124,6 @@ class World
       ComponentShadow  *comp_shdw;
     }.tabto(0)
     body %{
-      time_step = shadow->time_step;    //# assign global
-      
       comp_rb_ary[0] = shadow->awake;
       comp_rb_ary[1] = shadow->inert;
       for (li = 0; li < 2; li++) {
@@ -141,13 +145,13 @@ class World
         }
       }
       
-      for (rk_level = 1; rk_level <= 3; rk_level++) { //# assign global
+      for (shadow->rk_level = 1; shadow->rk_level <= 3; shadow->rk_level++) {
         len = RARRAY(shadow->diff_list)->len;
         comp_ary = RARRAY(shadow->diff_list)->ptr;
         for (ci = 0; ci < len; ci++) {
           Data_Get_Struct(comp_ary[ci], ComponentShadow, comp_shdw);
           
-          if (rk_level == 1 && !comp_shdw->has_diff) {
+          if (shadow->rk_level == 1 && !comp_shdw->has_diff) {
             if (ci < len-1) {
               comp_ary[ci] = comp_ary[len-1];
               ci--;
@@ -162,7 +166,7 @@ class World
 
             while (var < end_var) {
               if (var->flow &&
-                  var->rk_level < rk_level &&
+                  var->rk_level < shadow->rk_level &&
                   !var->algebraic)
                 (*var->flow)((ComponentShadow *)comp_shdw);
               var++;
@@ -171,7 +175,7 @@ class World
         }
       }
       
-      rk_level = 4;
+      shadow->rk_level = 4;
       for (li = 0; li < 2; li++) {
         len = RARRAY(comp_rb_ary[li])->len;
         comp_ary = RARRAY(comp_rb_ary[li])->ptr;
@@ -183,7 +187,7 @@ class World
 
           while (var < end_var) {
             if (var->flow &&
-                var->rk_level < rk_level &&
+                var->rk_level < shadow->rk_level &&
                 !var->algebraic)
               (*var->flow)((ComponentShadow *)comp_shdw);
             
@@ -196,8 +200,8 @@ class World
         }
       }
 
-      d_tick = 1; //# alg flows need to be recalculated
-      rk_level = 0;
+      shadow->d_tick = 1; //# alg flows need to be recalculated
+      shadow->rk_level = 0;
     } # assumed that comp_ary[i] was a Component--enforced by World#create
   end
   private :step_continuous
@@ -702,7 +706,8 @@ class World
         }
       }
 
-      inline static void update_all_alg_vars(ComponentShadow *comp_shdw)
+      inline static void update_all_alg_vars(ComponentShadow *comp_shdw,
+                              #{World.shadow_struct.name} *shadow)
       {
         ContVar    *vars = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
         long        count = comp_shdw->var_count;
@@ -710,7 +715,8 @@ class World
         for(i = 0; i < count; i++) {
           ContVar *var = &vars[i];
           if (var->algebraic &&
-              (var->strict ? var->d_tick == 0 : var->d_tick != d_tick)) {
+              (var->strict ? var->d_tick == 0 :
+               var->d_tick != shadow->d_tick)) {
             var->flow(comp_shdw);
           }
         }
@@ -730,7 +736,7 @@ class World
       { //%% hook_finish_transition(comp_shdw->self, comp_shdw->trans,
         //%%                        comp_shdw->dest);
         if (comp_shdw->state != comp_shdw->dest) {
-          update_all_alg_vars(comp_shdw);
+          update_all_alg_vars(comp_shdw, shadow);
           comp_shdw->state = comp_shdw->dest;
           __update_cache(comp_shdw);
           comp_shdw->checked  = 0;
@@ -919,7 +925,7 @@ class World
         }
 
         if (did_reset || 1)
-          d_tick++;
+          shadow->d_tick++;
           //## replace "1" with "some comp entered new
           //## state with new alg. eqs"
         

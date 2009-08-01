@@ -47,7 +47,7 @@ module RedShift; class DelayFlow
           var = &cont_state->#{var_name};
         }
         setup :rk_level => %{
-          rk_level--;
+          shadow->world->rk_level--;
         } # has to happen before referenced alg flows are called in other setups
 
         setup :delay => 
@@ -62,7 +62,7 @@ module RedShift; class DelayFlow
         # Note: cases 1,2 must proceed to allow alg deps to be computed,
         # since their values are used later.
         body %{
-          switch (rk_level) {
+          switch (shadow->world->rk_level) {
           case 0:
             ptr = shadow->#{bufname}.ptr;
             offset = shadow->#{offsetname};
@@ -75,7 +75,7 @@ module RedShift; class DelayFlow
               }
             }
             else {
-              steps = floor(delay / time_step + 0.5);
+              steps = floor(delay / shadow->world->time_step + 0.5);
               if (steps <= 0) {
                 rb_raise(#{declare_class RuntimeError},
                 "Delay too small: %f", delay);
@@ -171,11 +171,11 @@ module RedShift; class DelayFlow
             
           default:
             rb_raise(#{declare_class RuntimeError},
-              "Bad rk_level, %d!", rk_level);
+              "Bad rk_level, %d!", shadow->world->rk_level);
           }
 
-          rk_level++;
-          var->rk_level = rk_level;
+          shadow->world->rk_level++;
+          var->rk_level = shadow->world->rk_level;
         }
       end
 

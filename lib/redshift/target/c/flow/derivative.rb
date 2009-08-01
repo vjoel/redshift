@@ -26,19 +26,21 @@ module RedShift; class DerivativeFlow
           struct #{cont_state_ssn} *cont_state;
           ContVar  *var;
           double    antiddt, *scratch;
+          double    time_step;
         }
         setup :shadow => %{
           shadow = (#{ssn} *)comp_shdw;
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;
           var = &cont_state->#{var_name};
           scratch = &shadow->#{init_rhs_name};
+          time_step = shadow->world->time_step;
         }
         setup :rk_level => %{
-          rk_level--;
+          shadow->world->rk_level--;
         } # has to happen before referenced alg flows are called in other setups
         if feedback ## possible to unite these cases somehow?
           body %{
-            switch (rk_level) {
+            switch (shadow->world->rk_level) {
             case 0:
               #{flow.translate(self, "antiddt", 0, cl).join("
               ")};
@@ -47,12 +49,12 @@ module RedShift; class DerivativeFlow
               (antiddt - *scratch) / time_step;
               *scratch = antiddt;
             }
-            rk_level++;
-            var->rk_level = rk_level;
+            shadow->world->rk_level++;
+            var->rk_level = shadow->world->rk_level;
           }
         else
           body %{
-            switch (rk_level) {
+            switch (shadow->world->rk_level) {
             case 0:
               #{flow.translate(self, "antiddt", 0, cl).join("
               ")};
@@ -81,11 +83,11 @@ module RedShift; class DerivativeFlow
 
             default:
               rb_raise(#{declare_class RuntimeError},
-                "Bad rk_level, %d!", rk_level);
+                "Bad rk_level, %d!", shadow->world->rk_level);
             }
 
-            rk_level++;
-            var->rk_level = rk_level;
+            shadow->world->rk_level++;
+            var->rk_level = shadow->world->rk_level;
           }
         end
       end

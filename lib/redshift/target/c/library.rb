@@ -4,7 +4,6 @@ require 'ftools'
 require 'cgen/cshadow'
 
 module RedShift
-
   def RedShift.library
     @clib ||= Library.new($REDSHIFT_CLIB_NAME)
   end
@@ -24,8 +23,6 @@ module RedShift
       end
 
       include_file.include '<math.h>'
-
-      define_redshift_globals
     end
     
     # Call this to link with external libraries. See examples/external-lib.rb.
@@ -85,27 +82,5 @@ module RedShift
       ## optimization?
       ## check if changed
     end
-
-    def define_redshift_globals
-      ## need to protect these globals somehow
-      ## need to insulate different world's use of them from each other
-      ## currently, not threadsafe, unless each discrete/continuous step
-      ## is protected with a mutex.
-
-      # global rk_level, time_step (not used outside continuous update)
-      declare :rk_level   => "long    rk_level"
-      declare :time_step  => "double  time_step"
-      include_file.declare :rk_level   => "extern long     rk_level"
-      include_file.declare :time_step  => "extern double   time_step"
-
-      # global d_tick (used only outside continuous update)
-      declare :d_tick => "long d_tick"
-      include_file.declare :d_tick => "extern long d_tick"
-
-      setup :rk_level => "rk_level = 0"
-      setup :d_tick   => "d_tick   = 1"  # alg flows need to be recalculated
-    end
-
   end
-  
 end

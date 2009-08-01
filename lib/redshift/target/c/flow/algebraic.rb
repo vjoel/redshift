@@ -38,23 +38,23 @@ module RedShift; class AlgebraicFlow
         ## optimization: it might be possible to translate once and
         ## use gsub to make each of the four versions, or use a template.
         body %{
-          switch (rk_level) {
+          switch (shadow->world->rk_level) {
           case 0:
             #{flow.translate(self, "var->value_0", 0, cl).join("
             ")};
-            var->d_tick = d_tick;
+            var->d_tick = shadow->world->d_tick;
             break;
             
           case 1:
             #{flow.translate(self, "var->value_1", 1, cl).join("
             ")};
-            var->rk_level = rk_level;
+            var->rk_level = shadow->world->rk_level;
             break;
             
           case 2:
             #{flow.translate(self, "var->value_2", 2, cl).join("
             ")};
-            var->rk_level = rk_level;
+            var->rk_level = shadow->world->rk_level;
             break;
             
           case 3:
@@ -62,12 +62,12 @@ module RedShift; class AlgebraicFlow
               flow.instance_eval {@strict = strict}
             }.join("
             ")};
-            var->rk_level = rk_level;
+            var->rk_level = shadow->world->rk_level;
             break;
             
           default:
             rb_raise(#{declare_class RuntimeError},
-              "Bad rk_level, %d!", rk_level);
+              "Bad rk_level, %d!", shadow->world->rk_level);
           }
           
           var->nested = 0;

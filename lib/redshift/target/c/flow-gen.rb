@@ -65,15 +65,15 @@ module RedShift; class Flow
             flow_fn.declare var_cname => "double    #{var_cname}"
             flow_fn.setup var_cname => %{
               if (#{cont_var}.algebraic) {
-                if (#{cont_var}.rk_level < rk_level ||
-                   (rk_level == 0 &&
+                if (#{cont_var}.rk_level < shadow->world->rk_level ||
+                   (shadow->world->rk_level == 0 &&
                     (#{cont_var}.strict ? !#{cont_var}.d_tick :
-                     #{cont_var}.d_tick != d_tick)
+                     #{cont_var}.d_tick != shadow->world->d_tick)
                     ))
                   (*#{cont_var}.flow)((ComponentShadow *)#{sh_cname});
               }
               else {
-                #{cont_var}.d_tick = d_tick;
+                #{cont_var}.d_tick = shadow->world->d_tick;
               }
             }
             # The d_tick assignment is explained in component-gen.rb.
@@ -107,17 +107,18 @@ module RedShift; class Flow
                 v += shadow->#{src_offset};
 
                 if (v->algebraic) {
-                  if (v->rk_level < rk_level ||
-                     (rk_level == 0 &&
-                      (v->strict ? !v->d_tick : v->d_tick != d_tick)
+                  if (v->rk_level < shadow->world->rk_level ||
+                     (shadow->world->rk_level == 0 &&
+                      (v->strict ? !v->d_tick :
+                       v->d_tick != shadow->world->d_tick)
                       ))
                     (*v->flow)((ComponentShadow *)shadow->#{src_comp});
                 }
                 else {
-                  v->d_tick = d_tick;
+                  v->d_tick = shadow->world->d_tick;
                 }
 
-                #{var_cname} = (&v->value_0)[rk_level];
+                #{var_cname} = (&v->value_0)[shadow->world->rk_level];
                 break;
               }
               
@@ -251,15 +252,15 @@ module RedShift; class Flow
               rb_raise(#{exc}, #{msg.inspect}, #{str});
             #{cs_cname} = (#{link_cs_ssn} *)ct->#{link_cname}->cont_state;
             if (#{cont_var}.algebraic) {
-              if (#{cont_var}.rk_level < rk_level ||
-                 (rk_level == 0 &&
+              if (#{cont_var}.rk_level < ct->shadow->world->rk_level ||
+                 (ct->shadow->world->rk_level == 0 &&
                   (#{cont_var}.strict ? !#{cont_var}.d_tick :
-                   #{cont_var}.d_tick != d_tick)
+                   #{cont_var}.d_tick != ct->shadow->world->d_tick)
                  ))
                 (*#{cont_var}.flow)((ComponentShadow *)ct->#{link_cname});
             }
             else {
-              #{cont_var}.d_tick = d_tick;
+              #{cont_var}.d_tick = ct->shadow->world->d_tick;
             }
           }
           return &(#{cont_var});

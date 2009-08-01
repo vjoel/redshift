@@ -1,3 +1,7 @@
+redshift 1.2.26
+
+- Moved globals into World for thread safety, reentrancy, etc.
+
 redshift 1.2.25
 
 - The world accessor of Component is now stored internally as World shadow

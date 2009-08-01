@@ -39,7 +39,7 @@ end
 
 class C < Component
   strictly_constant :y
-  setup do
+  default do
     self.y = 1
   end
 end
@@ -215,6 +215,31 @@ class Lazy < TestComponent
     when Test1, Test2
       test.assert_in_delta(2 * @x, @test, 1.0E-10)
     end
+  end
+end
+
+# test that a reset of a non-strict link doesn't get around the optimization
+class NonStrictLink < TestComponent
+  link :c => C
+  state :Fail, :Pass, :Relink
+  setup do
+    self.c = create(C) {|c| c.y = -1}
+  end
+  transition Enter => Fail do
+    guard "c.y >= 0"
+  end
+  transition Enter => Relink do
+    guard "c.y < 0"
+    reset :c => proc {create(C) {|c| c.y = 1}} # try to fool the optimization!
+  end
+  transition Relink => Fail do
+    guard "c.y <= 0"
+  end
+  transition Relink => Pass do
+    guard "c.y > 0"
+  end
+  def assert_consistent(test)
+    test.flunk if state == Fail
   end
 end
 

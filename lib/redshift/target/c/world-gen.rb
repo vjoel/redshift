@@ -151,9 +151,9 @@ class World
                   (*var->flow)((ComponentShadow *)comp_shdw);
                 if (rk_level == 4) {
                   if (var->rk_level == 4)
-                    var->d_tick = 1;
+                    var->d_tick = 1; //# var will be current in discrete_step
                   else
-                    var->d_tick = 0;
+                    var->d_tick = 0; //# var (if alg) will need to be evaled
                 }
               }
               var++;

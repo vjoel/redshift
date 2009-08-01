@@ -12,7 +12,6 @@ module RedShift
   end
 
   class Library < CShadow::Library
-    @@show_times = $REDSHIFT_BUILD_TIMES
     $CGEN_VERBOSE = $REDSHIFT_CGEN_VERBOSE ## ugh.
 
     def update_file f, template
@@ -85,6 +84,8 @@ module RedShift
     @clib = Library.new @clib_name
     @clib.purge_source_dir = :delete
     
+    @clib.show_times_flag = $REDSHIFT_BUILD_TIMES
+
     if $REDSHIFT_DEBUG
       @clib.include_file.include "<assert.h>" ### should be CompileActions
     else

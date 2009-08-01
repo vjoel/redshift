@@ -339,7 +339,7 @@ class Component
     end
   end
   
-  _load_data_method.extra_code %{
+  _load_data_method.post_code %{
     rb_funcall(shadow->self, #{library.declare_symbol :restore}, 0);
   }
   

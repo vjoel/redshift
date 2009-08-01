@@ -237,7 +237,7 @@ class World
   end
   
   def save filename = @name
-    raise "\nCan't save world during its run method." if @running
+    raise "Can't save world during its run method." if @running
     File.delete(filename) rescue SystemCallError
     store = PStore.new filename
     store.transaction do

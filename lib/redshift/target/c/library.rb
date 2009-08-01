@@ -33,14 +33,9 @@ module RedShift
       precommit
 
       use_work_dir $REDSHIFT_WORK_DIR do
-        if $REDSHIFT_SKIP_BUILD
-          # This is normally handled in redshift/target/c.rb.
-          # useful for: turnkey; fast start if no changes; manual lib edits
-          @committed = true
-          loadlib
-        else
-          super
-        end
+        # $REDSHIFT_SKIP_BUILD is normally handled in redshift/target/c.rb.
+        # useful for: turnkey; fast start if no changes; manual lib edits
+        super(!$REDSHIFT_SKIP_BUILD)
       end
       ## freeze metadata in comp classes?
       ## can cgen/cshadow freeze some stuff?

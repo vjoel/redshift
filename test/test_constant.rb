@@ -29,7 +29,7 @@ class ConstantTestComponent < Component
     action do
       @y = other.k + k + other.ks + ks
     end
-    reset :k => proc {k+1} # should this work?
+    ###reset :k => proc {k+1} # should this work?
   end
   
   def assert_consistent test

@@ -1,6 +1,11 @@
 To do
 =====
 
+Bugs
+
+  Make sure the arrays used internally are not shared:
+  call rb_ary_modify() before setting len or etc.
+
 Syntax
 
   replace strictly_* with strict_* and alias back for compat
@@ -37,6 +42,11 @@ Syntax
 
 Semantics
 
+  should world have default as well as setup
+    sequence: default, initialize block, setup
+
+    -- this might be better than the default_options system
+  
   Should actions be allowed to occur on the same discrete step as R/E/G ?
     
     action {}
@@ -107,8 +117,7 @@ Semantics
   a transition that can happen only once per discrete step, to easily
   prevent zeno pb (useful for utility transitions, such as output)
 
-  need a strict_link (NOT constant_link) type so that strictly_continuous is
-  preserved when equation involves a link that doesn't change.
+  per-state strictness?
   
   allow outside code to tell component to change state? send event to comp?
 

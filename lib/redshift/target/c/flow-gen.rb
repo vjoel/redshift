@@ -16,19 +16,18 @@ class Flow
         link, var = $1, $2
         
         if link
-          ## unless writer is private...
-          strict = false # because link can change later in dstep
-          
-          translate_link(link, var, translation, flow_fn, cl, expr, rk_level)
+          result =
+            translate_link(link, var, translation, flow_fn, cl, expr, rk_level)
+          strict &&= result # Don't combine with method call!!!
                     
         else # expr == 'var'
           varsym = var.intern
           
-          if (link_type = cl.link_type[varsym])
+          link_type, link_strictness = cl.link_variables[varsym]
+          
+          if link_type
             # l ==> link_l
-            ## unless writer is private...
-            strict = false # because link can change later in dstep
-            ## need notion of constant link
+            strict &&= (link_strictness == :strict)
 
             link = var
             link_cname = "link_#{link}"
@@ -108,8 +107,10 @@ class Flow
   
   # l.x  ==>  get_l__x()->value_n
   def translate_link(link, var, translation, flow_fn, cl, expr, rk_level)
-    link_type = cl.link_type[link.intern]
+    link_type, link_strictness = cl.link_variables[link.intern]
     raise(NameError, "\nNo such link, #{link}") unless link_type
+    strict = (link_strictness == :strict)
+    
     flow_fn.include link_type.shadow_library_include_file
     
     link_cname = "link_#{link}"
@@ -118,10 +119,13 @@ class Flow
     ct_struct = make_ct_struct(flow_fn, cl)
 
     varsym = var.intern
-    if link_type.constant_variables[varsym]
+    if (st=link_type.constant_variables[varsym])
       var_type = :constant
-    elsif link_type.continuous_variables[varsym]
+      strict &&= st
+
+    elsif (st=link_type.continuous_variables[varsym])
       var_type = :continuous
+      strict &&= st
       
       checked_var_cname = "checked_#{link}__#{var}" ## not quite unambig.
       ct_struct.declare checked_var_cname => "int #{checked_var_cname}"
@@ -189,8 +193,12 @@ class Flow
       } ## algebraic test is same as above
 
       translation[expr] = "#{get_var_cname}(&ct)"
+    
+    else
+      raise "Bad var_type: #{var_type.inspect}"
     end
 
+    return strict
   end    
 end
 

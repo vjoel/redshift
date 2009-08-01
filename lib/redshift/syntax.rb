@@ -127,6 +127,15 @@ class << Component
     attach_constant_variables(:piecewise, var_names)
   end
   alias piecewise_constant constant
+
+  def strict_link vars
+    attach_link vars, :strict
+  end
+
+  # link :x => MyComponent, :y => :FwdRefComponent
+  def link vars
+    attach_link vars, false
+  end
 end
 
 # Defines the flow types that can be used within a flow block.

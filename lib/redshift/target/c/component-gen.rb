@@ -358,17 +358,16 @@ module RedShift
           var_name = var_name.intern if var_name.is_a? String
           
           (r,w), = shadow_attr_accessor var_name => "double #{var_name}"
+          w.body "d_tick++"
 
           if kind == :strict
-            exc2 = shadow_library.declare_class ContinuousAssignmentError
-            msg2 = "Cannot reset strictly constant #{var_name} in #{self}."
+            exc = shadow_library.declare_class ContinuousAssignmentError
+            msg = "Cannot reset strictly constant #{var_name} in #{self}."
             w.setup %{
               if (!NIL_P(shadow->state))
-                rb_raise(#{exc2}, #{msg2.inspect});
+                rb_raise(#{exc}, #{msg.inspect});
             }
           end
-
-          w.body "d_tick++"
         end
       end
 
@@ -399,7 +398,7 @@ module RedShift
       end
 
       def define_links
-        own_links = link_type.own
+        own_links = link_variables.own
         return if own_links.empty?
         
         calc_link_offset_method = define_c_class_method :calc_link_offset do
@@ -412,13 +411,13 @@ module RedShift
         ssn = shadow_struct.name
         
         own_links.keys.sort_by{|k|k.to_s}.each do |var_name|
-          var_type = link_type[var_name]
+          var_type, strictness = link_variables[var_name]
 
           unless var_type.is_a? Class
             var_type = var_type.to_s.split(/::/).inject(self) do |p, n|
               p.const_get(n)
             end
-            link_type[var_name] = var_type
+            link_variables[var_name] = [var_type, strictness]
           end
 
           unless var_type < Component
@@ -428,6 +427,15 @@ module RedShift
 
           (r,w), = shadow_attr_accessor(var_name => [var_type])
           w.body "d_tick++"
+
+          if strictness == :strict
+            exc = shadow_library.declare_class ContinuousAssignmentError
+            msg = "Cannot reset strict link #{var_name} in #{self}."
+            w.setup %{
+              if (!NIL_P(shadow->state))
+                rb_raise(#{exc}, #{msg.inspect});
+            }
+          end
 
           shadow_library_include_file.include(
             var_type.shadow_library_include_file)
@@ -532,7 +540,7 @@ module RedShift
           when Array
             var_name, event_name = g
 
-            var_type = link_type[var_name]
+            var_type, strictness = link_variables[var_name]
             event_idx = var_type.exported_events[event_name]
             
             unless event_idx
@@ -569,6 +577,7 @@ module RedShift
           expr = h[var]
           cont_var = cont_state_class.vars[var]
           ### what about reseting link vars and constants?
+          ### don't forget to check for strict link!
           unless cont_var
             raise "No such variable, #{var}"
           end

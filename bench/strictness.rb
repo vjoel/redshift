@@ -14,21 +14,24 @@ include RedShift
 
 class SimpleComponent < Component
 
+  continuous :x
   if $strict
     strictly_continuous :y
+    strict_link :other => SimpleComponent
+  else
+    continuous :y
+    link :other => SimpleComponent
   end
-  continuous :x
-  link :other => SimpleComponent
 
   state :A, :B; default { start A; self.other = self }
   
   flow A do
-    diff "y' = 1 + x" # y still strict even though x is not
+    diff " y' = 1 + x " # y still strict even though x is not
   end
   
   5.times do
     transition A => B do
-      guard " pow(y, 2) - sin(y) + cos(y) < 0 "
+      guard " pow(y, 2) - sin(y) + cos(y) + other.y < 0 "
     end
   end
 
@@ -60,10 +63,11 @@ class ComplexComponent < Component
   
 end
 
+n = 1000
 hz = 100
 ts = 1.0/hz
 w = World.new { |w| w.time_step = ts }
-1000.times do w.create SimpleComponent end
+n.times do w.create SimpleComponent end
 hz.times do |i|
   cc = w.create ComplexComponent
   cc.start_value = i*ts
@@ -78,5 +82,5 @@ end
 times = Process.times
 t1 = Time.now
 pt1 = times.utime #+ times.stime
-puts "process time: %.2f" % (pt1-pt0)
-puts "elapsed time: %.2f" % (t1-t0)
+puts "process time: %8.2f" % (pt1-pt0)
+puts "elapsed time: %8.2f" % (t1-t0)

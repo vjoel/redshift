@@ -6,17 +6,29 @@ include RedShift
 
 # Tests strictly continuous vars.
 
+### does this test the right thing?
+
 class StrictContinuityComponent < Component
   def finish(test); end
 end
 
+class C < Component
+  strictly_continuous :y
+  setup do
+    self.y = 1
+  end
+end
+
 class A < StrictContinuityComponent
   strictly_continuous :x
+  strict_link :c => C
+  
   flow do
-    diff "x' = 1"
+    diff "x' = c.y"
   end
   
   setup do
+    self.c = create C
     @guard1_count = 0
     @guard2_count = 0
     @x_event_time = nil
@@ -24,6 +36,8 @@ class A < StrictContinuityComponent
   
   transition Enter => Exit do
     guard {@guard1_count += 1; x > 0.95} ## use hook for this?
+    ### why proc guards, not cexpr guards?
+    #### why doesn't it fail?
     action do
       @x_event_time = world.clock
     end
@@ -55,7 +69,7 @@ class A < StrictContinuityComponent
   end
 end
 
-# This component exists to give the A instance a chence to make too many
+# This component exists to give the A instance a chance to make too many
 # guard checks.
 class B < StrictContinuityComponent
   flow do
@@ -69,12 +83,21 @@ class B < StrictContinuityComponent
   
   transition S => T do
     guard "time > 0"
-    action {self.time = 0}
+    action {self.time = 0} # so we do it again next timestep
   end
   
-  transition T => U, U => S
+  transition T => U
+  
+  transition U => S do
+    action do
+      @sleepers = world.strict_sleep.size
+    end
+  end
 
   def assert_consistent(test)
+    if @sleepers
+      test.assert_equal(2, @sleepers)
+    end
   end
 end
 

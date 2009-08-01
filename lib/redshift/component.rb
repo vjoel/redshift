@@ -117,7 +117,7 @@ class Component
     items = []
     items << state if state
     
-    var_types = [:constant_variables, :continuous_variables, :link_type]
+    var_types = [:constant_variables, :continuous_variables, :link_variables]
     var_types.each do |var_type|
       var_list = self.class.send(var_type)
       unless var_list.empty?

@@ -4,8 +4,9 @@ class Component
   
   class_superhash2 :flows, :transitions
   class_superhash :exported_events      # :event => index
-  class_superhash :link_type, :states
+  class_superhash :states
   class_superhash :continuous_variables, :constant_variables ## bad name
+  class_superhash :link_variables       # :link_name => [type, strictness]
   
   @subclasses = []
 
@@ -26,17 +27,19 @@ class Component
       end
     end
 
-    # link :x => MyComponent, :y => :FwdRefComponent
-    def link vars
+    def attach_link vars, strictness
+      unless not strictness or strictness == :strict
+        raise ArgumentError, "Strictness must be false or :strict"
+      end
       unless vars.is_a? Hash
         raise SyntaxError, "Arguments to link must of form :var => class, " +
           "where class can be either a Class or a string denoting class name"
       end
       vars.each do |var_name, var_type|
-        link_type[var_name.to_sym] = var_type
+        link_variables[var_name.to_sym] = [var_type, strictness]
       end
     end
-
+    
     def attach_state name
       state = State.new(name, self)
       const_set(name, state)

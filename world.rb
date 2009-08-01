@@ -18,7 +18,7 @@ class World
   @@count = 0
 
   attr_reader :components
-  attr_reader :clock_now #, :clock_start
+  attr_reader :step_count #, :clock_start
 #  attr_accessor :name, :time_step, :zeno_limit, :clock_finish
 
   def initialize(&block)
@@ -33,8 +33,8 @@ class World
     @clock_start   = options[:clock_start]
     @clock_finish  = options[:clock_finish]
     
-    @clock_now = @clock_start
-
+    @step_count = 0
+    
     @@count += 1
 
   end
@@ -44,13 +44,13 @@ class World
     @components[c.id] = c
   end
 
-  def run(steps = 1)
+  def run(steps = 1) # should add dt, zeno
     
     step_discrete
     while (steps -= 1) >= 0
-      break if @clock_now > @clock_finish
+      break if clock_now > @clock_finish
       step_continuous
-      @clock_now += @time_step
+      @step_count += 1
       step_discrete
     end
     
@@ -59,9 +59,14 @@ class World
 
   def step_continuous
   
+    # the following code is not thread-safe
+    # it needs to acquire a semaphore on $RK_level
+
+    $RK_level = 4
     @components.each_value do |c|
       c.step_continuous @time_step
     end
+    $RK_level = nil
    
   end
 
@@ -84,7 +89,10 @@ class World
       end
   
     end
-
+  end
+  
+  def clock_now
+    @step_count * @time_step
   end
       
 end # class World

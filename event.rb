@@ -6,9 +6,7 @@ class Event
 
 	def initialize n
 		@name = n
-    
-    # how to add/remove singleton methods?
-    
+        
     eval <<-END
     
       def export c
@@ -26,6 +24,16 @@ class Event
     END
     
 	end
+  
+# how to add/remove singleton methods?
+=begin
+  def unexport c
+    n = @name
+    cl = class <<c
+      remove_method n
+    end
+  end
+=end
   
 end # class Event
 

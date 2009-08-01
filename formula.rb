@@ -2,19 +2,15 @@ module RedShift
 
 class Formula
 
-	attr_reader :string
+	attr_reader :block
 	
-	def initialize s
+	def initialize(&b)
 
-		@string = s
-    eval <<-END
-      def self.feval c
-        c.instance_eval {#{s}}
-      end
-    END
-    # why is self needed?
-    
-    # Room for optimization!
+		@block = b
+
+    def self.eval c
+      c.instance_eval(&@block)
+    end
 
 	end
 	

@@ -8,6 +8,12 @@ class State
 		@name, @flows, @transitions = n, f, t
 	end
 
+  def attach class_name
+    for f in flows
+      f.attach class_name
+    end  
+  end
+  
 end # class State
 
 end # module RedShift

@@ -18,25 +18,37 @@ Semantics
     matrices
   
   metaclasses
+  
+  discrete evolution
+    more flexibility: start actions as well as finish actions
 
   
 Implementation
 
   optimization
     profiling
+    compare with shift, matlab
     integration method
     flows
     guards
     dual mode
 
   math
-    runge-kutta 4
+    mixing runge-kutta 4 with euler
+    var step
     symbolic integration
 
   debugging, logging
     use AspectR
   
+  run time error checking
+  exception handling
+    syntax errors, esp. in flows, guards
+  
   unit tests
+  
+  system tests
+    compare with other integrators
 
 User interface
 
@@ -47,3 +59,8 @@ User interface
   output to gnuplot
 
 Documentation
+
+  differences from cshift
+    no mixing scopes in create, as in "create(Foo, x := x)"
+    'self.x = ...'
+    

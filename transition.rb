@@ -9,7 +9,7 @@ class Transition
 	end
 	
 	def enabled? c
-		@guard && c.instance_eval(&@guard)    # make this a Formula to optimize?
+		@guard && c.instance_eval(&@guard)
 	end
 	
   def start c

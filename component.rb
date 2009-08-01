@@ -1,6 +1,6 @@
 module RedShift
 
-require 'formula.rb'
+#require 'formula.rb'
 require 'event.rb'
 require 'transition.rb'
 require 'flow.rb'
@@ -47,8 +47,14 @@ class Component
   
   def step_continuous dt
   
+    @dt = dt
+  
     for f in @state.flows
-      f.update self, dt
+      f.update self
+    end
+    
+    for f in @state.flows
+     f.eval self
     end
     
   end

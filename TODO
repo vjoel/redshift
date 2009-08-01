@@ -324,6 +324,9 @@ Implementation
 
   distribute Init_clib better
   
+  break flow-gen.rb and world-gen.rb into several files each
+    flow-gen files can be loaded on demand as flow types are needed
+  
   optimization
     profiling
       use valgrind, gprof, etc. to profile the C code

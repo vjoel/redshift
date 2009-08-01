@@ -28,6 +28,20 @@ module RedShift
       define_redshift_globals
     end
     
+    # Call this to link with external libraries. See examples/external-lib.rb.
+    def link_with *libs
+      (@link_libs ||= []) << libs
+    end
+    
+    def extconf
+      super do |lines|
+        if @link_libs
+          libstr = " " + @link_libs.flatten.join(" ")
+          lines << %{$LOCAL_LIBS << "#{libstr}"}
+        end
+      end
+    end
+    
     def commit
       return if committed?
       precommit

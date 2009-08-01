@@ -77,7 +77,7 @@ module RedShift
   # Defer a block until just after the library ruby code is loaded, but before
   # commit. Necessary for defining inline C functions or shadow_attrs. Note that
   # a whole require statement could be placed inside the with_library block.
-  def RedShift.with_library(&block)
+  def RedShift.with_library(&block) # :yields: library
     @library_calls << block
   end
 

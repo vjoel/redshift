@@ -31,7 +31,7 @@ class Component
     
     @state = Enter
 
-    set_defaults
+    defaults
     
     if block
       instance_eval(&block)
@@ -44,7 +44,7 @@ class Component
   end
   
   
-  def set_defaults
+  def defaults
   end
   
   def setup

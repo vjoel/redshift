@@ -5,7 +5,7 @@ Syntax
 
   defining and creating components
     create ... block
-    defaults { ... }  and setup { ... }
+/   defaults { ... }  and setup { ... }
 / flows, transitions, etc.
   running
     run N { dt = ...; zeno = ... }
@@ -39,6 +39,7 @@ Semantics
 Implementation
 
   use alias instead of def in Event#(un)export
+    or use extend_object
 
   optimization
     profiling

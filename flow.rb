@@ -29,11 +29,11 @@ class Flow
     
       unless method_defined? :#{@direct_getter}
         def #{@direct_getter}
-          #{@var}
+          @#{@var}
         end
 
         def #{@direct_setter} value
-          #{@var} = value
+          @#{@var} = value
         end
       end
       

@@ -60,18 +60,18 @@ class Ball < Component
     guard {@bounce_count == 3}
   }
 	
-  def set_defaults
+  defaults {
     @state = Falling
     @y0 = 100.0
     @v0 = 0.0
     @a = -9.8
-  end
+  }
   
-  def setup
+  setup {
     @y = @y0; @v = @v0
     @t_elapsed = 0.0
     @bounce_count = 0
-  end
+  }
   
   def inspect
     sprintf "y = %8.4f, v = %8.4f, y_err = %8.6f%16s",
@@ -86,15 +86,15 @@ w = World.new {
   time_step 0.01
 }
 
-b = w.create(Ball) {@a = -20.0}
-obs = w.create(Observer) {@ball = b}
+ball = w.create(Ball) {@a = -9.8}
+obs = w.create(Observer) {@ball = ball}
 
 while w.components.size > 0 do
   t = w.clock
   if t == t.floor
     print "\nTime #{t}\n"
   end
-  p b
+  p ball unless ball.state == Exit
   w.run
 end
 

@@ -2,6 +2,44 @@ require 'redshift/component.rb'
 
 module RedShift
 
+class Component
+
+  @@defaults_proc = {}
+  @@setup_proc = {}
+
+end
+
+def Component.defaults(&block)
+
+  @@defaults_proc[self] = block
+  
+  module_eval <<-END
+    def defaults
+      super
+      if @@defaults_proc[type]
+        instance_eval(&@@defaults_proc[type])
+      end
+    end
+  END
+
+end
+
+def Component.setup(&block)
+
+  @@setup_proc[self] = block
+  
+  module_eval <<-END
+    def setup
+      super
+      if @@setup_proc[type]
+        instance_eval(&@@setup_proc[type])
+      end
+    end
+  END
+
+end
+
+
 def Component.state(*state_names)
 
   for name in state_names do

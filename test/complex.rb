@@ -21,7 +21,6 @@ end
 w = World.new {time_step 0.01}
 
 foo = w.create(Foo)
-p foo.flows
 
 File.open("complexRK4.out", "w") do |f|
 
@@ -38,7 +37,7 @@ class Foo
     EulerDifferentialFlow.new :z, FooFormula
   ]
 end
-p foo.flows
+
 foo.setup
 
 File.open("complexEuler.out", "w") do |f|

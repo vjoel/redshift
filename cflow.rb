@@ -1,5 +1,4 @@
 require 'redshift/flow'
-require 'cgen'
 
 =begin
 
@@ -59,7 +58,7 @@ All functions in math.h are available in the expression. The library is geberate
 
 * To statically link to other C files, simply place them in the same dir as the library (you may need to create the dir yourself unless the RedShift program has already run). To include a .h file, simply do the following somewhere in your Ruby code:
 
-  RedShift::FlowLib.include "my-file.h"
+  RedShift::CLib.include "my-file.h"
 
 The external functions declared in the .h file will be available in cflow expressions.
 
@@ -95,22 +94,6 @@ will static libs perform much better?
 
 module RedShift
 
-unless defined? FlowLibName
-  FlowLibName =
-    if $0 == "\000PWD"  # irb 1.6.5 bug
-      "irb"
-    else
-      $0.dup    ## use something better than $0?
-    end
-  FlowLibName.sub!(/\.rb/, "")
-  FlowLibName.sub!(/\A\.\//, "")
-  FlowLibName.sub!(/-/, "_") ## What to do about other symbols?
-  FlowLibName << '_cflows'
-end
-
-FlowLib = CGenerator::Library.new FlowLibName
-FlowLib.include '<math.h>'
-
 class Flow_C < Flow
 
   def translate getter_fn
@@ -133,7 +116,7 @@ class Flow_C < Flow
 
       unless translation[expr]
         
-        meth_c_name = FlowLib.declare_symbol meth_name
+        meth_c_name = CLib.declare_symbol meth_name
         value_c_name = "value_#{CGenerator.make_c_name expr}"
 
         getter_fn.declare :temp => 'VALUE temp'
@@ -143,7 +126,7 @@ class Flow_C < Flow
         when 'self'
           c_receiver = 'self'
         when /^@\w+/
-          obj_ref_c_name = FlowLib.declare_symbol obj_ref
+          obj_ref_c_name = CLib.declare_symbol obj_ref
           c_receiver = "rb_ivar_get(self, #{obj_ref_c_name})"
         when /^@@(\w+)/
           raise "Not yet implemented." ##
@@ -168,7 +151,7 @@ class Flow_C < Flow
       
       unless translation[expr]
         
-        attr_c_name = FlowLib.declare_symbol expr
+        attr_c_name = CLib.declare_symbol expr
         value_c_name = "value_#{CGenerator.make_c_name expr}"
 
         getter_fn.declare expr => "double #{value_c_name};"
@@ -190,7 +173,7 @@ class Flow_C < Flow
   end
   
   def define_formula_method cl, name
-    fn = FlowLib.define_method cl, name
+    fn = CLib.define_method cl, name
     c_formula = translate fn
     fn.returns "rb_float_new(#{c_formula})"
   end

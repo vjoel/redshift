@@ -3,7 +3,6 @@ require 'redshift/transition.rb'
 require 'redshift/flow.rb'
 require 'redshift/state.rb'
 require 'redshift/meta.rb'
-require 'cgen/shadow'
 
 module RedShift
 
@@ -12,8 +11,9 @@ Exit = State.new :Exit, "RedShift"
 Always = Transition.new :Always, nil, [], nil
   
 class Component
-  include CShadow
 
+  # see also clib.rb
+  
   attr_reader :world
   attr_reader :state
   attr_reader :active_transition
@@ -21,7 +21,7 @@ class Component
   Enter = RedShift::Enter
   Exit = RedShift::Exit
 
-  def initialize(world, &block)
+  def initialize(world, block) ## workaround for cshadow problem
 
     @world = world
     @active_transition = nil

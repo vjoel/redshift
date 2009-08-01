@@ -1,9 +1,10 @@
 # Copyright (c) 2001, Joel VanderWerf
 # Distributed under the Ruby license. See www.ruby-lang.org.
 
-require 'redshift/world.rb'
-require 'redshift/component.rb'
-require 'redshift/syntax.rb'
+require 'redshift/clib'
+require 'redshift/world'
+require 'redshift/component'
+require 'redshift/syntax'
 
 module RedShift
 

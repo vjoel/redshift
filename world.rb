@@ -1,13 +1,13 @@
 require 'option-block'
 require 'pstore'
-require 'cgen/shadow'
 
 module RedShift
 
 class World
   include OptionBlock
   include Enumerable
-  include CShadow
+  
+  # see also clib.rb
   
   Infinity = 1.0/0.0
   
@@ -47,7 +47,7 @@ class World
   end
 
   def create(component_class, &block)
-    FlowLib.commit unless FlowLib.committed? or FlowLib.empty?
+    CLib.commit unless CLib.committed? or CLib.empty?
     c = component_class.new(self, &block)
     @components[c.id] = c
   end

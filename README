@@ -4,9 +4,12 @@ To do
 Syntax
 
   defining and creating components
-    classes should have a "static setup" clause
-      because of commit, cannot create components statically
-      (THIS IS A PROBLEM)
+x   classes should have a "static setup" clause
+x     because of commit, cannot create components statically
+x     (THIS IS A PROBLEM)
+x     actually, this is consistent with having Worlds:
+x       you can't create a Component statically, because you don't
+x       have a world yet
     need to prevent calling new on Component class
     create ... block
 /   defaults { ... }  and setup { ... }
@@ -166,6 +169,10 @@ Documentation
   differences from cshift
     simulation semantics
       event semantics like lambda-shift
+      no static creation of components
+        must create world first
+        philosophy:
+          Component *definitions* precede World *specification*
     programming language semantics
       input/output/connect not needed because vars are untyped
       inheritance
@@ -178,7 +185,8 @@ Documentation
     warning about:
       'self.x = ...'
       associativity of and/or
-      C-like operators (i.e., = and == vs. := and =), but no ++, --
+      C-like operators (i.e., = and == vs. := and =)
+        but no ++, --, only +=, -=, etc.
       truth values
       names w/ capitals etc.
       fixnums vs. floats

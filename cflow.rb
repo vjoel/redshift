@@ -1,18 +1,92 @@
-require 'redshift/flow.rb'
-require 'mkmf'
+require 'redshift/flow'
+require 'redshift/cgen'
+
+=begin
+
+=Algebraic cflow expressions
+
+The restrictions on the Ruby expressions allowed within cflow expressions are
+intended to promote efficient code. The purpose of cflows is not rapid
+development, or elegant model expression, but optimization. Inefficient
+constructs should be rewritten. For instance, using a complex expression like
+
+  radar_sensors[:front_left].target[4].range
+
+will incur the overhead of recalculation each time the expression is evaluated,
+even though the object which receives the (({range})) method call does not
+change during continuous evolution. Instead, use intermediate variables. Define
+an instance variable {{|@front_left_target_4|}}, updated when necessary during discrete evolution, and use the expression
+
+  @front_left_target_4.range
+
+The increase in efficiency comes at the cost of maintaining this new variable. Use of cflows should be considered only for mature, stable code. Premature optimization is the root of all evil.
+
+==Syntax
+
+The syntax of algebraic cflows is
+
+  var = rhs
+  
+where rhs is a C expression except that it may also have the following additional subexpressions in Ruby syntax:
+
+  @ivar
+  @@cvar
+  @ivar.method
+  @@cvar.method
+  method
+  self.method
+
+Note that method arguments are not allowed, nor are special methods such as []. All use of () and [] is reserved for C expressions.
+
+==Semantic restrictions
+
+The value of each Ruby subexpression must be Float or convertible to Float (Fixnum, String, etc.).
+
+If a receiver.method pair occurs more than once in a cflow, the method is
+called only once on that receiver per evaluation of the expression. (The
+expression may be evaluated several times per time-step, depending on the
+integration algorithm.) Avoid using methods with side efffects. Typically, the
+methods used are accessors, which have no side effects.
+
+==C interface
+
+All functions in math.h are available in the expression.
+
+==Limitations
+
+The cflow cannot be recompiled while the simulation is running. Changes are ignored. Must reload everything to change cflows (however, can change other things without restarting).
+
+==To do
+
+===Soon
+globals, class vars
+constants: FOO, FOO.bar, FOO::BAR
+
+===Later
+differential cflows
+handle calls to user-defined C functions
+also C variables, declarations, includes
+blocks of inline C code
+
+===Eventually
+migrate continuous state from Ruby to C
+unload/reload dlls
+Someday, use a true parser, which potentially could parse full ruby subexprs.
+
+===Maybe
+cascading mthods @x.foo.bar
+arrays and other non-standard method calls
+will static libs perform much better?
+
+=end
+
 
 module RedShift
 
-class AlgebraicFlow_C < Flow
+CFlowLib = CLibrary.new 'cflows'
+CFlowLib.declare '#include <math.h>'
 
-#  MathLib = %w{
-#    cos sin tan acos asin atan acosh asinh atanh cosh sinh tanh
-#    exp frexp ldexp log log10 expm1 log1p logb exp2 log2 pow
-#    sqrt hypot cbrt ceil fabs floor fmod nearbyint round trunc
-#    remquo lrint llrint lround llround copysign erf erfc tgamma
-#    lgamma rint next_after next_toward remainder scalb scalbn
-#    scalbln ilogb fdim fmax fmin fma
-#  } # from /usr/include/tgmath.h
+class AlgebraicFlow_C < Flow
 
   def _attach cl, getter, setter
   
@@ -21,36 +95,11 @@ class AlgebraicFlow_C < Flow
       end
     END
     
-#    filename = /(.*)\..*/.match(__FILE__)[1]
-#    filename += '.c'
-
-    libname = "#{cl}_#{getter}"
-#    getter_name = "get_#{cl}_#{getter}"
+    float_fn = CFlowLib.define FloatFunction, cl, getter
     
     translation = {}
     
     c_formula = @formula.dup
-    
-    # eventually, turn a parser loose on this thing to
-    # get an AST and generate a C expression from that
-    
-    c_declarations    = ""
-    c_initialization  = ""  # done once
-    c_setup           = ""  # done each time
-    
-    c_code = [c_declarations, c_initialization, c_setup]
-    
-#    # check for math library calls and self methods
-#    c_formula.gsub!(/(^|[^@])([A-Za-z_]\w*)/) {
-#      $1 + 
-#        if MathLib.member? $2
-#          $2
-#        elsif $2 == 'abs'
-#          'fabs'
-#        else
-#          'self.' + $2
-#        end
-#    }
     
     # check for self methods
     c_formula.gsub!(/(^|[^@$.\w])([a-z_]\w*)(?=$|[^\w.([])/) {
@@ -66,19 +115,17 @@ class AlgebraicFlow_C < Flow
 
       unless translation[expr]
         
-        meth_c_name = c_declare_symbol(c_code, meth_name)
+        meth_c_name = CFlowLib.declare_symbol(meth_name)
         
-        value_c_name = 'value_' + make_c_name(expr)
+        value_c_name = 'value_' + CFlowLib.make_name(expr)
         
-        c_declarations << %{\
-          double    #{value_c_name};
-        }
+        float_fn.declare "double    #{value_c_name};"
 
         case obj_ref
         when 'self'
           c_receiver = 'obj'
         when /^@\w+/
-          obj_ref_c_name = c_declare_symbol c_code, obj_ref
+          obj_ref_c_name = CFlowLib.declare_symbol(obj_ref)
           c_receiver = "rb_ivar_get(obj, #{obj_ref_c_name})"
         when /^@@(\w+)/
           raise "Not yet implemented."
@@ -86,9 +133,9 @@ class AlgebraicFlow_C < Flow
           raise "Not yet implemented."
         end
 
-        c_setup << %{
-            temp = rb_Float(rb_funcall(#{c_receiver}, #{meth_c_name}, 0));
-            #{value_c_name} = RFLOAT(temp)->value;
+        float_fn.setup %{
+          temp = rb_Float(rb_funcall(#{c_receiver}, #{meth_c_name}, 0));
+          #{value_c_name} = RFLOAT(temp)->value;
         }
       
         translation[expr] = value_c_name
@@ -103,14 +150,12 @@ class AlgebraicFlow_C < Flow
       
       unless translation[expr]
         
-        attr_c_name = c_declare_symbol(c_code, expr)
-        value_c_name = 'value_' + make_c_name(expr)
+        attr_c_name = CFlowLib.declare_symbol(expr)
+        value_c_name = 'value_' + CFlowLib.make_name(expr)
 
-        c_declarations << %{\
-            double    #{value_c_name};
-        }
+        float_fn.declare "double    #{value_c_name};"
 
-        c_setup << %{\
+        float_fn.setup %{\
             temp = rb_Float(rb_ivar_get(obj, #{attr_c_name}));
             #{value_c_name} = RFLOAT(temp)->value;
         }
@@ -122,91 +167,8 @@ class AlgebraicFlow_C < Flow
       translation[expr]
     }
     
-    tab = proc { |n, str|
-      if n >= 0
-        str.gsub(/^/, ' ' * n)
-      else
-        str.gsub(/^ {0,#{-n}}/, "")
-      end
-    }
-    tabto = proc { |n, str|
-      str =~ /^( *)\S/
-      tab[n - $1.length, str]
-    }
-    taballto = proc { |n, str|
-      str.gsub(/^ */, ' ' * n)
-    }
+    float_fn.returns c_formula
     
-    c_output = tabto[0, %{\
-      #include <ruby.h>
-      #include <math.h>
-
-      static VALUE
-      #{getter}(obj)
-        VALUE obj;
-      {
-        static int first_time = 1;
-        VALUE temp;
-        double result;
-        \
-        #{taballto[8, "\n" + c_declarations]}
-        if (first_time) {\
-          #{taballto[10, "\n" + c_initialization]}
-          first_time = 0;
-        }\
-        #{taballto[8, "\n" + c_setup]}\
-
-        result = rb_float_new(#{c_formula});
-        return result;
-      }
-
-      Init_#{libname}(void)
-      {
-        VALUE class;
-        class = rb_eval_string("#{cl.name}");
-        rb_define_method(class, "#{getter}", #{getter}, 0);
-      }
-    }]
-      
-    File.open(libname + '.c', 'w') { |file|
-      file.print c_output
-    }
-    
-    create_makefile(libname)
-    system 'make'
-    require libname
-    
-    # Eventually, do this with temp files, unless debug flag set
-    # avoid stepping on or crudding up local dir
-    # and check mod times to avoid unnecessary work
-    # and do everything lazily, when first invoked,
-    # so that all defs can be collected in a data struct
-    # and written to one file
-    
-  end
-  
-protected
-
-  def c_declare_symbol c_code, symbol_name
-    c_declarations, c_initialization, c_setup = c_code
-    symbol_c_name = 'id_' + make_c_name(symbol_name)
-    unless c_declarations =~ /\b#{symbol_c_name}\b/
-      c_declarations << %{\
-        static ID #{symbol_c_name};
-      }
-      c_initialization << %{\
-        #{symbol_c_name} = rb_intern("#{symbol_name}");
-      }
-    end
-    symbol_c_name
-  end
-      
-  def make_c_name expr
-    # we use a single '_' to indicate our subs
-    c_name = expr.gsub(/_/, '__')
-    c_name.gsub!(/@/, 'attr_')
-    c_name.gsub!(/\./, '_dot_')
-    c_name
   end
 
 end # class AlgebraicFlow_C

@@ -104,7 +104,9 @@ module RedShift
     require $REDSHIFT_TARGET
   end
 
-  autoload(:ZenoDebugger, "redshift/mixins/zeno-debugger")
+  class World
+    autoload(:ZenoDebugger, "redshift/mixins/zeno-debugger")
+  end
 
 end # module RedShift
 

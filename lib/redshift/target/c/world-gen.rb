@@ -34,6 +34,7 @@ class World
   shadow_attr_accessor :clock_finish => "double   clock_finish"
   shadow_attr_accessor :zeno_counter => "long     zeno_counter"
   
+  shadow_attr_reader   :discrete_step   => "long  discrete_step"
   shadow_attr_reader   :discrete_phase  => Symbol
   
   class << self
@@ -127,21 +128,27 @@ class World
 #  end
   
   discrete_step_definer = proc do
+  
     declare :locals => %{
       VALUE             comp;
       ComponentShadow  *comp_shdw;
       VALUE            *ptr;
       long              len;
       long              i;
-      long              dstep;
       long              all_were_g, all_are_g;
       int               started_events;
       static VALUE      ExitState, GuardWrapperClass, ExprWrapperClass;
       static VALUE      ProcClass, EventClass, ResetClass, GuardClass;
       static VALUE      DynamicEventClass;
+      static VALUE      guard_phase_sym, proc_phase_sym;
+      static VALUE      event_phase_sym, reset_phase_sym;
     }.tabto(0)
+    
     insteval_proc = declare_symbol :insteval_proc
     capa = RUBY_VERSION.to_f >= 1.7 ? "aux.capa" : "capa"
+    gpi = Component::GuardPhaseItem
+    epi = Component::EventPhaseItem
+    
     declare :step_discrete_subs => %{
       inline ComponentShadow *get_shadow(VALUE comp)
       {
@@ -210,8 +217,8 @@ class World
       }
       inline int test_event_guard(VALUE comp, VALUE guard)
       {
-        VALUE link  = RARRAY(guard)->ptr[0];
-        VALUE event = RARRAY(guard)->ptr[1];
+        VALUE link  = RARRAY(guard)->ptr[#{gpi::LINK_OFFSET_IDX}];
+        VALUE event = RARRAY(guard)->ptr[#{gpi::EVENT_INDEX_IDX}];
         int link_offset = FIX2INT(link);
         int event_idx = FIX2INT(event);
         ComponentShadow *comp_shdw = get_shadow(comp);
@@ -241,7 +248,6 @@ class World
             }
             break;
           case T_ARRAY:
-            assert(RARRAY(guard)->len == 2); //## Future: allow 3: [l,e,value]
             if (!started_events || !test_event_guard(comp, guard))
               return 0;
             break;
@@ -316,6 +322,7 @@ class World
         }
       }
     }.tabto(0)
+    
     declare :step_discrete_macros => '
       #define INT2BOOL(i)  (i ? Qtrue : Qfalse)
 
@@ -341,6 +348,7 @@ class World
 
       int dummy;
     '.tabto(0)
+    
     comp_id = declare_class RedShift::Component
     init %{
       ExitState     = rb_const_get(#{comp_id}, #{declare_symbol :Exit});
@@ -354,18 +362,22 @@ class World
                     = rb_const_get(#{comp_id}, #{declare_symbol :ExprWrapper});
       DynamicEventClass
                = rb_const_get(#{comp_id}, #{declare_symbol :DynamicEventValue});
+
+      guard_phase_sym = ID2SYM(#{declare_symbol :guard});
+      proc_phase_sym  = ID2SYM(#{declare_symbol :proc});
+      event_phase_sym = ID2SYM(#{declare_symbol :event});
+      reset_phase_sym = ID2SYM(#{declare_symbol :reset});
     }
-    e_idx, v_idx, i_idx = 
-      [:E_IDX, :V_IDX, :I_IDX].map {|c| Component::EventPhaseItem.const_get c}
+    
     body %{
       //%% hook_begin();
       
       started_events = 0;
       all_were_g = 1;
       shadow->zeno_counter = 0;
-      dstep = 0;
+      shadow->discrete_step = 0;
 
-      //%% hook_begin_step(INT2NUM(dstep));
+      //%% hook_begin_step();
       
       //## use goto rather than convoluted loop?
 
@@ -373,10 +385,10 @@ class World
         struct RArray *list;
         int            list_i;
 
-        //%% hook_enter_guard_phase(INT2NUM(dstep));
-
         //# GUARD phase. Start on phase 4 of 4, because everything's in G.
-        shadow->discrete_phase = #{declare_symbol :guard};
+        //%% hook_enter_guard_phase();
+        shadow->discrete_phase = guard_phase_sym;
+
         EACH_COMP_ADVANCE(shadow->curr_G) {
           len = RARRAY(comp_shdw->outgoing)->len;
           ptr = RARRAY(comp_shdw->outgoing)->ptr;
@@ -407,7 +419,7 @@ class World
           }
         }
 
-        //%% hook_leave_guard_phase(INT2NUM(dstep));
+        //%% hook_leave_guard_phase();
 
         //# Step finished; prepare lists for next 4-phase step.
         SWAP_VALUE(shadow->curr_P, shadow->next_P);
@@ -419,8 +431,7 @@ class World
         all_are_g = !RARRAY(shadow->curr_P)->len &&
                     !RARRAY(shadow->curr_E)->len &&
                     !RARRAY(shadow->curr_R)->len;
-        //%% hook_end_step(INT2NUM(dstep), INT2BOOL(all_were_g),
-        //%%               INT2BOOL(all_are_g));
+        //%% hook_end_step(INT2BOOL(all_were_g), INT2BOOL(all_are_g));
         if (all_were_g && all_are_g)
           break;
         all_were_g = all_are_g;
@@ -433,12 +444,12 @@ class World
         }
         
         //# Begin a new discrete step.
-        dstep++;
-        //%% hook_begin_step(INT2NUM(dstep));
+        shadow->discrete_step++;
+        //%% hook_begin_step();
         
         //# PROC phase
-        //%% hook_enter_proc_phase(INT2NUM(dstep));
-        shadow->discrete_phase = #{declare_symbol :proc};
+        //%% hook_enter_proc_phase();
+        shadow->discrete_phase = proc_phase_sym;
         EACH_COMP_ADVANCE(shadow->curr_P) {
           VALUE procs = cur_procs(comp_shdw);
           
@@ -451,12 +462,12 @@ class World
             //## should set flag so that alg flows always update during proc
           }
         }
-        //%% hook_leave_proc_phase(INT2NUM(dstep));
+        //%% hook_leave_proc_phase();
 
         //# EVENT phase
-        //%% hook_enter_event_phase(INT2NUM(dstep));
+        //%% hook_enter_event_phase();
         started_events = 1;
-        shadow->discrete_phase = #{declare_symbol :event};
+        shadow->discrete_phase = event_phase_sym;
         SWAP_VALUE(shadow->active_E, shadow->prev_active_E);
         EACH_COMP_ADVANCE(shadow->curr_E) {
           VALUE events = cur_events(comp_shdw);
@@ -464,8 +475,8 @@ class World
           ptr = RARRAY(events)->ptr;
           len = RARRAY(events)->len;
           for (i = len; i > 0; i--, ptr++) {
-            int   event_idx = FIX2INT(RARRAY(*ptr)->ptr[#{i_idx}]);
-            VALUE event_val = RARRAY(*ptr)->ptr[#{v_idx}];
+            int   event_idx = FIX2INT(RARRAY(*ptr)->ptr[#{epi::I_IDX}]);
+            VALUE event_val = RARRAY(*ptr)->ptr[#{epi::V_IDX}];
             
             //## maybe this distinction should be made clear in the array
             //## itself.
@@ -473,7 +484,7 @@ class World
                 rb_obj_is_kind_of(event_val, DynamicEventClass))
               event_val = rb_funcall(comp, #{insteval_proc}, 1, event_val);
 
-            //%% hook_export_event(comp, RARRAY(*ptr)->ptr[#{e_idx}],
+            //%% hook_export_event(comp, RARRAY(*ptr)->ptr[#{epi::E_IDX}],
             //%%   event_val);
             RARRAY(comp_shdw->next_event_values)->ptr[event_idx] = event_val;
           }
@@ -502,11 +513,11 @@ class World
 
           SWAP_VALUE(comp_shdw->event_values, comp_shdw->next_event_values);
         }
-        //%% hook_leave_event_phase(INT2NUM(dstep));
+        //%% hook_leave_event_phase();
         
         //# RESET phase
-        //%% hook_enter_reset_phase(INT2NUM(dstep));
-        shadow->discrete_phase = #{declare_symbol :reset};
+        //%% hook_enter_reset_phase();
+        shadow->discrete_phase = reset_phase_sym;
         EACH_COMP_DO(shadow->curr_R) {
           ContVar  *var     = (ContVar *)(&comp_shdw->cont_state->begin_vars);
           VALUE     resets  = cur_resets(comp_shdw);
@@ -559,7 +570,7 @@ class World
         }
         d_tick++;   //# resets may invalidate algebraic flows
         //## optimization: don't incr if no resets? Change name of d_tick!
-        //%% hook_leave_reset_phase(INT2NUM(dstep));
+        //%% hook_leave_reset_phase();
       }
       
       move_all_comps(shadow->curr_G, shadow->strict_sleep);
@@ -570,7 +581,7 @@ class World
       
       shadow->discrete_phase = Qnil;
 
-      //%% hook_end(INT2NUM(dstep));
+      //%% hook_end();
     }
     def self.to_s
       # at this point, we know the definition is complete

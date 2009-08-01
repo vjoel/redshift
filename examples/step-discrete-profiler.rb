@@ -2,49 +2,77 @@ require 'redshift'
 
 include RedShift
 
-## express profiler as mixin, and as executable
+# This example is a simple profiler for measuring time in guard phases and
+# proc/reset phases. Finer grained measurements can be done using other hooks.
+
+# See examples/step-discrete-hook.rb for more examples of hook methods.
+
+n_components = 100
+n_seconds = 100
+$use_slow_guard = false
 
 class ProfilingExample < Component
   continuous :x
   transition do
-#    guard {x < 0}
-    guard "x < 0"
-#    action {self.x = 2}
-    reset :x => 2
+
+    if $use_slow_guard
+      guard {x < 0}       # 95.2 ms
+    else
+      guard "x < 0"       #  3.2 ms
+    end
+
+    action {self.x = 2}   #  5.8 ms
+    reset :x => 2         #  0.3 ms
   end
   flow { diff "x' = -1" }
 end
 
 class ProfilingWorld < World
-  attr_accessor :guard_time, :proc_time
+  attr_accessor :guard_time, :proc_time, :reset_time
   def initialize(*args)
     super
     @guard_time = 0
     @proc_time = 0
-    @guard_start = nil
-    @proc_start = nil
+    @reset_time = 0
   end
   
-  def hook_enter_guard_phase(dstep)
+  def hook_enter_guard_phase
     @guard_start = Time.now
   end
   
-  def hook_leave_guard_phase(dstep)
-    @guard_time += Time.now - @guard_start
+  def hook_leave_guard_phase
+    t = Time.now
+    @guard_time += t - @guard_start
   end
   
-  def hook_enter_proc_phase(dstep)
+  def hook_enter_proc_phase
     @proc_start = Time.now
   end
   
-  def hook_leave_proc_phase(dstep)
-    @proc_time += Time.now - @proc_start
+  def hook_leave_proc_phase
+    t = Time.now
+    @proc_time += t - @proc_start
+  end
+  
+  def hook_enter_reset_phase
+    @reset_start = Time.now
+  end
+  
+  def hook_leave_reset_phase
+    t = Time.now
+    @reset_time += t - @reset_start
   end
 end
 
 w = ProfilingWorld.new
-c = w.create(ProfilingExample)
+n_components.times do
+  w.create(ProfilingExample)
+end
 
-w.age 100
-p w.guard_time
-p w.proc_time
+w.age n_seconds
+
+x = n_components * n_seconds
+puts "Times are averages per component, per second of run."
+printf "Guard time: %10.3f ms\n", (w.guard_time/x)*1_000_000
+printf "Proc time:  %10.3f ms\n", (w.proc_time/x)*1_000_000
+printf "Reset time: %10.3f ms\n", (w.reset_time/x)*1_000_000

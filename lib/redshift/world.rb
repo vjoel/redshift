@@ -182,7 +182,7 @@ class World
 
   # Default implementation is to raise RedShift::ZenoError.
   def step_zeno
-    raise RedShift::ZenoError, "\nExceeded zeno limit of #{zeno_limit}.\n"
+    raise RedShift::ZenoError, "Exceeded zeno limit of #{zeno_limit}."
   end
   
   ## is this a good idea? tests?
@@ -211,15 +211,21 @@ class World
     if @started
       digits = -Math.log10(time_step).floor
       digits = 0 if digits < 0
-      sprintf "<%s: %d step%s, %.#{digits}f #{@time_unit}%s, %d component%s>",
-        @name,
-        step_count, ("s" if step_count != 1),
-        clock, ("s" if clock != 1),
-        size, ("s" if size != 1)
+
+      data = []
+      data << "%d step%s" % [step_count, ("s" if step_count != 1)]
+      data << "%.#{digits}f #{@time_unit}%s" % [clock, ("s" if clock != 1)]
+      data << "%d component%s" % [size, ("s" if size != 1)]
+      
+      if discrete_phase
+        data << "discrete step = #{discrete_step}, phase = #{discrete_phase}"
+      end
     else
-      sprintf "<%s: not started. Do 'run 0' to setup, or 'run n' to run.>",
-        @name
+      data = ["not started. Do 'run 0' to setup, or 'run n' to run."]
     end
+
+    str = [name, data.join("; ")].join(": ")
+    "<#{str}>"
   end
   
   def save filename = @name

@@ -1,4 +1,4 @@
-module RedShift
+class RedShift::World
 
   # Include this module in a World class. See example in examples/zeno.rb. Has a
   # small performance cost, so don't use it in production runs. Note that, even

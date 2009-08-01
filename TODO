@@ -135,3 +135,18 @@ Implementation
     Current file/line position must be saved by many constructs, e.g. reset,
       so that it can be shown later if there is an error message
 
+User interface
+
+  yaml and pp outputs
+
+Tools
+
+  profiler mixin for World (also an executable script?)
+
+  debugger mixin for World (also an executable script?)
+    
+    on interrupt, world should warn if inside discrete update
+
+  generalize the irb-shell.rb and TO4230 shells, and make RedShift::Shell
+  
+    use this in ZenoDebugger, too

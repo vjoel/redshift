@@ -111,17 +111,21 @@ class Component
       @cached_outgoing_transitions[s] ||=
         begin
           ary = []
-          strict = true
+          all_strict = true
           cached_transitions(s).each do |t, d|
             ary << t << d << t.phases << t.guard
 
+            t_strict = true
             guard_list = t.guard
             guard_list and guard_list.each do |g|
-              strict &&= g.respond_to?(:strict) && g.strict
+              t_strict &&= g.respond_to?(:strict) && g.strict
             end
+            all_strict &&= t_strict
+            
+            ary << t_strict
           end
 
-          ary << strict # just a faster way to return mult. values
+          ary << all_strict # just a faster way to return mult. values
           ary.freeze
           ary
         end

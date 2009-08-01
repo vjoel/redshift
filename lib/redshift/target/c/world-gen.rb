@@ -396,13 +396,13 @@ class World
           }
         }
         else {
-          if (RARRAY(comp_shdw->outgoing)->len <= 1) { //## strict flag
+          if (RARRAY(comp_shdw->outgoing)->len <= 1) //## strict flag
             move_comp(comp, list, shadow->inert);
-          }
           else if (comp_shdw->strict)
             move_comp(comp, list, shadow->strict_sleep);
           else
             move_comp(comp, list, shadow->next_G);
+         
         }
       }
       
@@ -559,18 +559,25 @@ class World
         shadow->discrete_phase = guard_phase_sym;
 
         EACH_COMP_ADVANCE(shadow->curr_G) {
+          if (shadow->discrete_step == 0) {
+            comp_shdw->checked = 0;
+          }
+
           len = RARRAY(comp_shdw->outgoing)->len - 1; //# last is strict flag
           ptr = RARRAY(comp_shdw->outgoing)->ptr;
           
           while (len) {
-            VALUE trans, guard, phases, dest;
+            VALUE trans, guard, phases, dest, strict;
             int enabled;
             
-            assert(len >= 4);
+            assert(len >= 5);
             
+            strict = ptr[--len];
             guard = ptr[--len];
+            
             enabled = !RTEST(guard) ||
-                      guard_enabled(comp, guard, started_events);
+              ((comp_shdw->checked && RTEST(strict)) ? 0 :
+               guard_enabled(comp, guard, started_events));
             
             //%% hook_eval_guard(comp, guard, INT2BOOL(enabled),
             //%%                 ptr[len-3], ptr[len-2]);
@@ -586,6 +593,8 @@ class World
             else
               len -= 3;
           }
+          
+          comp_shdw->checked = 1;
         }
 
         //%% hook_leave_guard_phase();

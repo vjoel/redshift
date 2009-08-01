@@ -243,6 +243,40 @@ class NonStrictLink < TestComponent
   end
 end
 
+# test that a strict link to a nonstrict var is not optimized
+class StrictLinkToNonStrictVar < TestComponent
+  class NS < Component
+    constant   :k
+    continuous :x
+  end
+  
+  flow { diff "t'=1" }
+  
+  strict_link :ns => NS
+  
+  default {self.ns = create(NS)}
+  
+  state :Pass
+  
+  transition do
+    guard "ns.k == 0 && ns.x == 0"
+    action { ns.k = ns.x = 1 }
+  end
+  
+  transition do
+    guard "ns.k == 1 && ns.x == 1"
+    action { ns.k = 0 }
+  end
+  
+  transition Enter => Pass do
+    guard "ns.k == 0 && ns.x == 1"
+  end
+  
+  def assert_consistent(test)
+    test.flunk if t > 0 and not state == Pass
+  end
+end
+
 #-----#
 
 require 'test/unit'

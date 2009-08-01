@@ -216,6 +216,9 @@ module RedShift
           unless @cumulative_var_count
             raise Library::CommitError unless committed?
             @cumulative_var_count = vars.size
+            if @cumulative_var_count > 32767
+              raise "overflow in cumulative_var_count: #{@cumulative_var_count}"
+            end
           end
           @cumulative_var_count
         end
@@ -247,10 +250,6 @@ module RedShift
     shadow_attr_accessor :state        => State
     protected :state=
 
-    shadow_attr_accessor :var_count    => "long var_count"
-      ## needn't be persistent
-    protected :var_count=
-
     shadow_attr_reader :nonpersistent, :outgoing    => Array
     shadow_attr_reader :nonpersistent, :trans       => Transition
     shadow_attr_reader :nonpersistent, :phases      => Array
@@ -264,9 +263,16 @@ module RedShift
 
     def active_transition; trans; end # for introspection
 
-    ## these should be short, or bitfield
-    shadow_attr :nonpersistent, :cur_ph => "long cur_ph" # index of upcoming ph
-    shadow_attr :nonpersistent, :strict => "long strict" # is cur state strict?
+    shadow_attr_accessor :var_count    => "short var_count"
+      ## needn't be persistent
+    protected :var_count=
+
+    ### check for phases->len < 256
+    shadow_struct.declare :bits => %{
+      unsigned    cur_ph   : 8; //# index of upcoming ph
+      unsigned    strict   : 1; //# is cur state strict?
+      unsigned    checked  : 1; //# have the guards been checked?
+    }
 
     class << self
 
@@ -800,6 +806,7 @@ module RedShift
 
         strict = rb_funcall(shadow->outgoing, #{declare_symbol :last}, 0);
         shadow->strict = RTEST(strict);
+        shadow->checked = 0;
 
         //# Cache flows.
         flow_table = rb_funcall(rb_obj_class(shadow->self),

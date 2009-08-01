@@ -127,13 +127,13 @@ class Flow
     ct_struct = make_ct_struct(flow_fn, cl)
 
     varsym = var.intern
-    if (st=link_type.constant_variables[varsym])
+    if (kind = link_type.constant_variables[varsym])
       var_type = :constant
-      strict &&= st
+      strict &&= (kind == :strict)
 
-    elsif (st=link_type.continuous_variables[varsym])
+    elsif (kind = link_type.continuous_variables[varsym])
       var_type = :continuous
-      strict &&= st
+      strict &&= (kind == :strict)
       
       checked_var_cname = "checked_#{link}__#{var}" ## not quite unambig.
       ct_struct.declare checked_var_cname => "int #{checked_var_cname}"
@@ -141,6 +141,7 @@ class Flow
 
       link_cs_ssn = link_type.cont_state_class.shadow_struct.name
       link_cs_cname = "link_cs_#{link}"
+      ct_struct.declare link_cs_cname => "#{link_cs_ssn} *#{link_cs_cname}"
     else
       raise NameError, "Unknown variable: #{var}"
     end
@@ -154,10 +155,6 @@ class Flow
         ct_struct.declare link_cname => "#{link_type_ssn} *#{link_cname}"
         flow_fn.setup     link_cname => "ct.#{link_cname} = shadow->#{link}"
       end ## same as below
-
-      if var_type == :continuous
-        ct_struct.declare link_cs_cname => "#{link_cs_ssn} *#{link_cs_cname}"
-      end
     end
 
     sf = flow_fn.parent

@@ -1,4 +1,4 @@
-# Measures benefit of optimizing the case in whih only some of the outgoing
+# Measures benefit of optimizing the case in which only some of the outgoing
 # transitions are strict.
 
 require 'redshift'
@@ -19,6 +19,9 @@ module HalfStrict
   class Observer < Component
     strict_link :clock => Clock
     
+    transition do
+      guard " clock.t_strict < 0 "
+    end
     transition do
       guard " clock.t_strict < 0 "
     end
@@ -95,6 +98,6 @@ end
 if __FILE__ == $0
   require File.join(File.dirname(__FILE__), 'bench')
   puts "half-strict:"
-  HalfStrict.do_bench_one(1000, 10_000) {|l| puts l}
+  HalfStrict.do_bench_one(1000, 1000) {|l| puts l}
 end
 

@@ -1,4 +1,12 @@
-redshift 1.1.51
+redshift 1.1.53
+
+- Fixed bug with both link.contvar and link.constant in one gaurd expr.
+
+- Fixed bug: strict link to nonstrict variable was treated as strict.
+
+- Optimization: strict guards checked less often. (See bench/half-strict.rb.)
+
+redshift 1.1.52
 
 - Added bench/half-strict.rb.
 

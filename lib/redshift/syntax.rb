@@ -210,11 +210,21 @@ module FlowSyntax
     end
     
     def derive(*equations)
+      opts = equations.pop
+      unless opts and opts.kind_of? Hash and
+             (opts[:feedback] == true or opts[:feedback] == false)
+        raise SyntaxError, "Missing option: :feedback => <true|false>\n" +
+          "Use 'true' when the output of this flow feeds back into another\n" +
+          "derivative flow (even after a delay). Also, set <var>_init_rhs.\n"
+        ## should false be the default?
+        ## rename 'feedback'?
+      end
+      feedback = opts[:feedback]
       for equation in equations
         unless equation =~ /^\s*(\w+)\s*=\s*(.+)'\s*\z/m
           raise SyntaxError, "parse error in\n\t#{equation}."
         end
-        @flows << DerivativeFlow.new($1.intern, $2.strip)
+        @flows << DerivativeFlow.new($1.intern, $2.strip, feedback)
       end
     end
     

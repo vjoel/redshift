@@ -1,3 +1,9 @@
+redshift 1.2.22
+
+- Derive flows have an option for feedback and the var_init_rhs setter.
+
+- Read RUBY_SOURCE_FILE env var as alternative for library name (for IDE).
+
 redshift 1.2.21
 
 - Fixed another bug in delay of algebraic flows.

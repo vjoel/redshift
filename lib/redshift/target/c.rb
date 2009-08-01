@@ -6,6 +6,9 @@ begin
   clib_name =
     if clib_name == "\000PWD"  # irb in ruby 1.6.5 bug
       "irb"
+    elsif clib_name == "-" and ENV["RUBY_SOURCE_FILE"]
+      File.basename(ENV["RUBY_SOURCE_FILE"])
+        # RUBY_SOURCE_FILE can be defined by your editor/ide cmd to call ruby
     else
       File.basename(clib_name)
     end

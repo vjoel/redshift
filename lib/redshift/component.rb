@@ -62,7 +62,14 @@ end
 class AlgebraicFlow < Flow; end
 class EulerDifferentialFlow < Flow; end
 class RK4DifferentialFlow < Flow; end
-class DerivativeFlow < Flow; end
+
+class DerivativeFlow < Flow
+  attr_reader :feedback
+  def initialize v, f, feedback
+    super(v, f)
+    @feedback = feedback
+  end
+end
 
 class DelayFlow < Flow
   attr_reader :delay_by

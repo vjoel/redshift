@@ -8,6 +8,7 @@ Publishing RedShift
     unambiguous sync
     transition local vars
     action %{ pseudo-c-code }
+    thread safety
 
   doc, tutorial, web site
 
@@ -16,7 +17,7 @@ Publishing RedShift
   user tools
     zeno and other debuggers
     shell
-    visualization interfaces
+    visualization interfaces: tkar, gnuplot, opengl
 
   benchmarks
   - compare with stateflow and simulink examples
@@ -26,9 +27,8 @@ Publishing RedShift
   - windows w/ several compilers
 
   notify
-  - shift-dev folks, hs researchers (Joao Hispanha)
+  - shift-dev folks, hs researchers (e.g., Joao Hispanha)
   - contacts who have expressed interest in redshift or shift
-
 
   publicize
   - ruby-talk, sciruby
@@ -40,6 +40,11 @@ Publishing RedShift
   - approach potential users in industry
     - GM, with wrapping for CarSim dll
 
+  long-term goals
+  - vector-valued signals
+  - user-friendly interface
+  - distributed simulation
+  - library of integrators/flows and components
 
 
 

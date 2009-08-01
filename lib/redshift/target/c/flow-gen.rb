@@ -151,6 +151,7 @@ module RedShift; class Flow
       link_cs_ssn = link_type.cont_state_class.shadow_struct.name
       link_cs_cname = "link_cs_#{link}"
       ct_struct.declare link_cs_cname => "#{link_cs_ssn} *#{link_cs_cname}"
+    
     else
       raise NameError, "Unknown variable: #{var}"
     end

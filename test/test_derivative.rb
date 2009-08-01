@@ -8,10 +8,12 @@ class DerivativeTestComponent < Component
 
     alg    "     u  = sin(t) "
     alg    "   sdu  = cos(t) " # symbolic derivative
-    derive "   ndu  = (u+5)' " # numerical derivative -- expr OK
+    derive "   ndu  = (u+5)' ",# numerical derivative -- expr OK
+            :feedback => false
     diff   " nindu' = ndu    " # numerical integral of ndu
     diff   "   niu' = u      " # numerical integral of u
-    derive " ndniu  = niu'   " # numerical derivative of niu
+    derive " ndniu  = niu'   ",# numerical derivative of niu
+            :feedback => false
     
     alg    "   err  = sdu - ndu "
     alg    " e_ndni = ndniu - u "

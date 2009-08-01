@@ -33,7 +33,7 @@ class DelayTestComponent < Component
       test.assert_in_delta(t - 0.3, zdelay_t, 1.0E-10)
       # zdelay will be evaluated after t (alphabetical), so this assertion
       # breaks before the fix in 1.2.19. (At rk_level==3, evaluating t
-      # writes to t's value_0, which is what teh evaluation of zdelay is
+      # writes to t's value_0, which is what the evaluation of zdelay is
       # trying to capture.
     end
   end

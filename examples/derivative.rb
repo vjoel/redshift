@@ -13,10 +13,12 @@ class C < Component
 
     alg    "     u  = sin(t) "
     alg    "   sdu  = cos(t) " # symbolic derivative
-    derive "   ndu  = u'     " # numerical derivative (can be (<expr>)' )
+    derive "   ndu  = u'     ",# numerical derivative (can be (<expr>)' )
+            :feedback => false
     diff   " nindu' = ndu    " # numerical integral of ndu
     diff   "   niu' = u      " # numerical integral of u
-    derive " ndniu  = niu'   " # numerical derivative of niu
+    derive " ndniu  = niu'   ",# numerical derivative of niu
+            :feedback => false
     
     alg    "   err  = sdu - ndu "
       # This error is small.
@@ -41,6 +43,7 @@ world = World.new
 c = world.create(C)
 
 u, sdu, ndu, nindu, err, e_ndni, e_nind = [], [], [], [], [], [], []
+gather = proc do
   time = c.t
   u       << [time, c.u]
   sdu     << [time, c.sdu]
@@ -49,16 +52,11 @@ u, sdu, ndu, nindu, err, e_ndni, e_nind = [], [], [], [], [], [], []
   err     << [time, c.err]
   e_ndni  << [time, c.e_ndni]
   e_nind  << [time, c.e_nind]
+end
 
+gather.call
 world.evolve 10 do
-  time = c.t
-  u       << [time, c.u]
-  sdu     << [time, c.sdu]
-  ndu     << [time, c.ndu]
-  nindu   << [time, c.nindu]
-  err     << [time, c.err]
-  e_ndni  << [time, c.e_ndni]
-  e_nind  << [time, c.e_nind]
+  gather.call
 end
 
 require 'sci/plot'

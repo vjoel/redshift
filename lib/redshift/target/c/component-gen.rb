@@ -961,10 +961,26 @@ module RedShift
       
       strict = (ivs[input_variable] == :strict)
       connected_comp = send(src_comp)
+      connected_var  = source_variable_for(input_variable)
       
-      if strict and connected_comp and connected_comp != other_component
-        raise StrictnessError,
-          "Cannot reconnect or disconnect strict input: #{input_variable}."
+      if strict and connected_comp and
+          (connected_comp != other_component or
+           connected_var.to_sym != other_var.to_sym)
+        
+        if other_component
+          connected_val = connected_comp.send(connected_var)
+          other_val = other_component.send(other_var)
+
+          unless connected_val == other_val
+            raise StrictnessError,
+              "Cannot reconnect strict input: #{input_variable}."
+          end
+        
+        else
+          raise StrictnessError,
+            "Cannot disconnect strict input: #{input_variable}."
+        
+        end
       end
       
       if other_var and other_component
@@ -1030,7 +1046,10 @@ module RedShift
       when INPUT_CONST
         comp.class.var_at_offset(offset)
       when INPUT_INP_VAR
-        comp.class.var_at_offset(offset).gsub(src_comp(""), "") ## hacky?
+        src_comp_basename = self.class.src_comp("").to_s
+        varname = comp.class.var_at_offset(offset).to_s
+        varname.gsub(src_comp_basename, "").intern
+          ## hacky?
       else
         nil
       end

@@ -92,11 +92,30 @@ class TestConnectStrict < Test::Unit::TestCase
   end
   
   # can't connect to a different component
-  def test_reconnect
+  def test_reconnect_comp
     @b.port(:y) << @a.port(:x)
     @b.port(:y) << @a.port(:x) # ok
     assert_raises(StrictnessError) do
       @b.port(:y) << @world.create(A).port(:x)
+    end
+  end
+
+  # can't connect to a different var in same component
+  def test_reconnect_var
+    @b.port(:y) << @a.port(:x)
+    assert_raises(StrictnessError) do
+      @b.port(:y) << @a.port(:k)
+    end
+  end
+  
+  # can reconnect if value is the same
+  def test_reconnect_same_value
+    a = @world.create(A) do |a|
+      a.x = a.k = 12.34
+    end
+    @b.port(:y) << a.port(:x)
+    assert_nothing_raised do
+      @b.port(:y) << a.port(:k)
     end
   end
   

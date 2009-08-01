@@ -219,8 +219,6 @@ class TestConnect < Test::Unit::TestCase
     ### lnk.inp will fail
   end
   
-  ### strictness???
-  
   def test_ports_change_when_reconnect
     return
     b2.port(:y) << @a.port(:x)

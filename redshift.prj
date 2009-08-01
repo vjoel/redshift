@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 0 9)
-(Parent-Version redshift 0 8)
+(Project-Version redshift 0 10)
+(Parent-Version redshift 0 9)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Mon, 04 Jun 2001 20:39:15 -0700")
+(Checkin-Time "Wed, 06 Jun 2001 00:00:55 -0700")
 (Checkin-Login joel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -35,7 +35,7 @@
 
   
   (event.rb (redshift/9_event.rb 1.4 644))
-  (README (redshift/10_README 1.7 644))
+  (README (redshift/10_README 1.8 644))
 
 ;; Files added by populate at Sat, 26 May 2001 21:45:52 -0700,
 ;; to version 0.3(w), by joel:
@@ -65,13 +65,19 @@
   (test/integrate.rb (redshift/15_integrate. 1.1 755))
   (test/integrate2.rb (redshift/16_integrate2 1.1 755))
   (test/fixed-point.rb (redshift/17_fixed-poin 1.1 755))
-  (test/complex.rb (redshift/18_complex.rb 1.2 755))
+  (test/complex.rb (redshift/18_complex.rb 1.3 755))
 
 ;; Files added by populate at Mon, 04 Jun 2001 14:25:13 -0700,
 ;; to version 0.7(w), by joel:
 
   (examples/sample.rb (redshift/19_sample.rb 1.1 775))
   (examples/ball.rb (redshift/20_ball.rb 1.2 755))
+
+;; Files added by populate at Wed, 06 Jun 2001 00:00:49 -0700,
+;; to version 0.9(w), by joel:
+
+  (test/complex2.rb (redshift/21_complex2.r 1.1 755))
+  (plot.rb (redshift/22_plot.rb 1.1 644))
 )
 (Merge-Parents)
 (New-Merge-Parents)

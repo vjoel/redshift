@@ -1,26 +1,27 @@
 #!/usr/bin/env ruby
 require 'redshift/redshift.rb'
+#require 'redshift/plot.rb'
 require 'complex'
 
 include RedShift
 
-class Foo < Component
+class MyCurve < Component
 
-  FooFormula = "3 * z ** 3 - 2"
+  MyFormula = "z' = 3 * z ** 3 - 2"
 
-  attach Enter, [
-    RK4DifferentialFlow.new :z, FooFormula
-  ]
+  flow (Enter) {
+    differential MyCurve::MyFormula
+  }
   
-  def setup
+  setup {
     @z = Complex.new(1, 1)
-  end
+  }
   
 end
 
 w = World.new {time_step 0.01}
 
-foo = w.create(Foo)
+foo = w.create MyCurve
 
 File.open("complexRK4.out", "w") do |f|
 
@@ -32,11 +33,9 @@ File.open("complexRK4.out", "w") do |f|
   
 end
 
-class Foo
-  attach Enter, [
-    EulerDifferentialFlow.new :z, FooFormula
-  ]
-end
+MyCurve.flow (Enter) {
+  euler MyCurve::MyFormula
+}
 
 foo.setup
 

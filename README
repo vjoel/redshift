@@ -6,6 +6,8 @@ Syntax
   defining and creating components
     create ... block
 /   defaults { ... }  and setup { ... }
+    state methods: flow Foo { def ... }
+      generalization of alg flows
 / flows, transitions, etc.
   running
     run N { dt = ...; zeno = ... }

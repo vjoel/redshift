@@ -1,6 +1,13 @@
+redshift 1.1.41
+
+- Added infrastructure for checking strictness and strictness violations
+  at run time.
+
 redshift 1.1.40
 
 - Strictness violations of writers can be rescued, and the value remains set.
+
+- Renaned ContinuousAssignmentError to StrictnessError
 
 - World#age removed; use #evolve instead.
 

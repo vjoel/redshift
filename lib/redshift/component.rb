@@ -179,6 +179,7 @@ class Component
 
     yield if block_given?
 
+    init_strict_flags
     update_cache
   end
 

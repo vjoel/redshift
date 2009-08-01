@@ -29,6 +29,8 @@ module RedShift
         unsigned    rk_level  :  3; // last rk level at which flow was computed
         unsigned    algebraic :  1; // should compute flow when inputs change?
         unsigned    nested    :  1; // to catch circular evaluation
+        unsigned    strict    :  1; // never changes discretely
+        unsigned    ck_strict :  1; // should check strict at end of phase
         Flow        flow;           // cached flow function of current state
         double      value_0;        // value during discrete step
         double      value_1;        // value at steps of Runge-Kutta
@@ -161,6 +163,10 @@ module RedShift
         self.class.var_at_index(idx)
       end
 
+      def strict_var_indexes
+        self.class.strict_var_indexes
+      end
+     
       class << self
         def make_subclass_for component_class
           if component_class == Component
@@ -217,6 +223,16 @@ module RedShift
         def var_at_index(idx)
           @var_at_index ||= {}
           @var_at_index[idx] ||= vars.values.find {|var| var.index == idx}
+        end
+
+        def strict_var_indexes
+          unless @strict_var_indexes
+            raise Library::CommitError unless committed?
+            @strict_var_indexes = vars.
+              select {|name, var| var.strict?}.
+              map {|name, var| var.index}
+          end
+          @strict_var_indexes
         end
       end
     end
@@ -647,6 +663,39 @@ module RedShift
 
     end
 
+    define_c_method :init_strict_flags do
+      declare :locals => %{
+        ContVar    *vars;
+        long        var_count;
+        VALUE       idx_ary;
+        VALUE      *indexes;
+        long        count;
+        long        i;
+        long        idx;
+      }
+      svi = declare_symbol :strict_var_indexes
+        ## really only need to call this once (per class)
+      body %{
+        vars = (ContVar *)&FIRST_CONT_VAR(shadow);
+        var_count = shadow->var_count;
+
+        idx_ary = rb_funcall(shadow->cont_state->self, #{svi}, 0);
+        Check_Type(idx_ary, T_ARRAY); //## debug only
+
+        count = RARRAY(idx_ary)->len;
+        indexes = RARRAY(idx_ary)->ptr;
+        
+        for (i = 0; i < count; i++) {
+          idx = NUM2INT(indexes[i]);
+          if (idx > var_count-1)
+            rb_raise(#{declare_class IndexError},
+                   "Index into continuous variable list out of range: %d > %d.",
+                   idx, var_count-1);
+          vars[idx].strict = 1;
+        }
+      }
+    end
+
     define_c_method :update_cache do body "__update_cache(shadow)" end
 
     library.define(:__update_cache).instance_eval do
@@ -661,6 +710,7 @@ module RedShift
         VALUE       outgoing;
         long        var_count;
         ContVar    *vars;
+        ContVar    *var;
         long        i;
         long        count;
         VALUE      *flows;
@@ -668,6 +718,9 @@ module RedShift
       }.tabto(0)
 
       body %{
+        var_count = shadow->var_count;
+        vars = (ContVar *)&FIRST_CONT_VAR(shadow);
+
         //# Cache outgoing transitions.
         shadow->outgoing = rb_funcall(shadow->self,
                            #{declare_symbol :outgoing_transitions}, 0);
@@ -676,15 +729,6 @@ module RedShift
         shadow->strict = RTEST(strict);
 
         //# Cache flows.
-        var_count = shadow->var_count;
-        vars = (ContVar *)&FIRST_CONT_VAR(shadow);
-
-        for (i = 0; i < var_count; i++) {
-          vars[i].flow = 0;
-          vars[i].algebraic = 0;
-          vars[i].d_tick = 0;
-        }
-
         flow_table = rb_funcall(rb_obj_class(shadow->self),
                      #{declare_symbol :flow_table}, 0);
           //## could use after_commit to cache this method call
@@ -701,12 +745,41 @@ module RedShift
                    "Index into continuous variable list out of range: %d > %d.",
                    count, var_count);
 
-          for (i = 0; i < count; i++)
+          for (i = 0; i < count; i++) {
+            var = &vars[i];
             if (flows[i] != Qnil) {
               Data_Get_Struct(flows[i], #{flow_wrapper_type}, flow_wrapper);
-              vars[i].flow      = flow_wrapper->flow;
-              vars[i].algebraic = flow_wrapper->algebraic;
+              var->flow         = flow_wrapper->flow;
+              var->algebraic    = flow_wrapper->algebraic;
+              if (var->flow && var->algebraic && var->strict && var->d_tick) {
+                var->value_1    = var->value_0;
+                var->ck_strict  = 1;
+              }
+              else {
+                var->ck_strict  = 0;
+              }
             }
+            else {
+              var->flow       = 0;
+              var->algebraic  = 0;
+              var->d_tick     = 0;
+            }
+          }
+          
+          for (; i < var_count; i++) {
+            var = &vars[i];
+            var->flow       = 0;
+            var->algebraic  = 0;
+            var->d_tick     = 0;
+          }
+        }
+        else {
+          for (i = 0; i < var_count; i++) {
+            var = &vars[i];
+            var->flow       = 0;
+            var->algebraic  = 0;
+            var->d_tick     = 0;
+          }
         }
       }
     end
@@ -718,30 +791,6 @@ module RedShift
       body "shadow->world = world"
     end
     protected :__set__world
-
-  #if false
-  #  define_c_method :recalc_alg_flows do ### need this?
-  #    declare :locals => %{
-  #      ContVar    *vars;
-  #      long        i;
-  #      long        var_count;
-  #    }.tabto(0)
-  #    
-  #    body %{
-  #      var_count = shadow->type_data->var_count;
-  #      vars = (ContVar *)&FIRST_CONT_VAR(shadow);
-  #      for (i = 0; i < var_count; i++)
-  #        if (vars[i].algebraic)
-  ## also check d_tick
-  #          (*vars[i].flow)((ComponentShadow *)shadow);
-  #    }
-  #  end
-  #
-  #  define_c_method :increment_d_tick do
-  #    body "d_tick++"
-  #  end
-  #end
-
   end
 
 end

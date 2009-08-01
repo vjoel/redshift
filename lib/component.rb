@@ -247,11 +247,12 @@ class Component
   # one per variable, shared by subclasses which inherit it
   # not a run-time object, except for introspection
   class ContVar   ## name shouldn't be same as C class
-    attr_reader :name
-    def initialize name, index_delta, cont_state
+    attr_reader :name, :writable
+    def initialize name, index_delta, cont_state, writable
       @name = name  ## name needed?
       @index_delta = index_delta
       @cont_state = cont_state
+      @writable = writable
     end
     def index
       @cont_state.inherited_var_count + @index_delta
@@ -267,7 +268,7 @@ class Component
       "struct {} begin_vars __attribute__ ((aligned (8)))"
       # could conceivably have to be >8, or simply ((aligned)) on some platforms
       # but this seems to work for x86 and sparc
-      
+    
     class << self
       def make_subclass_for component_class
         if component_class == Component
@@ -288,10 +289,15 @@ class Component
           (superclass.find_var var_name if superclass != ContState)
       end
 
-      def add_var var_name    # yields to block only if var was added
+      def add_var var_name, writable    # yields to block only if var was added
         var = find_var var_name
-        unless var
-          var = @vars[var_name] = ContVar.new(var_name, @vars.size, self)
+        if var
+          unless var.writable == writable
+            raise "\nVariable #{var_name} redefined with different strictness."
+          end
+        else
+          var = @vars[var_name] =
+            ContVar.new(var_name, @vars.size, self, writable)
           shadow_attr var_name => "ContVar #{var_name}"
           yield if block_given?
         end
@@ -393,15 +399,23 @@ class Component
       @cont_state_class ||= ContState.make_subclass_for(self)
     end
     
-    def continuous(*var_names) # continuous :v1, :v2, ...
+    def strictly_continuous(*var_names)
+      _continuous(false, var_names)
+    end
+    
+    def continuous(*var_names)
+      _continuous(true, var_names)
+    end
+    
+    def _continuous(writable, var_names)
       var_names.collect do |var_name|
         var_name = var_name.intern if var_name.is_a? String
         ssn = cont_state_class.shadow_struct.name
         exc = shadow_library.declare_class AlgebraicAssignmentError
         msg = "\\\\nCannot set #{var_name}; it is defined algebraically."
-        cont_state_class.add_var var_name do
+        
+        cont_state_class.add_var var_name, writable do
           class_eval %{
-          
             define_method :#{var_name} do
               declare :cont_state => "#{ssn} *cont_state"
               body %{
@@ -412,21 +426,24 @@ class Component
               }
               returns "rb_float_new(cont_state->#{var_name}.value_0)"
             end
-            
-            define_method :#{var_name}= do
-              arguments :value
-              declare :cont_state => "#{ssn} *cont_state"
-              body %{
-                cont_state = (#{ssn} *)shadow->cont_state;
-                if (cont_state->#{var_name}.algebraic)
-                  rb_raise(#{exc}, #{msg.inspect});
-                cont_state->#{var_name}.value_0 = NUM2DBL(value);
-                d_tick++;
-              }
-              returns "value"
-            end
-            
           }
+          
+          if writable
+            class_eval %{
+              define_method :#{var_name}= do
+                arguments :value
+                declare :cont_state => "#{ssn} *cont_state"
+                body %{
+                  cont_state = (#{ssn} *)shadow->cont_state;
+                  if (cont_state->#{var_name}.algebraic)
+                    rb_raise(#{exc}, #{msg.inspect});
+                  cont_state->#{var_name}.value_0 = NUM2DBL(value);
+                  d_tick++;
+                }
+                returns "value"
+              end
+            }
+          end
         end
       end
     end

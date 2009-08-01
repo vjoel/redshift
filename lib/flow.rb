@@ -1,5 +1,3 @@
-require 'redshift/flow'
-
 =begin
 
 Flow syntax:

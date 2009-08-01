@@ -211,5 +211,3 @@ class World
 end # class World
 
 end # module RedShift
-
-require 'redshift/step.rb'

@@ -84,7 +84,8 @@ module RedShift
 
 end # module RedShift
 
-require 'redshift/clib.rb'
+require 'redshift/clib'
 require 'redshift/component'
 require 'redshift/world'
 require 'redshift/syntax'
+require 'redshift/step'

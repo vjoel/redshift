@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 1.0 18)
-(Parent-Version redshift 1.0 17)
+(Project-Version redshift 1.0 19)
+(Parent-Version redshift 1.0 18)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Sun, 29 Sep 2002 16:28:31 -0700")
+(Checkin-Time "Mon, 30 Sep 2002 12:26:26 -0700")
 (Checkin-Login tercel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -342,14 +342,14 @@
 ;; Files added by populate at Sun, 29 Sep 2002 16:27:47 -0700,
 ;; to version 1.0.17(w), by tercel:
 
-  (lib/world.rb (redshift/b/16_world.rb 1.1 644))
+  (lib/world.rb (redshift/b/16_world.rb 1.2 644))
   (lib/syntax.rb (redshift/b/17_syntax.rb 1.1 644))
   (lib/step.rb (redshift/b/18_step.rb 1.1 644))
   (lib/state.rb (redshift/b/19_state.rb 1.1 644))
-  (lib/redshift.rb (redshift/b/20_redshift.r 1.1 644))
+  (lib/redshift.rb (redshift/b/20_redshift.r 1.2 644))
   (lib/meta.rb (redshift/b/21_meta.rb 1.1 644))
-  (lib/flow.rb (redshift/b/22_flow.rb 1.1 644))
-  (lib/component.rb (redshift/b/23_component. 1.1 644))
+  (lib/flow.rb (redshift/b/22_flow.rb 1.2 644))
+  (lib/component.rb (redshift/b/23_component. 1.2 644))
   (lib/clib.rb (redshift/b/24_clib.rb 1.1 644))
 )
 (Merge-Parents)

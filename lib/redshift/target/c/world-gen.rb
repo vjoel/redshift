@@ -27,8 +27,14 @@ class World
     :next_P=, :next_E=, :next_R=, :next_G=,
     :active_E=, :prev_active_E=, :strict_sleep=
   
-  shadow_attr_writer   :time_step    => "double   time_step"
+  shadow_attr_accessor :time_step    => "double   time_step"
   shadow_attr_accessor :zeno_limit   => "long     zeno_limit"
+  shadow_attr_accessor :step_count   => "long     step_count"
+  shadow_attr_accessor :clock_start  => "double   clock_start"
+  shadow_attr_accessor :clock_finish => "double   clock_finish"
+  shadow_attr_accessor :zeno_counter => "long     zeno_counter"
+  
+  shadow_attr_reader   :discrete_phase  => Symbol
   
   class << self
     # Redefine World#new so that a library commit happens first.
@@ -44,6 +50,13 @@ class World
     end
   end
   
+  define_c_method :clock do
+    ## This is wrong if time_step changes.
+    returns %{
+      rb_float_new(shadow->step_count * shadow->time_step + shadow->clock_start)
+    }
+  end
+  
   define_c_method :step_continuous do
     declare :locals => %{
       VALUE             comp_rb_ary, *comp_ary;
@@ -56,9 +69,10 @@ class World
     declare :step_continuous_subs => %{
       inline ComponentShadow *get_shadow(VALUE comp)
       {
+        assert(rb_obj_is_kind_of(comp, #{declare_class Component}));
         return (ComponentShadow *)DATA_PTR(comp);
       }
-    } ## get_shadow is same as below -- make it a static fn
+    }
     body %{
       time_step = shadow->time_step;    //# assign global
       comp_rb_ary = shadow->curr_G;
@@ -125,8 +139,7 @@ class World
       long              i;
       long              sc;
       long              all_were_g, all_are_g;
-      long              zeno_counter;
-      long              zeno_limit;
+      int               started_events;
       static VALUE      ExitState, GuardWrapperClass, ExprWrapperClass;
       static VALUE      ProcClass, EventClass, ResetClass, GuardClass;
       static VALUE      DynamicEventClass;
@@ -135,7 +148,8 @@ class World
     capa = RUBY_VERSION.to_f >= 1.7 ? "aux.capa" : "capa"
     declare :step_discrete_subs => %{
       inline ComponentShadow *get_shadow(VALUE comp)
-      { //## assert type check?
+      {
+        assert(rb_obj_is_kind_of(comp, #{declare_class Component}));
         return (ComponentShadow *)DATA_PTR(comp);
       }
       inline VALUE cur_procs(ComponentShadow *comp_shdw)
@@ -232,8 +246,8 @@ class World
             break;
           case T_ARRAY:
             assert(RARRAY(guard)->len == 2); //## Future: allow 3: [l,e,value]
-            if (!zeno_counter || !test_event_guard(comp, guard))
-              return 0; //## should use different var than zeno_counter
+            if (!started_events || !test_event_guard(comp, guard))
+              return 0;
             break;
           case T_CLASS:
             assert(RTEST(rb_funcall(guard, #{declare_symbol "<"},
@@ -341,9 +355,9 @@ class World
                = rb_const_get(#{comp_id}, #{declare_symbol :DynamicEventValue});
     }
     body %{
+      started_events = 0;
       all_were_g = 1;
-      zeno_counter = 0;
-      zeno_limit = shadow->zeno_limit;
+      shadow->zeno_counter = 0;
       sc = NUM2INT(step_count);
       
       while (sc-- != 0) {
@@ -351,6 +365,7 @@ class World
         int            list_i;
 
         //# GUARD phase. Start on phase 4 of 4, because everything's in G.
+        shadow->discrete_phase = #{declare_symbol :guard};
         EACH_COMP_ADVANCE(shadow->curr_G) {
           len = RARRAY(comp_shdw->outgoing)->len;
           ptr = RARRAY(comp_shdw->outgoing)->ptr;
@@ -390,16 +405,14 @@ class World
         all_were_g = all_are_g;
         
         //# Check for zeno problem.
-        zeno_counter++;
-        if (2 * zeno_counter > zeno_limit && zeno_limit >= 0)
-          if (zeno_counter > zeno_limit)
-            rb_raise(#{declare_class RedShift::ZenoError},
-                     "\\nExceeded zeno limit of %d.\\n", zeno_limit);
-          else
-            rb_funcall(shadow->self, #{declare_symbol :step_zeno},
-                       1, INT2NUM(zeno_counter));
+        if (shadow->zeno_limit >= 0) {
+          shadow->zeno_counter++;
+          if (shadow->zeno_counter > shadow->zeno_limit)
+            rb_funcall(shadow->self, #{declare_symbol :step_zeno}, 0);
+        }
         
         //# Begin a new step, starting with PROC phase
+        shadow->discrete_phase = #{declare_symbol :proc};
         EACH_COMP_ADVANCE(shadow->curr_P) {
           VALUE procs = cur_procs(comp_shdw);
           
@@ -413,6 +426,8 @@ class World
         }
 
         //# EVENT phase
+        started_events = 1;
+        shadow->discrete_phase = #{declare_symbol :event};
         SWAP_VALUE(shadow->active_E, shadow->prev_active_E);
         EACH_COMP_ADVANCE(shadow->curr_E) {
           VALUE events = cur_events(comp_shdw);
@@ -460,6 +475,7 @@ class World
         }
         
         //# RESET phase
+        shadow->discrete_phase = #{declare_symbol :reset};
         EACH_COMP_DO(shadow->curr_R) {
           ContVar  *var     = (ContVar *)(&comp_shdw->cont_state->begin_vars);
           VALUE     resets  = cur_resets(comp_shdw);
@@ -512,10 +528,12 @@ class World
       //## might be more efficient to move strict_sleep to curr_G?
       
       assert(RARRAY(shadow->active_E)->len == 0);
+      
+      shadow->discrete_phase = Qnil;
     }
   end
   private :step_discrete
-  
+
 end # class World
 
 end # module RedShift

@@ -4,7 +4,7 @@ if RUBY_VERSION == "1.6.6"
   puts "DEBUG mode is turned off in Ruby 1.6.6 due to bug."
   $DEBUG = false
 else
-###  $DEBUG = true
+  $DEBUG = true
 end
 
 if RUBY_VERSION == "1.8.0"
@@ -21,18 +21,29 @@ $REDSHIFT_DEBUG=3 ## what should this be?
 ### have to fix the CLIB_NAME problem before can do this
 ### require 'redshift/redshift' ## all the tests will need this anyway
 
-tests = ARGV.empty? ? Dir["test_*.rb"] : ARGV
+pat = ARGV.join("|")
+tests = Dir["test_*.rb"].grep(/#{pat}/)
 tests.sort!
-tests.delete_if {|f| /\.rb\z/ !~ f}
 
-tests.each do |file|
+#trap("CLD") do
+#  # trapping "INT" doesn't work because child gets the signal
+#  exit!
+#end
+
+failed = tests.reject do |file|
   puts "_"*50 + "\nStarting #{file}...\n"
-  system "ruby #{file}" ### better way?
+  system "ruby #{file}"
 #  pid = fork { ## should use popen3 so we can weed out successful output
 #    $REDSHIFT_CLIB_NAME = file
 #    require 'redshift/redshift'
 #    load file
 #  }
 #  Process.waitpid(pid)
-  ### should trap SIGINT and kill child process
+end
+
+puts "_"*50
+if failed.empty?
+  puts "All tests passed."
+else
+  puts "Some tests failed:", failed
 end

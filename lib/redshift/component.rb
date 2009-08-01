@@ -103,7 +103,7 @@ class Component
     "<#{self}#{s}#{cv}#{lv}#{d}>"
   end
   
-  def initialize(world, &block)
+  def initialize(world)
     if $REDSHIFT_DEBUG
       unless caller[1] =~ /redshift\/world.*`create'\z/ or
              caller[0] =~ /`initialize'\z/
@@ -122,7 +122,7 @@ class Component
       self.cont_state = self.class.cont_state_class.new
       
       do_defaults
-      instance_eval(&block) if block
+      yield self if block_given?
       do_setup
       
       if state

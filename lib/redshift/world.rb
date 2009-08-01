@@ -1,4 +1,3 @@
-require 'option-block/option-block' #### GET RID OF THIS!!!
 require 'pstore'
 require 'enum/op'
 
@@ -6,8 +5,10 @@ module RedShift
 
 class ZenoError < RuntimeError; end
 
+# Set zeno_level to this to turn off zeno checking.
+ZENO_UNLIMITED = -1
+
 class World
-  include OptionBlock
   include Enumerable
 
   @subclasses = []
@@ -27,25 +28,29 @@ class World
     new(*args, &block)          # which is what this line calls
   end
   
+  ## for debugging, usually want to call #to_a on this.
   attr_reader :components
   
-  option_block_defaults \
-    :name         =>  nil,
-    :time_step    =>  0.1,
-    :zeno_limit   =>  100,
-    :clock_start  =>  0.0,
-    :clock_finish =>  Infinity
+  def default_options
+    {
+      :name         =>  "#{self.class} #{@@count}",
+      :time_unit    =>  "second",
+      :time_step    =>  0.1,
+      :zeno_limit   =>  100,
+      :clock_start  =>  0.0,
+      :clock_finish =>  Infinity,
+    }
+  end
 
   @@count = 0
 
-  attr_reader :step_count
+  attr_accessor :name, :time_unit
   
   def started?; @started; end
   def running?; @running; end
 
-  def initialize(&block)
-    super ## for option-block
-    
+  # Can override the options using assignments in the block.
+  def initialize # :yields: world
     self.curr_P = []; self.curr_E = []; self.curr_R = []; self.curr_G = []
     self.next_P = []; self.next_E = []; self.next_R = []; self.next_G = []
     self.active_E = []; self.prev_active_E = []
@@ -55,19 +60,23 @@ class World
       next_P, next_E, next_R, next_G,
       strict_sleep
 
-    @name           = options[:name] || "#{self.class} #{@@count}"
-    self.time_step  = options[:time_step]
-    self.zeno_limit = options[:zeno_limit]
-    @clock_start    = options[:clock_start] ## are these two really needed?
-    @clock_finish   = options[:clock_finish]
-    @time_unit      = options[:time_unit] || "second"
+    options = default_options
+
+    @name             = options[:name]
+    @time_unit        = options[:time_unit]
+    self.time_step    = options[:time_step]
+    self.zeno_limit   = options[:zeno_limit]
+    self.clock_start  = options[:clock_start]
+    self.clock_finish = options[:clock_finish]
     
-    @step_count = 0
+    self.step_count = 0
     
     @@count += 1
 
+    yield self if block_given?
   end
   
+  # Registers code blocks to be run just before first step of world.
   def do_setup
     self.class.do_setup self
     if @setup_procs
@@ -88,13 +97,25 @@ class World
     end
   end
 
-  def create(component_class, &block)
+  def create(component_class)
     unless component_class < Component # Component is abstract
       raise TypeError, "#{component_class} is not a Component class"
     end
-    c = component_class.new(self, &block)
-    curr_G << c ## problem if occurs during guard?
-    c
+    
+    component = 
+      if block_given?
+        component_class.new(self) {|c| yield c}
+      else
+        component_class.new(self)
+      end
+    
+    if discrete_phase == :guard
+      next_G << component
+    else
+      curr_G << component
+    end
+    
+    component
   end
   
 ##  def remove c
@@ -102,6 +123,8 @@ class World
 ##  end
   
   # All evolution methods untimately call step, which can be overridden.
+  # After each step, yields to block. It is the block's responsibility to
+  # step_discrete at this point after changing any vars.
   def step(steps = 1)
     @running = true
     
@@ -112,14 +135,12 @@ class World
     
     step_discrete
     steps.to_i.times do
-      break if clock > @clock_finish
-      @step_count += 1
+      break if clock > clock_finish
+      self.step_count += 1
       step_continuous
       step_discrete
       @running = false
       yield self if block_given?  
-        ## it is client's responsibility to step_discrete at this point
-        ## if vars have been changed
       @running = true
     end
     
@@ -127,6 +148,7 @@ class World
     
   ensure
     @running = false
+    ## how to continue stepping after an exception?
   end
   
   def run(*args, &block)
@@ -134,24 +156,15 @@ class World
     step(*args, &block)
   end
   
-  ## maybe this shoud be called "evolve", to make it unambiguously a verb
+  ## maybe this should be called "evolve", to make it unambiguously a verb
   def age(time = 1.0, &block)
     run(time.to_f/time_step, &block)
   end
 
-  # This method is called for each discrete step after half of the zeno_limit
-  # has been exceeded.
-  def step_zeno zeno_counter
-    ## one useful behavior might be to shuffle guards in the active comps
-    puts "Zeno step: #{zeno_counter} / #{zeno_limit}"
-    ## print out the active components and their transitions if $DEBUG_ZENO?
+  # Default implementation is to raise RedShift::ZenoError.
+  def step_zeno
+    raise RedShift::ZenoError, "\nExceeded zeno limit of #{zeno_limit}.\n"
   end
-  
-  ## move to C
-  def clock
-    @step_count * time_step + @clock_start
-  end
-  
   
 ###  def garbage_collect
 ###    self.components.clear
@@ -181,7 +194,7 @@ class World
     if @started
       sprintf "<%s: %d step%s, %s #{@time_unit}%s, %d component%s>",
         @name,
-        @step_count, ("s" if @step_count != 1),
+        step_count, ("s" if step_count != 1),
         clock, ("s" if clock != 1),
         size, ("s" if size != 1)
     else

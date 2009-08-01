@@ -80,7 +80,8 @@ require 'test/unit'
 class TestSetup < Test::Unit::TestCase
   
   def setup
-    @world = World.new { time_step 0.1 }
+    @world = World.new
+    @world.time_step = 0.1
   end
   
   def teardown
@@ -92,7 +93,7 @@ class TestSetup < Test::Unit::TestCase
     ObjectSpace.each_object(Class) do |cl|
       if cl <= SetupTestComponent and
          cl.instance_methods.include? "assert_consistent"
-        testers << @world.create(cl) { self.x = 1 }
+        testers << @world.create(cl) { |tester| tester.x = 1 }
       end
     end
     

@@ -48,7 +48,8 @@ require 'test/unit'
 
 class TestInheritEvent < Test::Unit::TestCase
   def setup
-    @world = World.new { time_step 0.1 }
+    @world = World.new
+    @world.time_step = 0.1
   end
   
   def teardown

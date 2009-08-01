@@ -52,16 +52,15 @@ class World_2 < World
     super 1_000_000
   end
 
-  def initialize(&block)
-    super do
-      time_step       1.01
-      clock_start    90.001
-      clock_finish  100
-      block.call if block
-    end
+  def initialize
+    super
+
+    self.time_step     =   1.01
+    self.clock_start   =  90.001
+    self.clock_finish  = 100
     
     setup do
-      @timer = create(Timer) {self.t = 90.001}
+      @timer = create(Timer) {|timer| timer.t = 90.001}
     end
   end
 
@@ -77,11 +76,9 @@ end
 # test integer time step
 
 class World_2_1 < World_2
-  def initialize(&block)
-    super do
-      time_step    5
-      block.call if block
-    end
+  def initialize
+    super
+    self.time_step    = 5
   end
   def assert_consistent_before test
     test.assert_equal(90.001, clock)

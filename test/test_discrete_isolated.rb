@@ -65,7 +65,8 @@ require 'test/unit'
 class TestDiscrete < Test::Unit::TestCase
   
   def setup
-    @world = World.new { time_step 0.1 }
+    @world = World.new
+    @world.time_step = 0.1
   end
   
   def teardown
@@ -77,7 +78,8 @@ class TestDiscrete < Test::Unit::TestCase
     ObjectSpace.each_object(Class) do |cl|
       if cl <= DiscreteIsolatedTestComponent and
          cl.instance_methods.include? "assert_consistent"
-        world = World.new { time_step 0.1 }
+        world = World.new
+        world.time_step = 0.1
         testers << [world, world.create(cl)]
       end
     end

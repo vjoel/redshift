@@ -25,11 +25,16 @@ end
 
 
 class Component
-  # Create a component in the same world as this component.
-  def create(*args, &block)
-    world.create(*args, &block)
+  # Create a component in the same world as this component. This method is
+  # provided for convenience. It just calls World#create.
+  def create(component_class)
+    if block_given?
+      world.create(component_class) {|c| yield c}
+    else
+      world.create(component_class)
+    end
   end
-  
+
   # Specify the starting state +s+ of the component.
   # To be called only before the component starts running: during the default,
   # setup, or initialization block (block passed to Component#new).

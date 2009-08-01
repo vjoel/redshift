@@ -14,8 +14,8 @@ end
 class TestNumerics < Test::Unit::TestCase
   
   def setup
-    @world = World.new { time_step 0.1 }
-      
+    @world = World.new
+    @world.time_step = 0.1
   end
   
   def teardown
@@ -23,7 +23,7 @@ class TestNumerics < Test::Unit::TestCase
   end
   
   def test_rational
-    c = @world.create(Timer) {self.x = 1/2}
+    c = @world.create(Timer) { |timer| timer.x = 1/2}
     @world.run 100
     assert_in_delta(10.5, c.x, 0.000001)
   end

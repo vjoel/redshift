@@ -1,4 +1,4 @@
-require "redshift/redshift"
+require "redshift"
 require "plot/plot"
 
 include RedShift

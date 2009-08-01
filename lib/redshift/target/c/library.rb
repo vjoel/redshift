@@ -18,6 +18,7 @@ module RedShift
 
       if $REDSHIFT_DEBUG
         include_file.include "<assert.h>"
+        ## better to use something that raises a ruby exception
       else
         include_file.declare :assert => %{#define assert(cond) 0}
       end

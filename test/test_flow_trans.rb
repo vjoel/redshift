@@ -133,7 +133,9 @@ require 'test/unit'
 class TestFlow < Test::Unit::TestCase
   
   def setup
-    @world = World.new { time_step 0.01; self.zeno_limit = 100 }
+    @world = World.new
+    @world.time_step = 0.01
+    @world.zeno_limit = 100
   end
   
   def teardown

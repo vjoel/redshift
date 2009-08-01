@@ -246,7 +246,7 @@ class Component
     do_assignment_map instance, @setup_map if @setup_map
     if @setup_procs
       @setup_procs.each do |pr|
-        instance.instance_eval(&pr) ## should be pr.call(instance) ?
+        instance.instance_eval(&pr)
       end
     end
   end

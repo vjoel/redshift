@@ -1,3 +1,9 @@
+redshift 1.2.4
+
+- Fixed World.open when it is called before World.new has been called.
+
+- Minor doc cleanup and test additions.
+
 redshift 1.2.3
 
 - Fixed a bug in step_continuous introduced with the "diff_list" optimization.

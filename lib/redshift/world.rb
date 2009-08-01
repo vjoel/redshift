@@ -41,7 +41,6 @@ class World
     end
   end
   
-  # see comment in redshift.rb
   def self.new(*args, &block)
     RedShift.require_target     # redefines World.new
     new(*args, &block)          # which is what this line calls
@@ -248,6 +247,9 @@ class World
   end
   
   def World.open filename
+    RedShift.require_target
+    commit
+    
     world = nil
     store = PStore.new filename
     store.transaction do

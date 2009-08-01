@@ -12,9 +12,11 @@ module RedShift
       sub.shadow_library_file file_name
     end
     
-    ## it would be better to allow subclassing post-commit, but only if
-    ## non-compiled stuff is overridden in subclass
-    after_commit {subclasses.freeze}
+    after_commit do
+      # This is necessary because cont_state_class is lazy. ContState classes
+      # not defined at this point don't need to be committed.
+      subclasses.each {|cl| cl.cont_state_class}
+    end
 
     library.declare_extern :typedefs => %{
       typedef struct #{shadow_struct_name} ComponentShadow;

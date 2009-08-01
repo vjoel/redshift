@@ -1,16 +1,12 @@
 # Copyright (C) 2001-2006, Joel VanderWerf
 # Distributed under the Ruby license. See www.ruby-lang.org.
 
-##require 'mathn' ## maybe this should be left to the client code to decide
-
 # Read all environment variables related to RedShift and store in globals
 ## see importenv.rb for a way to keep these in sync
 ENV.keys.grep(/RedShift/i) do |key|
   val = ENV[key] # make eval safe
   eval "$#{key} = val unless defined? $#{key}"
 end
-
-## parse command line args
 
 if $REDSHIFT_DEBUG
   f = $stderr
@@ -106,8 +102,8 @@ when /^dot$/i
   $REDSHIFT_TARGET = 'redshift/target/dot'
 end
 
-# There could be other things here... YAML, HSIF, Teja, pure ruby reference
-# impl. etc. (but procs are a problem for all but ruby)
+# There could be other things here... Java, YAML, HSIF, Teja, pure ruby
+# reference impl. etc. (but procs are a problem for all but ruby)
 
 require 'redshift/syntax'
 

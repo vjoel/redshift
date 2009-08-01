@@ -152,19 +152,6 @@ Semantics
     this would be useful for timers so that client component doesn't
     have to manage a ref to the timer
   
-  "together {}" clause in transitions
-  
-    or some other way of making resets and events parallel
-  
-    together do
-      before [do..end | "c_func()"]
-      reset ...
-      event ...
-      after [do..end | "c_func()"]
-    end
-  
-  abort guards
-  
   wait/sleep
     
     in a transition, saying "sleep n" says that the component will not
@@ -212,8 +199,6 @@ Semantics
     
     is this better than a simple method call?
       yes: can implement queue
-
-  randomize order of component list, and order of transition lists, optionally
 
   discrete evolution
     more flexibility:
@@ -268,7 +253,9 @@ Implementation
 
   Debug mode that uses hooks to add extra checking:
   
-    - d_tick rollover
+    - d_tick rollovercheck
+    
+    - check_strict (and make it *not* the default)
 
   Instead of caching flow function in each cont var, maybe just have pointer
   to a single per state object? This can also have the outgoing transitions,
@@ -289,9 +276,7 @@ Implementation
     profiling
       use valgrind, gprof, etc. to profile the C code
     compare with shift, matlab
-    
-    why do some simulations (TO4230) alternate between fast and slow?
-  
+      
   run time error checking
     more 'if $DEBUG ...' checks
     catch definition of flows after commit, etc.
@@ -317,9 +302,6 @@ Implementation
   
   dot backend (see file in lib dir)
   
-  optimization: on SMP systems, use threads to evaluate guards and RHS and
-    to perform final assignments
-
 User interface
 
   yaml and pp outputs

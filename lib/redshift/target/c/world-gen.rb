@@ -86,12 +86,6 @@ class World
       commit              # redefines World.new  
       new(*args, &block)  # which is what this line calls
     end
-
-    alias generic_open open
-    def open(*args, &block)
-      commit              # defines World.alloc methods
-      generic_open(*args, &block)
-    end
   end
   
   define_c_method :clock do

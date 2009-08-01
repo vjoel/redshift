@@ -278,9 +278,27 @@ class StrictLinkToNonStrictVar < TestComponent
 end
 
 # test that, if evaluation of a strict guard is deferred due to a transition
-# then it is still evaluated. (Focus on orig==dest, because that's more likely
-# to fail.)
+# then it is still evaluated.
 class StrictGuardsEvaled < TestComponent
+  strictly_constant :k
+  constant :l
+  transition do
+    guard "l==0"
+    reset :l => 1
+  end
+  transition Enter => Exit do
+    guard "k<1"
+  end
+  def assert_consistent(test)
+    if l > 0
+      test.assert_equal(Exit, state)
+    end
+  end
+end
+
+# test that, if evaluation of a strict guard is deferred due to a transition
+# then it is still evaluated.
+class StrictGuardsEvaled2 < TestComponent
   strictly_constant :k
   transition do
     guard "k<1"
@@ -289,7 +307,7 @@ end
 
 # Test that there is no memory of which strict guards have been "checked"
 # after moving to a new state.
-class StrictGuardsEvaled2 < TestComponent
+class StrictGuardsEvaled3 < TestComponent
   state :S1, :S2
   link :checker => :Checker
   constant :i => 0
@@ -307,7 +325,7 @@ class StrictGuardsEvaled2 < TestComponent
   class Checker < Component
     strictly_constant :x => 0, :y => 1
     state :S1
-    link :emitter => StrictGuardsEvaled2
+    link :emitter => StrictGuardsEvaled3
     transition Enter => Exit do
       guard "x > 0"
       post {raise}
@@ -354,7 +372,7 @@ class TestStrictContinuity < Test::Unit::TestCase
     testers.each { |t| t.assert_consistent self }
     @world.run 0
       # now we can check what happened after one discrete step, which
-      # is needed for StrictGuardsEvaled2.
+      # is needed for StrictGuardsEvaled3.
     testers.each { |t| t.assert_consistent self }
     @world.run 10 do
       testers.each { |t| t.assert_consistent self }
@@ -384,7 +402,7 @@ class TestStrictContinuity < Test::Unit::TestCase
   end
   
   def test_StrictGuardsEvaled
-    c = @world.create(StrictGuardsEvaled)
+    c = @world.create(StrictGuardsEvaled2)
     assert_raises(RedShift::ZenoError) do
       @world.run 10
     end

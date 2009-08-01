@@ -110,3 +110,11 @@ Plot.new 'gnuplot' do
   show
   pause 5
 end
+
+class Late < C
+  attr_accessor :foo
+end
+
+late = world.create(Late)
+late.foo = 3
+p late

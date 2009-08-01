@@ -343,6 +343,16 @@ class World
         rslt = (*fn)(get_shadow(comp));
         return rslt;
       }
+      inline static ComponentShadow *eval_comp_expr(VALUE comp, VALUE expr)
+      {
+        ComponentShadow *(*fn)(ComponentShadow *);
+        ComponentShadow *rslt;
+        assert(rb_obj_is_kind_of(expr, ExprWrapperClass));
+        fn = ((#{RedShift::Component::ExprWrapper.shadow_struct.name} *)
+               get_shadow(expr))->expr;
+        rslt = (*fn)(get_shadow(comp));
+        return rslt;
+      }
       inline static int test_cexpr_guard(VALUE comp, VALUE guard)
       {
         int (*fn)(ComponentShadow *), rslt;
@@ -732,8 +742,11 @@ class World
             if (RBASIC(reset)->klass == rb_cProc) {
               new_value =
                 (VALUE)(rb_funcall(comp, #{insteval_proc}, 1, reset));
-            } else
-                ; //## unimpl--see component-gen.rb
+            } else {
+              ComponentShadow *new_sh;
+              new_sh = (ComponentShadow *) eval_comp_expr(comp, reset);
+              new_value = new_sh ? new_sh->self : Qnil;
+            }
 
             if (!NIL_P(new_value) &&
                 rb_obj_is_kind_of(new_value, RARRAY(pair)->ptr[3]) != Qtrue) {

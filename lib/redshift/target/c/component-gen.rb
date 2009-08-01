@@ -750,10 +750,10 @@ module RedShift
         end
       end
       
-      def define_reset(expr)
+      def define_reset(expr, type = "double")
         @expr_wrapper_hash ||= {} ## could be a superhash?
         @expr_wrapper_hash[expr] ||=
-          ResetExpr.new(expr).wrapper(self)
+          ResetExpr.new(expr, type).wrapper(self)
       end
       
       def define_resets(phase)
@@ -836,8 +836,7 @@ module RedShift
         
         case expr
         when String
-          raise "Unimplemented" ## does this make sense?
-          reset = define_reset(expr)
+          reset = define_reset(expr, "ComponentShadow *")
 
           after_commit do
             phase << [offset_of_var(var), reset.instance, var, type]

@@ -57,8 +57,11 @@ module RedShift; class CexprGuard
 end; end
 
 module RedShift; class Expr
-  def initialize f
+  attr_reader :type
+  
+  def initialize f, type = "double"
     super nil, f
+    @type = type
   end
   
   @@serial = 0
@@ -81,7 +84,7 @@ module RedShift; class Expr
       
       shadow_library_source_file.define(expr_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"
-        return_type "double"
+        return_type expr.type
         declare :shadow => %{
           struct #{ssn} *shadow;
           struct #{cont_state_ssn} *cont_state;
@@ -91,7 +94,7 @@ module RedShift; class Expr
           shadow = (#{ssn} *)comp_shdw;
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;
         }
-        declare :result => "double result"
+        declare :result => "#{expr.type} result"
         translation = expr.translate(self, "result", 0, cl)
         body %{
           #{translation.join("

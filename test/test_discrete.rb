@@ -508,10 +508,11 @@ end
 
 # guard expr accepts "lnk.lnk"
 class Discrete_21 < DiscreteTestComponent
-  link :lnk => self
+  link :lnk => self, :old_lnk => self
   
   total = 2
   setup do
+    self.name = total
     if total > 0
       total -= 1
       self.lnk = create(self.class)
@@ -520,11 +521,13 @@ class Discrete_21 < DiscreteTestComponent
   
   transition Enter => Exit do
     guard "lnk && lnk.lnk"
+    reset :lnk => "lnk.lnk", :old_lnk => "lnk"
   end
   
   def assert_consistent test
-    if lnk && lnk.lnk
+    if name == 2
       test.assert_equal(Exit, state)
+      test.assert_equal(old_lnk.lnk, lnk)
     else
       test.assert_equal(Enter, state)
     end

@@ -406,7 +406,10 @@ Implementation
     profiling
       use valgrind, gprof, etc. to profile the C code
     compare with shift, matlab
-      
+  
+  compile time error checking:
+    translate C compiler error (e.g. bad result type in expr) to ruby exception
+  
   run time error checking
     more 'if $DEBUG ...' checks
     catch definition of flows after commit, etc.

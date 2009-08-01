@@ -240,6 +240,10 @@ module TransitionSyntax
       @events = []
       instance_eval(&block)
     end
+    
+    def literal val
+      Component.literal val
+    end
   end
   
   class TransitionParser
@@ -315,8 +319,13 @@ module TransitionSyntax
     
     # each arg can be an event name (string or symbol), exported with value 
     # +true+, or a hash of event_name => value. In the latter case, _value_
-    # can be either a Proc or a literal.
-    ## Should allow :e => c_expr as well.
+    # can be either a Proc, string (C expr), or a literal. If you need to
+    # treat a Proc or string as a literal, use the notation
+    #
+    #  :e => literal "str"
+    #
+    #  :e => literal {...}
+    #
     def event(*args, &bl)
       events = Component::EventPhase.new
       for arg in args
@@ -343,6 +352,10 @@ module TransitionSyntax
         events.concat(eb.events)
       end
       @phases << events
+    end
+    
+    def literal val
+      Component.literal val
     end
   end
 end

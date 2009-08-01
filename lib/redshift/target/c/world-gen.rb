@@ -691,11 +691,13 @@ class World
             VALUE event_val = RARRAY(*ptr)->ptr[#{epi::V_IDX}];
             
             //## maybe this distinction should be made clear in the array
-            //## itself.
+            //## itself, with a numeric switch, say.
             if (TYPE(event_val) == T_DATA &&
                 rb_obj_is_kind_of(event_val, DynamicEventClass))
               event_val = rb_funcall(comp, #{insteval_proc}, 1, event_val);
-
+            else if (rb_obj_is_kind_of(event_val, ExprWrapperClass))
+              event_val = rb_float_new(eval_expr(comp, event_val));
+            
             //%% hook_export_event(comp, RARRAY(*ptr)->ptr[#{epi::E_IDX}],
             //%%   event_val);
             RARRAY(comp_shdw->next_event_values)->ptr[event_idx] = event_val;

@@ -65,16 +65,19 @@ module Discrete
   end
 
   def self.do_bench
-    [ [       1, 1_000_000   ],
-      [      10,   100_000   ],
-      [     100,    10_000   ],
-      [   1_000,     1_000   ],
-      [  10_000,       100   ],
-      [ 100_000,        10   ] ].each do
-      |     n_c,       n_s|
-      
-      [0, 1, 5].each do |watcher|
-        do_bench_one(n_c, n_s, watcher) {|r| yield r}
+    [0, 1, 5].each do |n_w|
+      [ [       1, 1_000_000   ],
+        [      10,   100_000   ],
+        [     100,    10_000   ],
+        [   1_000,     1_000   ],
+        [  10_000,       100   ],
+        [ 100_000,        10   ] ].each do
+        |     n_c,       n_s|
+        if n_w > 1
+          do_bench_one(n_c, n_s/n_w, n_w) {|r| yield r}
+        else
+          do_bench_one(n_c, n_s, n_w) {|r| yield r}
+        end
       end
     end
   end

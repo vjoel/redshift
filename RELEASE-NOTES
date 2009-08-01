@@ -1,3 +1,7 @@
+redshift 1.1.58
+
+- Event values may now be C exprs. Use #literal to force literal string/proc.
+
 redshift 1.1.57
 
 - Changed behavior when leaving state in which var is defined by alg flow,

@@ -70,19 +70,18 @@ end
 #     ----------------------------
 #     Redundant state declarations
 
-### -- obsolete? --
-###class Trans_2 < TransTestComponent
-###  state :A, :B, :C, :D
-###  transition Enter => A, A => B, C => D
-###end
-###
-###class Trans_2_1 < Trans_2
-###  transition B => C
-###  def assert_consistent test
-###    test.assert(state == Enter || state == D,
-###                "State is #{state.name}, not Enter or D")
-###  end
-###end
+class Trans_2 < TransTestComponent
+  state :A, :B, :C, :D
+  transition Enter => A, A => B, C => D
+end
+
+class Trans_2_1 < Trans_2
+  transition B => C
+  def assert_consistent test
+    test.assert(state == Enter || state == D,
+                "State is #{state.name}, not Enter or D")
+  end
+end
 
 #     ------
 #     Events
@@ -92,7 +91,7 @@ end
 class Trans_3 < TransTestComponent
   state :A
   transition Enter => A do
-    event :e => "fred"
+    event :e => literal("fred")
   end
 end
 

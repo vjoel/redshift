@@ -698,6 +698,18 @@ module RedShift
           end
         end
       end
+      
+      def define_event_phase phase
+        phase.each do |item|
+          case item.value
+          when ExprEventValue
+            wrapper_mod = define_reset(item.value)
+            after_commit do
+              item.value = wrapper_mod.instance
+            end
+          end
+        end
+      end
 
       def define_transitions(state)
         # transitions don't usually have names, so the following (insertion
@@ -710,6 +722,8 @@ module RedShift
             case phase
             when ResetPhase
               define_resets(phase)
+            when EventPhase
+              define_event_phase(phase)
             end
           end
         end

@@ -80,7 +80,16 @@ class Component
     index_accessor :event => E_IDX, :value => V_IDX, :index => I_IDX
 
     def value=(val)
-      self[V_IDX] = Component::DynamicEventValue.new(&val) rescue val
+      self[V_IDX] = case val
+      when Proc
+        DynamicEventValue.new(&val)
+      when String
+        ExprEventValue.new val
+      when Literal # e.g., literal "x", or literal {...}
+        val.literal_value
+      else
+        val
+      end
     end
 
     def inspect; "<Event #{event}: #{value.inspect}>"; end
@@ -95,6 +104,15 @@ class Component
   end
 
   class DynamicEventValue < Proc; end
+  class ExprEventValue < String; end
+  
+  class Literal
+    attr_accessor :literal_value
+    def initialize val; self.literal_value = val; end
+  end
+  def Component.literal val
+    Literal.new val
+  end
   
   # Unique across all Worlds and Components in the process. Components are
   # numbered in the order which this method was called on them and not

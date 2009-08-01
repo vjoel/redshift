@@ -158,6 +158,29 @@ class Discrete_7b < DiscreteTestComponent
   end
 end
 
+# Also, can use C exprs.
+
+class Discrete_7c < DiscreteTestComponent
+  constant :z => 0.31
+  transition Enter => Exit do
+    event :g => "z+0.11"
+  end
+end
+
+class Discrete_7d < DiscreteTestComponent
+  state :A
+  link :x => Discrete_7c
+  setup { self.x = create Discrete_7c }
+  transition Enter => A do
+    guard [:x, :g]
+    action {@x_g = x.g}
+  end
+  def assert_consistent test
+    test.assert_equal(A, state)
+    test.assert_in_delta(0.42, @x_g, 1.0E-10)
+  end
+end
+
 # a guard testing for event doesn't need a block
 
 class Discrete_8a < DiscreteTestComponent
@@ -166,7 +189,7 @@ class Discrete_8a < DiscreteTestComponent
     event :e
   end
   transition A => B do
-    event :f => 2.3
+    event :f => 2.3, :g => literal("x+1") # Not an expr!
   end
 end
 
@@ -177,13 +200,14 @@ class Discrete_8b < DiscreteTestComponent
   end
   transition A => B do
     guard [:x, :f]    # alt. syntax, in future will allow value
-    action {@x_f = x.f}
+    action {@x_f = x.f; @x_g = x.g}
   end
   link :x => Discrete_8a
   setup { self.x = create Discrete_8a }
   def assert_consistent test
     test.assert_equal(B, state)
     test.assert_equal(2.3, @x_f)
+    test.assert_equal("x+1", @x_g)
   end
 end
 

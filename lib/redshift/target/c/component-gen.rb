@@ -360,7 +360,7 @@ module RedShift
           if kind == :strict
             shadow_attr_reader var_name => "double #{var_name}"
             exc2 = shadow_library.declare_class ContinuousAssignmentError
-            msg2 = "Cannot reset strictly continuous #{var_name} in #{self}."
+            msg2 = "Cannot reset strictly constant #{var_name} in #{self}."
             
             class_eval %{
               define_c_method :#{var_name}= do
@@ -489,7 +489,8 @@ module RedShift
             ## use the defer mechanism from teja2hsif
             if not flow.strict and cont_var.strict?
               raise StrictnessError,
-                "Variable #{cont_var.name} redefined with different strictness."
+                "Variable #{cont_var.name} in #{self} " +
+                "redefined with different strictness."
             end
           end
         end

@@ -1,7 +1,8 @@
 require 'my-profile'
 
-$strict = (ARGV[0] =~ /^-s/)
+$strict = ARGV.delete("-s")
 
+# This makes a 5x difference!
 if $strict
   $REDSHIFT_CLIB_NAME = "strictness-on"
 else
@@ -14,18 +15,20 @@ include RedShift
 class SimpleComponent < Component
 
   if $strict
-    strictly_continuous :t
+    strictly_continuous :y
   end
+  continuous :x
+  link :other => SimpleComponent
 
-  state :A, :B; default { start A }
+  state :A, :B; default { start A; self.other = self }
   
   flow A do
-    diff "t' = 1"
+    diff "y' = 1 + x" # y still strict even though x is not
   end
   
   5.times do
     transition A => B do
-      guard " pow(t, 2) - sin(t) + cos(t) < 0 "
+      guard " pow(y, 2) - sin(y) + cos(y) < 0 "
     end
   end
 
@@ -57,13 +60,23 @@ class ComplexComponent < Component
   
 end
 
-w = World.new { time_step 0.01 }
+hz = 100
+ts = 1.0/hz
+w = World.new { |w| w.time_step = ts }
 1000.times do w.create SimpleComponent end
-100.times do |i|
+hz.times do |i|
   cc = w.create ComplexComponent
-  cc.start_value = i/100
+  cc.start_value = i*ts
 end
 
+times = Process.times
+t0 = Time.now
+pt0 = times.utime #+ times.stime
 profile false do
   w.run 1000
 end
+times = Process.times
+t1 = Time.now
+pt1 = times.utime #+ times.stime
+puts "process time: %.2f" % (pt1-pt0)
+puts "elapsed time: %.2f" % (t1-t0)

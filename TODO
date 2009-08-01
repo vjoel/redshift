@@ -30,6 +30,8 @@ Syntax
 
 Semantics
 
+  evaluate Events in parallel with Resets
+  
   inheritance among states:
   
     "state Foo has everything that Bar has, plus ...."

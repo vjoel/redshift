@@ -164,7 +164,7 @@ class World
       step_continuous
       step_discrete
       @running = false
-      yield self if block_given?  
+      yield self if block_given?
       @running = true
     end
     

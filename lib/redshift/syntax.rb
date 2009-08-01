@@ -183,6 +183,21 @@ class << Component
   def strict_input(*var_names)
     attach_input :strict, var_names
   end
+  
+  def strict(*var_names)
+    var_names.each do |var_name|
+      dest = find_var_superhash(var_name)
+      case dest
+      when nil
+       raise VarTypeError, "Variable #{var_name.inspect} not found."
+      when link_variables
+        var_type = link_variables[var_name].first
+        attach_variables(dest, :strict, [var_name], var_type)
+      else
+        attach_variables(dest, :strict, [var_name])
+      end
+    end
+  end
 end
 
 # Defines the flow types that can be used within a flow block.

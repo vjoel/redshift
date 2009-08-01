@@ -5,7 +5,6 @@ Publishing RedShift
 
     transition local vars
     tracer
-    better error messages?
 
   doc, tutorial, web site
 
@@ -57,8 +56,10 @@ Publishing RedShift
   - library of integrators/flows and components
   - jruby/jvm port (and use duby for actions etc)
   - import models from simulink, Ptolemy, HSIF, etc.
-  - interface at run time with simulink etc. (HLA?)
+  - interface at run time with simulink etc.
+    - redshift as simulink block
   - rt code generation?
+  - HLA support for interoperability
 
   backronym: Ruby-based Efficient Deterministic SHIFT
 

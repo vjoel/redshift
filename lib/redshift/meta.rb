@@ -134,14 +134,14 @@ class Component
       result
     end
     
-    def attach_variables(dest, kind, var_names)
+    def attach_variables(dest, kind, var_names, var_type = nil)
       if var_names.last.kind_of? Hash
         h = var_names.pop
         var_names.concat h.keys.sort_by {|n|n.to_s}
         defaults h
       end
       var_names.each do |var_name|
-        dest[var_name] = kind
+        dest[var_name.to_sym] = var_type ? [var_type, kind] : kind
       end
     end
 
@@ -159,6 +159,11 @@ class Component
       var_names.each do |var_name|
         input_variables[var_name.to_sym] = kind
       end
+    end
+    
+    def find_var_superhash var_name
+      [continuous_variables, constant_variables,
+       link_variables, input_variables].find {|sh| sh[var_name]}
     end
   end
 

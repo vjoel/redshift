@@ -302,7 +302,9 @@ module RedShift
 
     shadow_attr_reader :nonpersistent, :outgoing    => Array
     shadow_attr_reader :nonpersistent, :trans       => Transition
-    shadow_attr_reader :nonpersistent, :dest        => State
+    
+    shadow_attr_accessor :nonpersistent, :dest        => State
+    protected :dest=
 
     # The values of each event currently being emitted, indexed by event ID.
     # If not emitted, nil. We consider false to be an emitted value.

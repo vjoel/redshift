@@ -5,7 +5,7 @@ include RedShift
 
 class C < Component
   pi = Math::PI
-  constant :d => 0.02
+  constant :d => 0.3
 
   flow do
     diff   "       t' = 1 "

@@ -1,3 +1,7 @@
+redshift 1.2.12
+
+- Fixed bug with delay defined by a constant attr.
+
 redshift 1.2.11
 
 - Added delay flows (for delay constant).

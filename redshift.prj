@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 1.2 11)
-(Parent-Version redshift 1.2 10)
+(Project-Version redshift 1.2 12)
+(Parent-Version redshift 1.2 11)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Thu, 13 Mar 2008 00:50:02 -0700")
+(Checkin-Time "Thu, 13 Mar 2008 00:57:22 -0700")
 (Checkin-Login vjoel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -304,7 +304,7 @@
 ;; Files added by populate at Thu, 16 May 2002 00:16:02 -0700,
 ;; to version 1.0.7(w), by tercel:
 
-  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.34 644))
+  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.35 644))
 
 ;; Files added by populate at Thu, 16 May 2002 00:16:26 -0700,
 ;; to version 1.0.7(w), by tercel:
@@ -545,10 +545,10 @@
   (lib/redshift/target/c/flow/expr.rb (redshift/c/26_expr.rb 1.1 644))
   (lib/redshift/target/c/flow/euler.rb (redshift/c/27_euler.rb 1.1 644))
   (lib/redshift/target/c/flow/derivative.rb (redshift/c/28_derivative 1.1 644))
-  (lib/redshift/target/c/flow/delay.rb (redshift/c/29_delay.rb 1.1 644))
+  (lib/redshift/target/c/flow/delay.rb (redshift/c/29_delay.rb 1.2 644))
   (lib/redshift/target/c/flow/buffer.rb (redshift/c/30_buffer.rb 1.1 644))
   (lib/redshift/target/c/flow/algebraic.rb (redshift/c/31_algebraic. 1.1 644))
-  (examples/delay.rb (redshift/c/32_delay.rb 1.1 644))
+  (examples/delay.rb (redshift/c/32_delay.rb 1.2 644))
 )
 (Merge-Parents)
 (New-Merge-Parents)

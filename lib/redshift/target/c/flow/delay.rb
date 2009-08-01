@@ -47,17 +47,18 @@ class RedShift::DelayFlow
           rk_level--;
         } # has to happen before referenced alg flows are called in other setups
 
-        case delay_by
-        when /\A\w+\z/
-          flow.translate(self, "delay", 0, cl, delay_by)
-        else
-          begin
-            setup :delay => "delay = #{Float(delay_by)}"
-          rescue ArgumentError
-            raise ArgumentError,
-              "Delay by expression #{delay_by.inspect} not implemented."
+        setup :delay => 
+          case delay_by
+          when /\A\w+\z/
+            flow.translate(self, "delay", 0, cl, delay_by)
+          else
+            begin
+              "delay = #{Float(delay_by)}"
+            rescue ArgumentError
+              raise ArgumentError,
+                "Delay by expression #{delay_by.inspect} not implemented."
+            end
           end
-        end
         
         include "World.h"
 

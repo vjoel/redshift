@@ -200,17 +200,17 @@ class Component
       VAR_TYPES.each do |var_type|
         var_list = self.class.send(var_type)
         unless var_list.empty?
-          strs = var_list.map {|name,info| name.to_s}.sort.map do |name|
+          strs = var_list.map {|vname,info| vname.to_s}.sort.map do |vname|
             begin
-              "#{name} = #{send(name) || "nil"}"
+              "#{vname} = #{send(vname) || "nil"}"
             rescue CircularDefinitionError
-              "#{name}: CIRCULAR"
+              "#{vname}: CIRCULAR"
             rescue UnconnectedInputError
-              "#{name}: UNCONNECTED"
+              "#{vname}: UNCONNECTED"
             rescue NilLinkError
-              "#{name}: NIL LINK"
+              "#{vname}: NIL LINK"
             rescue => ex
-              "#{name}: #{ex.inspect}"
+              "#{vname}: #{ex.inspect}"
             end
           end
           items << strs.join(", ")
@@ -361,7 +361,16 @@ class Component
       check_connectable
       component.connect(variable, port && port.component, port && port.variable)
     end
-    alias << connect
+    
+    def <<(other)
+      connect(other)
+      ##return other
+    end
+    
+    def >>(other)
+      other.connect(self)
+      ##return other
+    end
     
     def disconnect
       connect nil

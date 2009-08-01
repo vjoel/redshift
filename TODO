@@ -27,8 +27,13 @@ Publishing RedShift
   notify
   - shift-dev folks, hs researchers (e.g., Joao Hispanha)
   - contacts who have expressed interest in redshift or shift
+  - others:
+    http://www.dis.anl.gov/exp/cas/index.html
+    http://www.artcompsci.org
 
   publicize
+  - http://path.berkeley.edu/shift/
+    (this is still the first google hit for "hybrid system simulation")
   - ruby-talk, sciruby
   - public simulation lists/ngs/bbs/etc
   - paper?
@@ -39,12 +44,16 @@ Publishing RedShift
     - GM, with wrapping for CarSim dll
 
   long-term goals
+  - multiple clocks and threshold crossing detection, as in:
+      http://repository.upenn.edu/ese_papers/123/
   - vector-valued signals
     - need proper C parsing first
   - user-friendly interface and related tools
   - distributed simulation
   - library of integrators/flows and components
-  - jruby/jvm port
+  - jruby/jvm port (and use duby for actions etc)
+  - import models from simulink, HSIF, etc.
+  - rt code generation?
 
 
 
@@ -122,6 +131,8 @@ Semantics
     - output to data (or file) faster than ruby array of double
     
       (  record  " expr " => file ? )
+      
+      Use NArray of doubles for this?
     
     - need a language for piping data streams:
     

@@ -169,7 +169,7 @@ module RedShift
       ## maybe this should be in cgen as "shadow_aligned N"
       if /mswin/i =~ RUBY_PLATFORM
         shadow_struct.declare :begin_vars =>
-          "ContVar begin_vars[1]" ### wasted
+          "ContVar begin_vars[1]" ## wasted
         
         Component.shadow_library_include_file.declare :first_cont_var => '
           #define FIRST_CONT_VAR(shadow) ((shadow)->cont_state->begin_vars[1])
@@ -466,7 +466,21 @@ module RedShift
         "#{var_name}_src_offset"
       end
       
+      def input_target_struct
+        unless @input_target_struct
+          sf = shadow_library_source_file
+          st = @input_target_struct = sf.declare_extern_struct(:target)
+          st.declare :psh    => "char    *psh"
+          st.declare :type   => "short   type"
+          st.declare :offset => "short   offset"
+          ## will this always have the same layout as the struct members
+          ## in ComponentShadow?
+        end
+      end
+      
       def define_input(kind, var_names)
+        Component.input_target_struct
+        
         var_names.collect do |var_name|
           var_name = var_name.intern if var_name.is_a? String
           
@@ -474,9 +488,7 @@ module RedShift
           src_type    = src_type(var_name)
           src_offset  = src_offset(var_name)
           
-##          add_var_to_offset_table(src_comp) ## need these?
-##          add_var_to_offset_table(src_type) ## need these?
-##          add_var_to_offset_table(src_offset) ## need these?
+          add_var_to_offset_table(src_comp)
 
           ## readers only?
           shadow_attr_accessor src_comp   => [Component]
@@ -484,41 +496,59 @@ module RedShift
           shadow_attr_accessor src_offset => "short #{src_offset}"
           
           exc = shadow_library.declare_class UnconnectedInputError
-          msg = "Input #{var_name} is not connected."
+          msg = "Input #{var_name.inspect} is not connected."
           
+          exc_circ = shadow_library.declare_class CircularDefinitionError
+          msg_circ = "Circularity in input variable #{var_name} " +
+                "of class #{name}."
+
           define_c_method(var_name) do
-            declare :var => "ContVar *var"
-            declare :value => "double  value"
+            declare :value => "double           value"
+            declare :tgt   => "struct target    *tgt"
+            declare :sh    => "ComponentShadow  *sh"
+            declare :depth => "int              depth"
+            
             returns "rb_float_new(value)"
+            
             body %{
-              if (!shadow->#{src_comp} || shadow->#{src_type} == INPUT_NONE) {
+              depth = 0;
+              tgt = (struct target *)&shadow->#{src_comp};
+            
+            recurse:
+              if (!tgt->psh || tgt->type == INPUT_NONE) {
                 rs_raise(#{exc}, shadow->self, #{msg.inspect});
               }
+              
+              sh = (ComponentShadow *)tgt->psh;
 
-              switch (shadow->#{src_type}) {
-              case INPUT_CONT_VAR:
-                var = (ContVar *)&FIRST_CONT_VAR(shadow->#{src_comp});
-                var += shadow->#{src_offset};
+              switch (tgt->type) {
+              case INPUT_CONT_VAR: {
+                ContVar *var = (ContVar *)&FIRST_CONT_VAR(sh);
+                var += tgt->offset;
+                
                 if (var->algebraic &&
                     (var->strict ? !var->d_tick :
-                     var->d_tick != shadow->world->d_tick)) {
-                  (*var->flow)((ComponentShadow *)shadow);
+                     var->d_tick != sh->world->d_tick)) {
+                  (*var->flow)(sh);
                 }
                 else {
-                  if (shadow->world)
-                    var->d_tick = shadow->world->d_tick;
+                  if (sh->world)
+                    var->d_tick = sh->world->d_tick;
                 }
                 value = var->value_0;
                 break;
+              }
                 
               case INPUT_CONST:
-                value = *(double *)(
-                  &((char *)shadow->#{src_comp})[shadow->#{src_offset}]);
+                value = *(double *)(tgt->psh + tgt->offset);
                 break;
                 
               case INPUT_INP_VAR:
-                rb_raise(#{exc}, "Unimplemented: INPUT_INP_VAR"); //###
-                break;
+                tgt = (struct target *)(tgt->psh + tgt->offset);
+                if (depth++ > 100) {
+                  rs_raise(#{exc_circ}, shadow->self, #{msg_circ.inspect});
+                }
+                goto recurse;
               
               default:
                 assert(0);
@@ -565,14 +595,14 @@ module RedShift
       
       # Note: for constant and link vars. Offset is in bytes.
       def offset_of_var var_name
-        offset_table[var_name] or
-          raise "#{var_sym} is not a valid constant or link in #{self.class}"
+        offset_table[var_name.to_sym] or
+          raise "#{var_name.inspect} is not a valid constant or link in #{self}"
       end
       
       # Note: for constant and link vars. Offset is in bytes.
       def var_at_offset offset
         inv_offset_table[offset] or
-          raise "#{offset} is not a constant or link offset in #{self.class}"
+          raise "#{offset} is not a constant or link offset in #{self}"
       end
       
       def offset_table_method
@@ -915,10 +945,11 @@ module RedShift
       }
     end
     
-    ## class-level caching
-    ## define connect in C?
-    ## if need_connect...
-    def connect input_variable, other_component, other_variable
+    ## optimizations:
+    ##   class-level caching
+    ##   define connect in C?
+    ##   if need_connect...
+    def connect input_variable, other_component, other_var
       src_comp    = self.class.src_comp(input_variable)
       src_type    = self.class.src_type(input_variable)
       src_offset  = self.class.src_offset(input_variable)
@@ -936,44 +967,40 @@ module RedShift
           "Cannot reconnect or disconnect strict input: #{input_variable}."
       end
       
-      if other_variable and other_component
+      if other_var and other_component
         other_class = other_component.class
         
         case
-        when other_class.continuous_variables.key?(other_variable)
-          if strict and
-             not other_class.continuous_variables[other_variable] == :strict
-            raise StrictnessError,
-              "Cannot connect strict input, #{input_variable}, to non-strict " +
-              "source: #{other_variable} in #{other_component.class}."
-          end
+        when other_class.continuous_variables.key?(other_var)
+          other_strict = other_class.continuous_variables[other_var] == :strict
           
           type    = INPUT_CONT_VAR
           offset  = other_class.cont_state_class.vars.each {|v, desc|
-            break desc.index if v.to_sym == other_variable} ## table?
+            break desc.index if v.to_sym == other_var} ## table?
 
-        when other_class.constant_variables.key?(other_variable)
-          if strict and
-             not other_class.constant_variables[other_variable] == :strict
-            raise StrictnessError,
-              "Cannot connect strict input, #{input_variable}, to non-strict " +
-              "source: #{other_variable} in #{other_component.class}."
-          end
+        when other_class.constant_variables.key?(other_var)
+          other_strict = other_class.constant_variables[other_var] == :strict
           
           type    = INPUT_CONST
-          offset  = other_class.offset_of_var(other_variable)
+          offset  = other_class.offset_of_var(other_var)
 
-        when other_class.input_variables.key?(other_variable)
-          raise "Unimplemented" ###
-          ### check strict
+        when other_class.input_variables.key?(other_var)
+          other_strict = other_class.input_variables[other_var] == :strict
+
           type    = INPUT_INP_VAR
-          offset  = 0
+          offset  = other_class.offset_of_var(other_class.src_comp(other_var))
 
         else
           raise ArgumentError,
-            "No such variable, #{other_variable}, in #{other_class}."
+            "No such variable, #{other_var}, in #{other_class}."
         end
         
+        if strict and not other_strict
+          raise StrictnessError,
+            "Cannot connect strict input, #{input_variable}, to non-strict " +
+            "source: #{other_var} in #{other_component.class}."
+        end
+
       else
         type    = INPUT_NONE
         offset  = 0
@@ -1003,7 +1030,7 @@ module RedShift
       when INPUT_CONST
         comp.class.var_at_offset(offset)
       when INPUT_INP_VAR
-        raise ###
+        comp.class.var_at_offset(offset).gsub(src_comp(""), "") ## hacky?
       else
         nil
       end

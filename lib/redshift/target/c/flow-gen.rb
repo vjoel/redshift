@@ -94,44 +94,62 @@ module RedShift; class Flow
             exc = cl.shadow_library.declare_class UnconnectedInputError
             msg = "Input #{var} is not connected in"
 
+            exc_circ = cl.shadow_library.declare_class CircularDefinitionError
+            msg_circ = "Circularity in input variable #{var} " +
+                  "of class #{cl.name}."
+
             flow_fn.declare var_cname => "double    #{var_cname}"
+
+            # These are for following a chain of input connections:
+            flow_fn.declare :tgt      => "struct target    *tgt"
+            flow_fn.declare :sh       => "ComponentShadow  *sh"
+            flow_fn.declare :depth    => "int              depth"
+
             flow_fn.setup var_cname => %{
-              switch(shadow->#{src_type}) {
-              case INPUT_NONE:
+              depth = 0;
+              tgt = (struct target *)&shadow->#{src_comp};
+            
+            recurse_#{var_cname}:
+              if (!tgt->psh || tgt->type == INPUT_NONE) {
                 rs_raise(#{exc}, shadow->self, #{msg.inspect});
+              }
 
+              sh = (ComponentShadow *)tgt->psh;
+
+              switch(tgt->type) {
               case INPUT_CONT_VAR: {
-                ContVar *v;
-                v = (ContVar *)&FIRST_CONT_VAR(shadow->#{src_comp});
-                v += shadow->#{src_offset};
+                ContVar *var = (ContVar *)&FIRST_CONT_VAR(sh);
+                var += tgt->offset;
 
-                if (v->algebraic) {
-                  if (v->rk_level < shadow->world->rk_level ||
-                     (shadow->world->rk_level == 0 &&
-                      (v->strict ? !v->d_tick :
-                       v->d_tick != shadow->world->d_tick)
+                if (var->algebraic) {
+                  if (var->rk_level < sh->world->rk_level ||
+                     (sh->world->rk_level == 0 &&
+                      (var->strict ? !var->d_tick :
+                       var->d_tick != sh->world->d_tick)
                       ))
-                    (*v->flow)((ComponentShadow *)shadow->#{src_comp});
+                    (*var->flow)(sh);
                 }
                 else {
-                  v->d_tick = shadow->world->d_tick;
+                  var->d_tick = sh->world->d_tick;
                 }
 
-                #{var_cname} = (&v->value_0)[shadow->world->rk_level];
+                #{var_cname} = (&var->value_0)[sh->world->rk_level];
                 break;
               }
               
               case INPUT_CONST:
-                #{var_cname} = *(double *)(
-                  &((char *)shadow->#{src_comp})[shadow->#{src_offset}]);
+                #{var_cname} = *(double *)(tgt->psh + tgt->offset);
                 break;
               
               case INPUT_INP_VAR:
-                //###
-                break;
+                tgt = (struct target *)(tgt->psh + tgt->offset);
+                if (depth++ > 100) {
+                  rs_raise(#{exc_circ}, shadow->self, #{msg_circ.inspect});
+                }
+                goto recurse_#{var_cname};
               
               default:
-                assert(0); //###
+                assert(0);
               }
             }
             # The d_tick assignment is explained in component-gen.rb

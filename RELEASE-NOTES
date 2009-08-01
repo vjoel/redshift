@@ -1,3 +1,9 @@
+redshift 1.2.28
+
+- Input ports can be connected to input ports.
+
+- Added examples/subsystem.rb.
+
 redshift 1.2.27
 
 - Algebraic circularity checking no longer breaks when other exceptions happen.

@@ -11,8 +11,10 @@ end
 
 class B < Component
   input :y
+  input :yy # usually unused, so doesn't need to be connected
   flow do
     alg " z = y+1 "
+    alg " w = y + yy "
   end
   transition Enter => Exit do
     guard "y < 0"
@@ -137,5 +139,107 @@ class TestConnect < Test::Unit::TestCase
     assert_raises(UnconnectedInputError) do
       @b.y
     end
+  end
+  
+  def test_connect_to_input
+    b2 = @world.create(B)
+    @b.port(:y) << @a.port(:x)
+    b2.port(:y) << @b.port(:y)
+    @a.x = 3.456
+    assert_equal(@b.y, b2.y)
+    assert_equal(@a.x, b2.y)
+    assert_equal(b2.y+1, b2.z)
+  end
+  
+  def test_connect_input_chain
+    b = (0..99).map {@world.create(B)}
+    (0..98).each do |i|
+      b[i+1].port(:y) << b[i].port(:y)
+    end
+    b[0].port(:y) << @a.port(:x)
+
+    @a.x = 42.4242
+    assert_equal(@a.x, b[99].y)
+    assert_equal(@a.x, b[0].y)
+    
+    old_b_50 = b[50]
+    b[50] = @world.create(B)
+    b[50].port(:y) << b[49].port(:y)
+    b[51].port(:y) << b[50].port(:y)
+
+    @a.x = 987.789
+    assert_equal(@a.x, b[99].y)
+    assert_equal(@a.x, b[0].y)
+    assert_equal(@a.x, old_b_50.y)
+  end
+  
+  def make_circle n
+    b = (0...n).map {@world.create(B)}
+    n.times do |i|
+      b[i].port(:y) << b[(i+1)%n].port(:y)
+    end
+    b
+  end
+    
+  def test_connect_input_circular
+    [1, 2, 3, 10].each do |n|
+      b = make_circle(n)
+      assert_raises(RedShift::CircularDefinitionError) do
+        b[0].y
+      end
+    end
+  end
+  
+  def test_connect_input_flow
+    b = (0..5).map {@world.create(B)}
+    (0..4).each do |i|
+      b[i+1].port(:y) << b[i].port(:y)
+    end
+    b[0].port(:y) << @a.port(:x)
+        
+    @b.port(:y) << @a.port(:x) # ust so guard doesn't find y unconn.
+
+    @a.x = 1.0
+    assert_equal(@a.x, b[5].y)
+    assert_equal(@a.x, b[0].y)
+
+    @world.evolve 10
+    assert_equal(@a.x, b[5].y)
+    assert_equal(@a.x, b[0].y)
+  end
+
+  def test_connect_input_multiple
+    @b.port(:y) << @a.port(:x)
+    @b.port(:yy) << @b.port(:y) # Can connect to another var in self!
+    @a.x = 1.0
+    assert_equal(@a.x*2, @b.w)
+  end
+  
+  def test_linked_input
+    ### lnk.inp will fail
+  end
+  
+  ### strictness???
+  
+  def test_ports_change_when_reconnect
+    return
+    b2.port(:y) << @a.port(:x)
+    puts "### #{ b2.z }"
+    b2.port(:y) << @b.port(:y)
+    puts "### #{ b2.z }"
+
+    p b2.port(:y)
+    p b2.y_src_comp
+    puts
+    
+    p b2.port(:y) ### did not update!
+    p b2.y_src_comp # ok!
+    puts
+
+    b2.port(:y) << nil
+    p b2.port(:y)
+    p b2.y_src_comp
+    puts
+    
   end
 end

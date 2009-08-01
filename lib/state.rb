@@ -1,5 +1,7 @@
 module RedShift
 
+## This is hacky and needs to be redesigned.
+
 class State
 
   attr_reader :name, :persist_name

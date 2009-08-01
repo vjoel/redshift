@@ -186,7 +186,7 @@ module TransitionSyntax
       guard = Component::Guard.new
       for arg in args
         case arg
-        when Hash;    guard.concat arg.to_a   # { :link => :event }
+        when Hash;    guard.concat arg.sort   # { :link => :event }
         when Array;   guard << arg            # [:link, :event] ## , value] ?
         when String;  guard << CexprGuard.new(arg.strip)
         when Proc;    guard << arg            # proc { ... }
@@ -260,7 +260,7 @@ end # module TransitionSyntax
 
 def Component.flow(*states, &block)
   raise "no flows specified. Put { on same line!" unless block  
-  states = Enter if states == []
+  states = [Enter] if states == []
   
   attach states, FlowSyntax.parse(block)
 end

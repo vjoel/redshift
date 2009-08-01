@@ -20,6 +20,7 @@ class Component
     end
     
     def link vars # link :x => MyComponent, :y => :FwdRefComponent
+      vars = vars.sort_by {|var_name, var_type| var_name.to_s}
       for var_name, var_type in vars
         var_name = var_name.intern if var_name.is_a?(String)
         link_type[var_name] = var_type ## should check < Component??
@@ -49,16 +50,16 @@ class Component
       end
 
       case states
-        when State;  attach_flows [states], features
         when Array;  attach_flows states, features
         when Hash;   attach_transitions states, features
-        else         raise SyntexError, "Bad state list: #{states.inspect}"
+        else         raise SyntaxError, "Bad state list: #{states.inspect}"
       end
     end
 
     def attach_flows states, new_flows
-      for state in states
+      for state in states.sort_by {|s| s.to_s}
         unless state.is_a? State
+          ## better: look up state, so that states can be defined implicitly
           raise TypeError, "Must be a state: #{state}"
         end
 
@@ -72,7 +73,7 @@ class Component
     end
 
     def attach_transitions states, new_transitions
-      for src, dest in states
+      for src, dest in states.sort_by {|s| s.to_s}
         unless src.is_a? State
           raise TypeError, "Source must be a state: #{src}"
         end

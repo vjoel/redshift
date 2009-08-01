@@ -62,7 +62,7 @@ class Ball < Component
   }
   
   defaults {
-    @state = Falling
+    start Falling
     @y0 = 100.0
     @v0 = 0.0
     @a = -9.8

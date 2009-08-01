@@ -32,7 +32,7 @@ class Event
       cl.module_eval <<-END
       
         def #{@name}
-          "true"
+          true
         end
       
       END

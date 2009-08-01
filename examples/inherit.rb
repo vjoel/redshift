@@ -8,7 +8,7 @@ class A < Component
 
   state :S0, :S1, :S2
   
-  setup { @state = S0; @x = -100000; @t = 0 } # To override
+  setup { start S0; @x = -100000; @t = 0 } # To override
   
   flow (S0, S1, S2) { diff "t' = 1" }
   
@@ -59,7 +59,7 @@ class CC < Component
 
   state :S0, :S1, :S2, :S3, :S4
 
-  setup { @state = S0; @x = 0; @t = 0 }
+  setup { start S0; @x = 0; @t = 0 }
 
   flow (S0, S1, S2, S3, S4) { diff "t' = 1" }
   
@@ -91,6 +91,10 @@ while w.clock <= 5 do
   c_data << [w.clock, c.x]
   cc_data << [w.clock, cc.x]
   state_data << [w.clock, c.state.name.to_s[-1..-1].to_i * 1000]
+  if w.clock == 1.6
+    puts c.state.name
+    puts cc.state.name
+  end
   
   if c.x != cc.x
     puts "Test failed--component defined by inheritance not equal to"

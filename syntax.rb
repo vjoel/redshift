@@ -1,49 +1,45 @@
 require 'redshift/component'
 require 'redshift/cflow'
 
+# None of the defs in this file are strictly necessary to
+# use RedShift, but they make your code prettier.
+#
+# On the other hand, I'm trying to keep all user callable
+# functions in this file, and internals in other files.
+
 module RedShift
 
-class Component
+def World.setup(&block)
+  (@setup_procs ||= []) << block if block
+end
 
-  def create(component_class, &block)
-    @world.create(component_class, &block)
+class World
+  def setup(&block)
+    (@setup_procs ||= []) << block if block
   end
-
-  @@defaults_proc = {}
-  @@setup_proc = {}
-
 end
 
-def Component.defaults(&block)
 
-  @@defaults_proc[name.intern] = block
+class Component
+  def create(*args, &block)
+    @world.create(*args, &block)
+  end
   
-  module_eval <<-END
-    def defaults
-      super
-      pr = @@defaults_proc[:#{name}]
-      if pr
-        instance_eval(&pr)
-      end
-    end
-  END
-
+  def start s
+    raise RuntimeError if @state
+    @start_state = s
+  end
 end
 
-def Component.setup(&block)
+class << Component
+  def defaults(&block)
+    (@defaults_procs ||= []) << block if block
+  end
+  alias default defaults
 
-  @@setup_proc[name.intern] = block
-  
-  module_eval <<-END
-    def setup
-      super
-      pr = @@setup_proc[:#{name}]
-      if pr
-        instance_eval(&pr)
-      end
-    end
-  END
-
+  def setup(&block)
+    (@setup_procs ||= []) << block if block
+  end
 end
 
 
@@ -53,8 +49,12 @@ def Component.state(*state_names)
     
     if name.to_s =~ /^[A-Z]/
     
-      if const_defined?(name)
-        RedShift.warn "state :#{name} already exists. Not redefined."
+      if class_eval "defined?(#{name})"
+        if class_eval(name.to_s).is_a? State
+          raise "state :#{name} already exists"
+        else
+          raise "state name '#{name}' is used for a constant."
+        end
       else
         const_set name, State.new(name, self.name)
       end
@@ -62,7 +62,11 @@ def Component.state(*state_names)
     else
     
       if class_variables.include "@@#{name}_state"
-        RedShift.warn "state :#{name} already exists. Not redefined."
+        if class_eval("@@#{name}_state").is_a? State
+          raise "state :#{name} already exists"
+        else  
+          raise "state name '#{name}' is used for a class variable, @@#{name}."
+        end
       else
         eval <<-END
           @@#{name}_state = State.new :#{name}, #{self.name}
@@ -201,8 +205,8 @@ class Transition
     end
     
     def name n;     @n = n; end
-    def guard(&g);  @g = g; end
-    def action(&a); @a = a; end
+    def guard(g1=nil,&g2); @g = g1 || g2; end
+    def action(a1=nil,&a2); @a = a1 || a2; end
     
     def events(*es)
       for e in es

@@ -59,7 +59,7 @@ Plot.new ('gnuplot') {
   command 'set xrange [ -2 : 2 ]; set yrange [ -2 : 2 ]'
   
   for b in balls
-    add data[b], 'notitle with lines'   #, "data#{balls.index(b)}"
+    add data[b], "title \"#{balls.index(b)}\" with lines"
   end
   
   show

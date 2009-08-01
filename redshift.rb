@@ -1,12 +1,15 @@
 # Copyright (c) 2001, Joel VanderWerf
 # Distributed under the Ruby license. See www.ruby-lang.org.
 
+require 'mathn'
+
 require 'redshift/clib'
 require 'redshift/world'
 require 'redshift/component'
 require 'redshift/syntax'
 
 module RedShift
+  include Math
 
   def run(*args)
     if @@world
@@ -16,10 +19,18 @@ module RedShift
     end
   end
   module_function :run
-
-  def warn str
-    $stderr.printf "Warning: #{str}\n\tFile %s, line %d\n", __FILE__, __LINE__
-  end
-  module_function :warn
+  
+#  class Warning < Exception; end
+#  
+#  # Warn with string str and skipping n stack frames.
+#  def warn str, n = 0
+#    warning = sprintf "\nWarning: #{str}\n\t#{caller(n).join("\n\t")}\n"
+#    #if $DEBUG -- in debug mode, exception is always printed ???
+#      raise Warning, warning
+#    #else
+#    #  $stderr.print warning
+#    #end
+#  end
+#  module_function :warn
 
 end # module RedShift

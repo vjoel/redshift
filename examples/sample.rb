@@ -1,6 +1,13 @@
 #!/usr/bin/env ruby
 require 'redshift/redshift.rb'
 
+puts "\
+This example needs to be rewritten. Maybe it
+should be an example of directly using the
+internals without syntax.rb?
+"
+exit
+
 include RedShift
 
 class Observer < Component

@@ -1,7 +1,9 @@
-require 'option-block'
+require 'option-block/option-block'
 require 'pstore'
 
 module RedShift
+
+class ZenoError < RuntimeError; end
 
 class World
   include OptionBlock
@@ -22,7 +24,7 @@ class World
   
   @@count = 0
 
-  attr_reader :components
+  attr_reader :components, :started
   private :components
   
   attr_reader :step_count #, :clock_start
@@ -34,7 +36,7 @@ class World
     
     @components = {}
 
-    @name          = options[:name] || "World #{@@count}"
+    @name          = options[:name] || "#{type} #{@@count}"
     @time_step     = options[:time_step]
     @zeno_limit    = options[:zeno_limit]
     @clock_start   = options[:clock_start]
@@ -44,6 +46,25 @@ class World
     
     @@count += 1
 
+  end
+  
+  def do_setup
+    if @setup_procs
+      for pr in @setup_procs
+        instance_eval(&pr)
+      end
+    end
+    type.do_setup self
+  end
+  private :do_setup
+  
+  def self.do_setup instance
+    superclass.do_setup instance if superclass.respond_to? :do_setup
+    if @setup_procs
+      for pr in @setup_procs
+        instance.instance_eval(&pr)
+      end
+    end
   end
 
   def create(component_class, &block)
@@ -58,6 +79,11 @@ class World
   
   
   def run(steps = 1)
+  
+    unless @started
+      do_setup
+      @started = true
+    end
     
     step_discrete
     while (steps -= 1) >= 0
@@ -73,37 +99,35 @@ class World
 
 
   def step_continuous
-  
     $RK_level = 4   # need SEMAPHORE
     each { |c| c.step_continuous @time_step }
     $RK_level = nil
-   
   end
-
+  private :step_continuous
 
   def step_discrete
-  
     $RK_level = nil # need SEMAPHORE
 
     done = false
     zeno_counter = 0
     
-    while not done
+    until done
     
       done = true
       each { |c| done &= c.step_discrete }
-            
+      
       zeno_counter += 1
       if zeno_counter > @zeno_limit
-        raise "Zeno error!"
+        raise ZenoError
       end
   
     end
   end
+  private :step_discrete
   
   
   def clock
-    @step_count * @time_step
+    @step_count * @time_step + @clock_start
   end
   
   
@@ -118,24 +142,34 @@ class World
   end
   
   
-  def each
-    @components.each_value
+  def each(&b)
+    @components.each_value(&b)
   end
   
   def size
     @components.size
   end
   
+  def member?(component)
+    component.world == self
+  end
+  
   def inspect
-    sprintf "<%s: %d step%s, %s second%s, %d component%s>",
-      @name,
-      @step_count, ("s" if @step_count != 1),
-      clock, ("s" if clock != 1),
-      size, ("s" if size != 1)
+    if @started
+      sprintf "<%s: %d step%s, %s second%s, %d component%s>",
+        @name,
+        @step_count, ("s" if @step_count != 1),
+        clock, ("s" if clock != 1),
+        size, ("s" if size != 1)
+    else
+      sprintf "<%s: not started. Do 'run 0' to setup.>",
+        @name
+    end
   end
   
   
   def save filename = @name
+    File.delete filename rescue
     store = PStore.new filename
     each { |c| c.discard_singleton_methods }
     store.transaction do

@@ -17,22 +17,33 @@ class Component
   attr_reader :world
   attr_reader :state
   attr_reader :active_transition
+  attr_reader :start_state
 
   Enter = RedShift::Enter
   Exit = RedShift::Exit
 
-  def initialize(world, block) ## workaround for cshadow problem
+  def initialize(world, &block)
+
+    if $DEBUG
+      unless caller[1] =~ /redshift\/world.*`create'\z/ or
+             caller[0] =~ /`initialize'\z/
+        puts caller[1]; puts
+        puts caller.join("\n"); exit
+        raise "\nComponents can be created only using " +
+              "the create method of a world.\n"
+      end
+    end
 
     @world = world
-    @active_transition = nil
     
     restore {
-      @state = Enter
-      defaults
-      if block
-        instance_eval(&block)
-      end
-      setup
+      @start_state = Enter
+      do_defaults
+      instance_eval(&block) if block
+      do_setup
+      raise RuntimeError if @state
+        ## remove this eventually? Or add to test_discrete.
+      @state = @start_state
     }
 
   end
@@ -51,13 +62,34 @@ class Component
   end
   
   
-  def defaults
+  def do_defaults
+    type.do_defaults self
+  end
+  private :do_defaults
+  
+  def do_setup
+    type.do_setup self    ## inline these?
+  end
+  private :do_setup
+  
+  def self.do_defaults instance
+    superclass.do_defaults instance if superclass.respond_to? :do_defaults
+    if @defaults_procs
+      for pr in @defaults_procs
+        instance.instance_eval(&pr)
+      end
+    end
   end
   
-  def setup
+  def self.do_setup instance
+    superclass.do_setup instance if superclass.respond_to? :do_setup
+    if @setup_procs
+      for pr in @setup_procs
+        instance.instance_eval(&pr)
+      end
+    end
   end
   
-    
   def step_continuous dt
   
     @dt = dt
@@ -125,7 +157,13 @@ class Component
   end
   
   attach({Exit => Exit}, Transition.new :exit, nil, [],
-    proc {world.remove self})
+    proc {world.remove self; @world = nil})
+  
+  def inspect data = nil
+    n = " #{@name}" if @name
+    d = ". #{data}" if data
+    "<#{type}#{n}: #{@state.name}#{d}>"
+  end
   
 end # class Component
 

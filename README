@@ -3,6 +3,25 @@ To do
 
 Syntax
 
+  check for symbol conflicts
+    user attributes may conflict with Component's attrs
+    ditto for flows and other methods defined in subclasses
+    can we 'hook' method def and attr def to check for conflict? 
+    or just use a consistent naming scheme to keep internals separate?
+
+  reset clauses:
+    transition A => B do
+      reset " x := expr ", ...
+    setup and defaults, too
+    this might get around the self.x danger for casual users
+    OR: don't use 'foo = ...' in resets, use 'foo ...' instead
+      but thid has the danger of being used in the wrong way in other contexts
+    OR: use string syntax and eval the block against a binding which ...
+      but inefficient
+
+? 'when' as alias for 'guard'
+x if "flow :state" or "transition :state => :other-state"
+    lookup or generate a state with that name
   defining and creating components
 x   classes should have a "static setup" clause
 x     because of commit, cannot create components statically
@@ -10,8 +29,13 @@ x     (THIS IS A PROBLEM)
 x     actually, this is consistent with having Worlds:
 x       you can't create a Component statically, because you don't
 x       have a world yet
-    need to prevent calling new on Component class
+  world subclasses and individual worlds should have chainable static
+    setup clauses
+    
+/   need to prevent calling new on Component class
     create ... block
+      shouldn't use instance_eval but instead run in the caller's context?
+      better: use hash of 'var => value, ...'
 /   defaults { ... }  and setup { ... }
     state methods: flow Foo { def ... }
       generalization of alg flows
@@ -25,13 +49,87 @@ x       have a world yet
   redshift parser to make flows etc. nicer
     invoke by putting /usr/bin/env redshift in header
     allows nedit syntax mode for redshift
+    syntax checking for 'action { x = 3 }', newlines which change meaning, etc.
   static data typing
     setters for flows should check for data type
     flows should have a declared data type
-  
-  should time-step automatically be converted to Float?
+  don't allow lower case state names
+x should time-step automatically be converted to Float?
 
 Semantics
+
+  add reset clause to transitions (in effect, like L-S)
+    transition ...
+      reset :x => { <expression> }
+      reset "my_array[10,20]" => { <expression> }
+      
+    Not lovely, but clear enough. The array string will get eval-ed
+    (once!) into a lambda which assigns to the position in the array.
+    
+    reset "x=y","z=w"
+      OR: action "x=y","z=w" do ... end
+        where the block is treated as actions were before
+        I'm not sure I like this...
+    evaluated in parallel for all components which are taking transitions at
+      a particular discrete time
+    guard guaranteed to be true during eval of RHS, if no side effects
+    precedes action
+      actions are still evaluated in sequence and allow arb. code
+      no guarantees--up to programmer to control concurrency
+  
+  semaphores on variables to control concurrency in action clauses
+    but there's no way to wait for resource to become free
+    need a multiplexed global which says "which component is active"
+      actually, world.rb has this
+    accessors can check this global
+    but who has write priority?
+      how is contention handled deterministically?
+      does it generate an exception when two components ask for the same
+        write lock at the same time? Or is it a program error?
+    need exception handlers
+    
+  exception handler clauses in transitions (or use interrupts?)
+    on LockFailed { |var, value| ... }
+  
+  state stack:
+    a transition (or interrupt) can push the current state or pop back
+      to a previously saved state (like Kader's idea)
+    syntax:
+      transition ... do
+        push [or pop, in which case the dest. state is ignored]
+      end
+  
+  interrupts
+    a way of enabling a transition without evaluating guards
+      -faster
+    can do sender-receiver, rather than broadcast
+    can register with global interrupt manager
+      notify after T seconds
+      notify when global event happens (like what?)
+    receive in any state, switch to new state optional (push ok)
+    synchronous in the sense that no other components act in between
+      the send and receive, and the receiver action happens before the
+      sender action finishes (?)
+    but not parallel assignment
+    based on methods
+    in sender's action clause: 'x.foo args'
+    in receiver:
+      interrupt :foo => NewState do
+        action { |args| ...}
+        event ...
+      end
+  
+  signals
+    maybe better than interrupts, more general
+    
+    transition ... do
+      signal value => receiver_collection, ...
+    end
+    
+    on value do ... end
+    
+    is this better than a simple method call?
+      yes: can implement queue
 
 / inheritance
 /   explicit, calculated before run, cached
@@ -39,12 +137,21 @@ Semantics
 /   Exit transition
 /   trans.name = nil to prevent hiding
   inheritance from mixins
-? indeterminate transitions chosen randomly
+
+  Possible to arrange discrete stuff so other semantics is pluggable?
+  
+? indeterminate transitions chosen randomly, as an option
+    randomize order of component list, and order of transition lists?
+
+  in create(Comp) { ... }, should arrive at Enter before evaling block?
+    otherwise flow methods don't work in block
 
   math
-    fixed point, rationals
+    fixed point, rational integration?
 /   complex numbers
     matrices, lapack, etc
+    maybe override integer division to output float?
+      use 'require "mathn"; include Math", like irb -m.
   
   metaclasses
   
@@ -62,6 +169,10 @@ Semantics
     events that persist until sender changes state (or end of discrete step?)
 ?   allow event of transition to be a block or proc returning the events
 
+  exceptions
+    catch them if they arise in action
+    pass them on to handler where?
+
 Metasimualtion layer
   methods to tell an object to change state, etc.
   method to send message to object(s)
@@ -70,9 +181,10 @@ Implementation
 
   use eval %{ ... } instead of eval <<END ... END
   
-  for flow/transition inheritance, use instance vars of singleton classes:
+* for flow/transition inheritance, use instance vars of singleton classes:
     def A.set_flows f; @flows = f; end
     and x.class.get_flows
+    don't use class vars in meta.rb
 
   use alias instead of def in Event#(un)export
     or use extend_object
@@ -103,18 +215,23 @@ x   do this periodically if user sets flag
     symbolic integration
     other integrators:
       average x' at endpoints to get approx. delta_x
-    automatically scan formulas and use best alg.
+x   automatically scan formulas and use best alg.
 
   debugging, logging
     use AspectR, alias
   
   run time error checking
+    more 'if $DEBUG ...' checks
+/     use $DEBUG when testing.
     catch infinite loops in alg. flows
     zeno
       limit can scale w/ num components
+    catch definition of flows after commit, etc.
+    error reporting: use Minero Aoki's must.rb to check types etc.
     
   exception handling
-    syntax errors, esp. in flows, guards
+    syntax and math errors, esp. in flows, guards
+    use Exception classes
   
   unit tests
     integrator (start with solution involving diff'able fns)
@@ -129,7 +246,13 @@ x   do this periodically if user sets flag
     
 / test windows version
   
+  World#copy (use marshal, and the tricks in save/open)
+  World#== (recursively compare component list)
+  Component#== ?
+  
 / persistence
+    persist_name of nested state shouldn't be :C::S1 ?
+    make CShadow data persist by temporarily caching in in a hash
   
   distributed processing
 
@@ -165,50 +288,10 @@ Examples
 
 Documentation
 
-  translate cshift examples (ball, springs, etc.)
-  differences from cshift
-    simulation semantics
-      event semantics like lambda-shift
-      no static creation of components
-        must create world first
-        philosophy:
-          Component *definitions* precede World *specification*
-    programming language semantics
-      input/output/connect not needed because vars are untyped
-      inheritance
-        ruby inheritance of attrs, methods
-        transitions, flows, states, events
-        advanced topics: include modules for mixins
-        overriding inherited trans./flows by name
-          using nil to prevent overriding
-    no mixing scopes in create, as in "create(Foo, x := x)"
-    warning about:
-      'self.x = ...'
-      associativity of and/or
-      C-like operators (i.e., = and == vs. := and =)
-        but no ++, --, only +=, -=, etc.
-      truth values
-      names w/ capitals etc.
-      fixnums vs. floats
-        fix / fix ==> fix
-        (maybe setters should check for this?)
-      end of line-- finish with op or comma or \ to continue
-      fwd refs
-      no error checking with "@x = ..." if x doesn't already exist
-    during discrete phase, cached algebraic flows do not change
-      they do not have function semantics
-      evaluated only once per timestep
-        no extra side effects, faster
-        leads to small error when used with rk4
-    world.clock shouldn't be used during rk
-      use a timer based on an EulerFlow
-   
-   dynamic semantics
-     changing a flow preserves inherited/overridden flows in subclasses
-   
-   restrictions
-     singleton methods cannot be exported (see Event)
-     singleton methods will be lost in World#save
+  restrictions
+    singleton methods cannot be exported (see Event)
+    singleton methods will be lost in World#save
+    can't use modules to define flows, transitions, etc.
 
   performance notes
     don't call run repeatedly, call run n with a block

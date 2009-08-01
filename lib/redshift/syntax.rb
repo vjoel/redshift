@@ -87,8 +87,18 @@ class << Component
   # name should be a string or symbol beginning with [A-Z] and consisting of
   # alphanumeric (<tt>/\w/</tt>) characters. States are inherited.
   def state(*state_names)
-    state_names.each do |state_name|
-      state_name = state_name.to_s
+    state_names.flatten!
+    state_names.map do |state_name|
+      if state_name.kind_of? Symbol
+        state_name = state_name.to_s
+      else
+        begin
+          state_name = state_name.to_str
+        rescue NoMethodError
+          raise SyntaxError, "Not a valid state name: #{state_name.inspect}"
+        end
+      end
+      
       unless state_name =~ /^[A-Z]/
         raise SyntaxError,
           "State name #{state_name.inspect} does not begin with [A-Z]."

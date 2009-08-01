@@ -1,3 +1,9 @@
+redshift 1.1.47
+
+- Optimization for 'inert' components.
+
+- More useful interface for Component.state.
+
 redshift 1.1.46
 
 - Resets for links.

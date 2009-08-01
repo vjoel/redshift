@@ -141,7 +141,7 @@ class B < TestComponent
   
   transition U => S do
     action do
-      @awake = world.size - world.strict_sleep.size
+      @awake = world.size - world.strict_sleep.size - world.inert.size
     end
   end
 

@@ -138,18 +138,23 @@ Semantics
 
   per-state strictness?
   
-  allow outside code to tell component to change state? send event to comp?
-
   "finalizers" for components -- called when component exits, world
    is finalized, or app quits
   
     more generally, code that executes when a given state is entered:
     
-    state Exit do
-      # do some finalization stuff here
-    end
+      state Exit do
+        # do some finalization stuff here
+      end
+
+    Or:
+    
+      entering SomeState do...end
+      exiting SomeState do...end
+    
+    Maybe this is better handled by adding another state (PreSomeState)
   
-  abstract classes
+  abstract classes (no code generated)
   
   input events (in place of interrupts?)
   

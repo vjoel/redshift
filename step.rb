@@ -267,7 +267,7 @@ class World
               dest    = ptr[--len];
               trans   = ptr[--len];
               start_trans(comp_shdw, trans, dest, phases);
-              all_were_g = 0;
+              all_were_g = 0; //## better name? no_trans? sleep?
               break;
             }
             else

@@ -1,5 +1,5 @@
 require 'singleton'
-require 'superhash'
+require 'superhash/superhash'
 require 'redshift/flow'
 require 'redshift/state'
 require 'redshift/meta'
@@ -163,6 +163,15 @@ class Component
   def self.inherited sub
     file_name = CGenerator.make_c_name(sub.name).to_s
     sub.shadow_library_file file_name
+###    sub.define_class_method :resolve_offsets do
+###      ## in deferred compiler, this gets defined only if have events/links
+###      declare :ary => "VALUE ary"
+###      body %{
+###        ary = rb_ary_new();
+###        
+###      }
+###      returns "ary"
+###    end
   end
   
   library.declare_extern :typedefs => %{

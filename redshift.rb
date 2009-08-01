@@ -17,6 +17,7 @@ if $REDSHIFT_DEBUG
   puts " |RedShift debugging information enabled by env var REDSHIFT_DEBUG.|"
   puts " |    Please ignore error messages that do not halt the progam.    |"
   puts "  ----------------------------------------------------------------- "
+  puts "\n   debug level = #{$REDSHIFT_DEBUG}\n\n" if $REDSHIFT_DEBUG != true
 end
 
 if $REDSHIFT_VERBOSE

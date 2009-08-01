@@ -256,9 +256,11 @@ class AlgebraicFlow < Flow
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;
           var = &cont_state->#{var_name};
           assert(var->algebraic);
-          if (var->nested)
+          if (var->nested) {
+            rb_gv_set("$rs", shadow->self);
             rb_raise(#{declare_class CircularDefinitionError},
-              "\\nCircularity in algebraic formula: #{var_name}");
+              "\\nCircularity in algebraic formula for #{var_name} in state #{state} of class #{cl.name}. The component is in $rs.");
+          }
           var->nested = 1;
         }
         body %{

@@ -20,13 +20,23 @@ end
 # transitions with no body keep the discrete step alive
 
 class DiscreteIsolated_1 < DiscreteIsolatedTestComponent
-  state :A, :B
-  flow A do
-    diff "x' = 1"
+  prev = Enter
+  for state_name in "State_01".."State_10"
+    state state_name
+    
+    curr = const_get(state_name)
+    
+    flow prev do
+      diff "x' = 1"
+    end
+
+    transition prev => curr
+    prev = curr
   end
-  transition Enter => A, A => B
+  @@last = prev
+
   def assert_consistent test
-    test.assert_equal(B, state)
+    test.assert_equal(@@last, state)
     test.assert_equal_float(0, x, 1.0E-20)
   end
 end

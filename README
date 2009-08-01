@@ -13,6 +13,11 @@ Compiler
 
 Syntax
 
+  link {
+    x Foo
+    y Bar
+  } # using method_missing
+
   run can take seconds as arg
     run :steps => n
     run :time => n
@@ -254,6 +259,8 @@ Implementation
       constant guards:
         guard "x > 1"
     dual mode
+    investigate CPU caching issues
+    look into special processor instructions for parallelism (MMX on PIII)
   
 / garbage collection
 /   nil out the components array, do GC, reconstruct components array
@@ -280,6 +287,8 @@ x   automatically scan formulas and use best alg.
       limit can scale w/ num components
     catch definition of flows after commit, etc.
     error reporting: use Minero Aoki's must.rb to check types etc.
+    catch:
+      algebraic "x = 0", "x = 0"
     
   exception handling
     syntax and math errors, esp. in flows, guards

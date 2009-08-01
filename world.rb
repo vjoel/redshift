@@ -195,7 +195,8 @@ class World
   end
   
   def World.open filename
-    RedShift.library.commit # defines World.alloc methods
+    RedShift.library.commit unless RedShift.library.committed?
+      # defines World.alloc methods
     world = nil
     store = PStore.new filename
     store.transaction do

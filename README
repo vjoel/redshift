@@ -217,6 +217,8 @@ Implementation
     guards
       clause to set how often the guard is checked
     dual mode
+    
+    libjit or other jit compiler?
   
 / garbage collection
 /   nil out the components array, do GC, reconstruct components array

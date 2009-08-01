@@ -266,10 +266,13 @@ class World
         comp_shdw->dest   = dest;
         comp_shdw->phases = phases;
         comp_shdw->cur_ph = -1;
+        //%% hook_start_transition(comp_shdw->self, trans, dest);
       }
       inline void finish_trans(ComponentShadow  *comp_shdw)
       { //## should this be deferred to end of step? (in case alg flow
         //## changes discretely)
+        //%% hook_finish_transition(comp_shdw->self, comp_shdw->trans,
+        //%%                        comp_shdw->dest);
         if (comp_shdw->state != comp_shdw->dest) {
           comp_shdw->state = comp_shdw->dest;
           __update_cache(comp_shdw);
@@ -386,7 +389,8 @@ class World
             guard = ptr[--len];
             enabled = !RTEST(guard) || guard_enabled(comp, guard);
             
-            //%% hook_eval_guard(comp, guard, INT2BOOL(enabled));
+            //%% hook_eval_guard(comp, guard, INT2BOOL(enabled),
+            //%%                 ptr[len-3], ptr[len-2]);
             
             if (enabled) {
               phases  = ptr[--len];
@@ -562,10 +566,9 @@ class World
 
       //%% hook_end(INT2NUM(dstep));
     }
-    def self.body_str
-      body!.instance_eval do ## yech!
-        @pile[0]
-      end
+    def self.to_s
+      # at this point, we know the definition is complete
+      @cached_output ||= super
     end
   end
 
@@ -589,8 +592,8 @@ class World
       meth = define_c_method(:step_discrete, &discrete_step_definer)
       private :step_discrete
       
-      body_str = meth.body_str
-      known_hooks ||= body_str.scan(any_hook)
+      meth_str = meth.to_s
+      known_hooks ||= meth_str.scan(any_hook)
       unknown_hooks = cl_hooks - known_hooks
       
       unless unknown_hooks.empty?
@@ -598,7 +601,7 @@ class World
       end
       
       hook_pat = /\/\/%%\s*(#{cl_hooks.join("|")})\(((?:.|\n\s*\/\/%%)*)\)/
-      body_str.gsub!(hook_pat) do |match|
+      meth_str.gsub!(hook_pat) do |match|
         hook = $1
         argstr = $2.delete("//%%")
         args = argstr.split(/,\s+/)

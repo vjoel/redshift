@@ -12,7 +12,7 @@ end
 class Link_1 < LinkTestComponent
   setup {self.foo = create Foo}
   def assert_consistent test
-    test.assert_equal(LinkTestComponent::Foo, foo.type)
+    test.assert_equal(LinkTestComponent::Foo, foo.class)
   end
 end
 
@@ -40,11 +40,11 @@ require 'test/unit'
 
 class TestInheritLink < Test::Unit::TestCase
   
-  def set_up
+  def setup
     @world = World.new { time_step 0.1 }
   end
   
-  def tear_down
+  def teardown
     @world = nil
   end
   

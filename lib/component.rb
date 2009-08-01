@@ -1,5 +1,5 @@
 require 'singleton'
-require 'superhash/superhash'
+require 'superhash'
 require 'redshift/flow'
 require 'redshift/state'
 require 'redshift/meta'
@@ -15,7 +15,9 @@ marshalling: write out enough metadata to check for differing version of compone
 module RedShift
 
 class AlgebraicAssignmentError < StandardError; end
-  
+class ContinuousAssignmentError < StandardError; end
+class StrictnessError < StandardError; end
+
 class Transition
   attr_reader :name, :guard, :phases
   def initialize n, g, p
@@ -51,7 +53,7 @@ class Component
     n = " #{@name}" if @name
     s = ": #{state}" if state
     d = "; #{data}" if data
-    "<#{type}#{n}#{s}#{d}>"
+    "<#{self.class}#{n}#{s}#{d}>"
   end
   
   def initialize(world, &block)
@@ -66,17 +68,21 @@ class Component
     end
 
     __set__world world
-    self.var_count = type.var_count
+    self.var_count = self.class.var_count
     
     restore {
       @start_state = Enter
-      self.cont_state = type.cont_state_class.new
+      self.cont_state = self.class.cont_state_class.new
       
       do_defaults
       instance_eval(&block) if block
       do_setup
       
-      raise RuntimeError if state
+      if state
+        raise RuntimeError, "Can't assign to state.\n" +
+          "Occurred in initialization of component of class #{self.class}."
+      end
+      
       self.state = @start_state
     }
   end
@@ -87,12 +93,12 @@ class Component
   end
 
   def do_defaults
-    type.do_defaults self
+    self.class.do_defaults self
   end
   private :do_defaults
   
   def do_setup
-    type.do_setup self
+    self.class.do_setup self
   end
   private :do_setup
   
@@ -137,7 +143,7 @@ class Component
 #          vars = (ContVar *)(&shadow->cont_state->begin_vars);
 #          for (i = 0; i < var_count; i++)
 #            if (vars[i].algebraic)
-#              (*vars[i].flow)(shadow);
+#              (*vars[i].flow)((ComponentShadow *)shadow);
 #        for each comp on curr_R
 #          if reset
 #            for each var in comp
@@ -163,7 +169,7 @@ class Component
   def self.inherited sub
     file_name = CGenerator.make_c_name(sub.name).to_s
     sub.shadow_library_file file_name
-###    sub.define_class_method :resolve_offsets do
+###    sub.define_c_class_method :resolve_offsets do
 ###      ## in deferred compiler, this gets defined only if have events/links
 ###      declare :ary => "VALUE ary"
 ###      body %{
@@ -229,6 +235,7 @@ class Component
       Object.const_set clname, cl
       before_commit {cl.class_eval &bl}
         # this is deferred to commit time to resolve forward refs
+        ## this would be more elegant with defer.rb
       cl
     end
   end
@@ -244,7 +251,7 @@ class Component
     @tag = "Guard"
 
     def self.strict; @strict; end
-    def strict; @strict ||= type.strict; end
+    def strict; @strict ||= self.class.strict; end
   end
 
   # one per variable, shared by subclasses which inherit it
@@ -296,7 +303,8 @@ class Component
         var = find_var var_name
         if var
           unless writable == :permissive or var.writable == writable
-            raise "\nVariable #{var_name} redefined with different strictness."
+            raise StrictnessError,
+              "\nVariable #{var_name} redefined with different strictness."
           end
         else
           var = @vars[var_name] =
@@ -411,6 +419,7 @@ class Component
     def strictly_continuous(*var_names)
       _continuous(false, var_names)
     end
+    alias constant strictly_continuous ### should also prohibit LHS use
     
     def continuous(*var_names)
       _continuous(true, var_names)
@@ -425,13 +434,13 @@ class Component
         
         cont_state_class.add_var var_name, writable do
           class_eval %{
-            define_method :#{var_name} do
+            define_c_method :#{var_name} do
               declare :cont_state => "#{ssn} *cont_state"
               body %{
                 cont_state = (#{ssn} *)shadow->cont_state;
                 if (cont_state->#{var_name}.algebraic &&
                     cont_state->#{var_name}.d_tick != d_tick)
-                  (*cont_state->#{var_name}.flow)(shadow);
+                  (*cont_state->#{var_name}.flow)((ComponentShadow *)shadow);
               }
               returns "rb_float_new(cont_state->#{var_name}.value_0)"
             end
@@ -439,13 +448,32 @@ class Component
           
           if writable
             class_eval %{
-              define_method :#{var_name}= do
+              define_c_method :#{var_name}= do
                 arguments :value
                 declare :cont_state => "#{ssn} *cont_state"
                 body %{
                   cont_state = (#{ssn} *)shadow->cont_state;
                   if (cont_state->#{var_name}.algebraic)
                     rb_raise(#{exc}, #{msg.inspect});
+                  cont_state->#{var_name}.value_0 = NUM2DBL(value);
+                  d_tick++;
+                }
+                returns "value"
+              end
+            }
+          else
+            exc2 = shadow_library.declare_class ContinuousAssignmentError
+            msg2 = "\\\\nCannot set #{var_name}; it is strictly continuous."
+            class_eval %{
+              define_c_method :#{var_name}= do
+                arguments :value
+                declare :cont_state => "#{ssn} *cont_state"
+                body %{
+                  cont_state = (#{ssn} *)shadow->cont_state;
+                  if (cont_state->#{var_name}.algebraic)
+                    rb_raise(#{exc}, #{msg.inspect});
+                  if (!NIL_P(shadow->state))
+                    rb_raise(#{exc2}, #{msg2.inspect});
                   cont_state->#{var_name}.value_0 = NUM2DBL(value);
                   d_tick++;
                 }
@@ -463,7 +491,7 @@ class Component
   
   end
   
-  define_method :update_cache do body "__update_cache(shadow)" end
+  define_c_method :update_cache do body "__update_cache(shadow)" end
   
   library.define(:__update_cache).instance_eval do
     flow_wrapper_type = RedShift::Component::FlowWrapper.shadow_struct.name
@@ -528,14 +556,14 @@ class Component
 
   shadow_attr_reader :world => World
     
-  define_method :__set__world do
+  define_c_method :__set__world do
     arguments :world
     body "shadow->world = world"
   end
   protected :__set__world
   
 #if false
-#  define_method :recalc_alg_flows do ### need this?
+#  define_c_method :recalc_alg_flows do ### need this?
 #    declare :locals => %{
 #      ContVar    *vars;
 #      long        i;
@@ -548,11 +576,11 @@ class Component
 #      for (i = 0; i < var_count; i++)
 #        if (vars[i].algebraic)
 ## also check d_tick
-#          (*vars[i].flow)(shadow);
+#          (*vars[i].flow)((ComponentShadow *)shadow);
 #    }
 #  end
 #
-#  define_method :increment_d_tick do
+#  define_c_method :increment_d_tick do
 #    body "d_tick++"
 #  end
 #end

@@ -39,11 +39,11 @@ require 'test/unit'
 
 class TestInheritState < Test::Unit::TestCase
   
-  def set_up
+  def setup
     @world = World.new { time_step 0.01 }
   end
   
-  def tear_down
+  def teardown
     @world = nil
   end
   

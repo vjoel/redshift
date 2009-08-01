@@ -13,12 +13,12 @@ end
 
 class TestNumerics < Test::Unit::TestCase
   
-  def set_up
+  def setup
     @world = World.new { time_step 0.1 }
       
   end
   
-  def tear_down
+  def teardown
     @world = nil
   end
   

@@ -201,10 +201,10 @@ end
 class World_7 < World
   def make_copy
     filename = "test_world_persist.dat"
-    save filename
-    World.open filename   # copy of world (with the same name)
+    save(filename)
+    World.open(filename)   # copy of world (with the same name)
   ensure
-    File.delete filename rescue SystemCallError
+    File.delete(filename) rescue SystemCallError
   end
   
   class Thing < Component

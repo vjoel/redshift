@@ -20,16 +20,16 @@ class A < Component
   
   setup { start S0; @x = -100000; @t = 0 } # To override
   
-  flow (S0, S1, S2) { diff "t' = 1" }
+  flow(S0, S1, S2) { diff "t' = 1" }
   
-  flow (S0) { diff "x' = 1" }
-  flow (S1) { diff "x' = -10" }   # To override
-  flow (S2) { diff "x' = 100" }
+  flow(S0) { diff "x' = 1" }
+  flow(S1) { diff "x' = -10" }   # To override
+  flow(S2) { diff "x' = 100" }
   
   transition S0 => S1 do guard { @t > 1 }; action { @t -= 1 } end
 
   # To override:
-  transition (S1 => S2) {
+  transition(S1 => S2) {
     name :from_S1_to_S2  # so that inheritance knows what to replace
     guard { @t > 0.5 }; action { puts "KABOOM!" }
   }
@@ -42,15 +42,15 @@ class B < A
   
   setup { @x = 0 }
 
-  flow (S1) { diff "x' = -20" }   # To override
-  flow (S3) { diff "x' = 1000", "t' = 1" }
+  flow(S1) { diff "x' = -20" }   # To override
+  flow(S3) { diff "x' = 1000", "t' = 1" }
   
-  transition (S1 => S2) {
+  transition(S1 => S2) {
     name :from_S1_to_S2
     guard { @t > 1 }; action { @t -= 1 }
   }
   
-  transition (S2 => S3) { guard { @t > 1 }; action { @t -= 1 } }
+  transition(S2 => S3) { guard { @t > 1 }; action { @t -= 1 } }
 
 end
 
@@ -58,10 +58,10 @@ class C < B
 
   state :S4
 
-  flow (S1) { diff "x' = 10" }
-  flow (S4) { diff "x' = 10000", "t' = 1" }
+  flow(S1) { diff "x' = 10" }
+  flow(S4) { diff "x' = 10000", "t' = 1" }
 
-  transition (S3 => S4) { guard { @t > 1 }; action { @t -= 1 } }
+  transition(S3 => S4) { guard { @t > 1 }; action { @t -= 1 } }
 
 end
 
@@ -73,18 +73,18 @@ class Z < Component
 
   setup { start S0; @x = 0; @t = 0 }
 
-  flow (S0, S1, S2, S3, S4) { diff "t' = 1" }
+  flow(S0, S1, S2, S3, S4) { diff "t' = 1" }
   
-  flow (S0) { diff "x' = 1" }
-  flow (S1) { diff "x' = 10" }
-  flow (S2) { diff "x' = 100" }
-  flow (S3) { diff "x' = 1000" }
-  flow (S4) { diff "x' = 10000" }
+  flow(S0) { diff "x' = 1" }
+  flow(S1) { diff "x' = 10" }
+  flow(S2) { diff "x' = 100" }
+  flow(S3) { diff "x' = 1000" }
+  flow(S4) { diff "x' = 10000" }
   
-  transition (S0 => S1) { guard { @t > 1 }; action { @t -= 1 } }
-  transition (S1 => S2) { guard { @t > 1 }; action { @t -= 1 } }
-  transition (S2 => S3) { guard { @t > 1 }; action { @t -= 1 } }
-  transition (S3 => S4) { guard { @t > 1 }; action { @t -= 1 } }
+  transition(S0 => S1) { guard { @t > 1 }; action { @t -= 1 } }
+  transition(S1 => S2) { guard { @t > 1 }; action { @t -= 1 } }
+  transition(S2 => S3) { guard { @t > 1 }; action { @t -= 1 } }
+  transition(S3 => S4) { guard { @t > 1 }; action { @t -= 1 } }
   
 end
 
@@ -93,11 +93,11 @@ require 'test/unit'
 
 class TestInherit < Test::Unit::TestCase
   
-  def set_up
+  def setup
     @world = World.new { time_step 0.1 }
   end
   
-  def tear_down
+  def teardown
     @world = nil
   end
   

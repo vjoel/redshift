@@ -122,11 +122,11 @@ require 'test/unit'
 
 class TestInheritTrans < Test::Unit::TestCase
   
-  def set_up
+  def setup
     @world = World.new { time_step 0.1 }
   end
   
-  def tear_down
+  def teardown
     @world = nil
   end
   
@@ -147,7 +147,7 @@ class TestInheritTrans < Test::Unit::TestCase
     @world.run 100
     
     for t in testers
-      assert(RedShift::Enter != t.state, "#{t.type} didn't leave Enter!")
+      assert(RedShift::Enter != t.state, "#{t.class} didn't leave Enter!")
       t.assert_consistent self
     end
   end

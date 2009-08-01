@@ -18,6 +18,8 @@ if $REDSHIFT_DEBUG
   puts " |    Please ignore error messages that do not halt the progam.    |"
   puts "  ----------------------------------------------------------------- "
   puts "\n   debug level = #{$REDSHIFT_DEBUG}\n\n" if $REDSHIFT_DEBUG != true
+  
+  $REDSHIFT_DEBUG = $REDSHIFT_DEBUG.to_i
 end
 
 if $REDSHIFT_VERBOSE
@@ -41,10 +43,16 @@ class Object
   end
 end
 
+module Math
+  unless defined? Infinity
+    Infinity = 1.0/0.0
+  end
+end
+
 module RedShift
   include Math
-  
-  Infinity = 1.0/0.0
+
+  Infinity = 1.0/0.0  ## why doesn't this get included from Math?
 
   def debug setting = true, &block
     if block

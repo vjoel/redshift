@@ -268,6 +268,18 @@ end
 
 def Component.transition(edges = {}, &block)
 
+  # allow edges like [s1, s2, s3] => d
+  e = {}
+  edges.each do |s, d|
+    case s
+    when Array
+      s.each {|t| e[t] = d}
+    else
+      e[s] = d
+    end
+  end
+  edges = e
+
   if block
     if edges == {}
       edges = {Enter => Enter}

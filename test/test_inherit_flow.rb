@@ -49,7 +49,6 @@ class Flow_2 < FlowTestComponent
 end
 
 class Flow_2_1 < Flow_2
-  defaults { @x = 0 }
   flow { diff "x' = 1" }
   def assert_consistent test
     test.assert_in_delta(world.clock - @start_time, x, 0.00001)
@@ -68,9 +67,6 @@ end
 
 class Flow_3 < FlowTestComponent
   state :S1, :S2
-  
-  defaults { @x = 0 }
-  attr_reader :x
   
   flow S1 do diff "x'=1" end
   flow S2 do diff "x'=-1" end
@@ -96,6 +92,20 @@ class Flow_3_1 < Flow_3
   end
 end
 
+#     ---------------------
+#     Overriding a flow referenced in a flow in the parent class
+
+class Flow_4 < FlowTestComponent
+  flow do diff "x' = y", "y' = 1" end
+end
+
+class Flow_4_1 < Flow_4
+  flow do diff "y' = -1" end
+  def assert_consistent test
+    test.assert_in_delta(-0.5*world.clock**2, x, 1E-10)
+  end
+end
+
 ## other kinds of alg and diff flows (cached-alg, euler, cflow, etc.)
 
 #-----#
@@ -104,11 +114,11 @@ require 'test/unit'
 
 class TestInheritFlow < Test::Unit::TestCase
   
-  def set_up
+  def setup
     @world = World.new { time_step 0.1 }
   end
   
-  def tear_down
+  def teardown
     @world = nil
   end
   

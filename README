@@ -1,16 +1,15 @@
 To do
 =====
 
+* Declaration for non-instantiable Component classes, to reduce source bloat.
+
+* Investigate Tiny C--Linux only, but fast, and libtcc allows dynamic codegen. Maybe best used in "develop" mode, rather than for production code. Is it better to exec tcc or to use tcclib?
+
+Need atomic sequences of transitions? (Maybe by providing an event with an explicit receiver? Maybe this is a job for interrupts?)
+
+Check for abs vs. fabs (the former converts to int!) in C code.
 
 Strict continuity
-
-  prevent
-    strict_cont :x
-    alg " x = y "
-    trans action { self.y = 2 }
-
-  allow
-    setup { self.x = 1 }
 
   link optimization
     in #var=, check strict flag
@@ -19,8 +18,6 @@ Strict continuity
   will there be a problem with unguarded transitions?
 
   update_cache is inefficient
-
-  make test!
 
 
 Error messages
@@ -39,6 +36,10 @@ Compiler
     
 
 Syntax
+
+  see http://www.rubygarden.org/ruby?KeywordArguments
+
+  use Ruth or similar tool for truly custom syntax?
 
   use ` for equations?
   
@@ -170,6 +171,18 @@ Semantics
       transition ... do
         push [or pop, in which case the dest. state is ignored]
       end
+      
+  transition only_with:
+  
+    transition ...
+      only_with c1, c2, { calc_c3 } # specifies other comps/events
+      
+      ci is:
+        component: [:link, :event] where :link is method w/o args
+        quantified:
+          all [:links, :event]
+          any [:links, :event, :which=]
+        open: as above but omit link name
   
   interrupts
     a way of enabling a transition without evaluating guards
@@ -192,10 +205,10 @@ Semantics
         event ...
       end
       
-                  timely    lossless    nonblocking
-    interrupts:     --         XX           XX
-    events:         XX         --           XX
-    sync:           XX         XX           --
+                  timely    lossless    nonblocking   atomic
+    interrupts:     --         XX           XX          --
+    events:         XX         --           XX          --
+    sync:           XX         XX           --          XX
   
   signals
     maybe better than interrupts, more general
@@ -251,11 +264,29 @@ Semantics
     catch them if they arise in action
     pass them on to handler where?
 
+  varying method definitions by state:
+  
+    state :S1, :S2 do
+      def calc_something; ...; end
+    end
+  
+    state :S3, :S4 do
+      def calc_something; ...; end
+    end
+    
+    But how to do this without using singleton methods?
+
 Metasimualtion layer
   methods to tell an object to change state, etc.
   method to send message to object(s)
 
 Implementation
+
+  bugs
+  
+    guard "x < 1.0E-5"
+    
+    continuous :x; alias y x
 
   is it possible to give a hint/declaration to the effect that a guard
     refers only to continuous values, so only needs to be checked once
@@ -274,6 +305,10 @@ Implementation
   abstract hash-inheritance and use it in meta.rb and option-block.rb
 
   optimization
+    gcc: use registers for arg passing:
+     int  __attribute__ ((regparm(3))) fn (int x) 
+      
+    option to use float instead of double
     compiler flags
       -O{1-4}
       -ffast-math
@@ -282,6 +317,7 @@ Implementation
     don't use Data_Get_Struct in flow fns, use simple casts like in
       step_discrete inlines, with asserts
     profiling
+      cache profiling with valgrind
     compare with shift, matlab
     integration method
     flows
@@ -380,6 +416,8 @@ Examples
 / persistence
 
 Documentation
+
+  reserved names, like do_setup
 
   restrictions
     singleton methods will be lost in World#save

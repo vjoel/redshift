@@ -1,3 +1,5 @@
+## PUT THIS DOC IN SOME OTHER FILE
+
 =begin
 
 Flow syntax:
@@ -34,6 +36,8 @@ an instance variable ((|@front_left_target_4|)), updated when necessary during d
 
 The increase in efficiency comes at the cost of maintaining this new variable. Use of cflows should be considered only for mature, stable code. Premature optimization is the root of all evil.
 
+ACTUALLY: only continuous variables (no methods) can be referenced in flows.
+
 ==Syntax
 
 The syntax of algebraic and differential cflows is
@@ -66,7 +70,7 @@ caution. Typical methods used are accessors, which have no side effects.
 
 ==C interface
 
-All functions in math.h are available in the expression. The library is geberated with (({CGenerator})) (in file ((*cgen.rb*))). This is a very flexible tool:
+All functions in math.h are available in the expression. The library is generated with (({CGenerator})) (in file ((*cgen.rb*))). This is a very flexible tool:
 
 * To statically link to other C files, simply place them in the same dir as the library (you may need to create the dir yourself unless the RedShift program has already run). To include a .h file, simply do the following somewhere in your Ruby code:
 
@@ -94,7 +98,7 @@ The cflow cannot be changed or recompiled while the simulation is running. Chang
 
 * link1.link2.var, etc.
 
-* WARN when variable name conflics with ruby method.
+* WARN when variable name conflicts with ruby method.
 
 =end
 
@@ -109,9 +113,19 @@ class Flow    ## rename to equation?
     @var, @formula = v, f
   end
   
+  def strict; true; end # can only be false for an AlgebraicFlow
+  
   def attach cl, state
     cont_var = cl.permissively_continuous(@var)[0]
     cl.add_flow [state, cont_var] => flow_wrapper(cl, state)
+
+    cl.after_commit do
+      ## a pity to use after_commit, when "just_before_commit" would be ok
+      unless strict or cont_var.writable
+        raise StrictnessError,
+          "\nVariable #{cont_var.name} redefined with different strictness."
+      end
+    end
   end
   
   class NilLinkError < StandardError; end
@@ -177,7 +191,7 @@ class Flow    ## rename to equation?
                 if (#{cs_cname}->#{var}.algebraic) {
                   if (#{cs_cname}->#{var}.rk_level < rk_level ||
                      (rk_level == 0 && #{cs_cname}->#{var}.d_tick != d_tick))
-                    (*#{cs_cname}->#{var}.flow)(#{sh_cname});
+                    (*#{cs_cname}->#{var}.flow)((ComponentShadow *)#{sh_cname});
                 }
               }
               return &(#{cs_cname}->#{var});
@@ -208,8 +222,8 @@ class Flow    ## rename to equation?
             # x ==> var_x
             var_obj = cl.cont_state_class.find_var(var.intern)
             if not var_obj or var_obj.writable
-              ## note var must have been declared at this point
-              ## or else we lose the optimization
+              # note var must have been declared at this point
+              # or else we can't use the strict optimization
               strict = false
             end
             
@@ -223,7 +237,7 @@ class Flow    ## rename to equation?
               if (#{cs_cname}->#{var}.algebraic) {
                 if (#{cs_cname}->#{var}.rk_level < rk_level ||
                    (rk_level == 0 && #{cs_cname}->#{var}.d_tick != d_tick))
-                  (*#{cs_cname}->#{var}.flow)(#{sh_cname});
+                  (*#{cs_cname}->#{var}.flow)((ComponentShadow *)#{sh_cname});
               }
             }
             setup << %{
@@ -248,6 +262,9 @@ end
 class CircularDefinitionError < StandardError; end
 
 class AlgebraicFlow < Flow
+
+  attr_reader :strict   # true iff the RHS of the eqn. has only strictly
+                        # continuous variables.
 
   def flow_wrapper cl, state
     var_name = @var
@@ -277,6 +294,8 @@ class AlgebraicFlow < Flow
           }
           var->nested = 1;
         }
+        ## optimization: it might be possible to translate once and
+        ## use gsub to make each of the four versions.
         body %{
           
           switch (rk_level) {
@@ -296,7 +315,9 @@ class AlgebraicFlow < Flow
             var->rk_level = rk_level;
             break;
           case 3:
-            #{flow.translate(self, "var->value_3", 3, cl).join("
+            #{flow.translate(self, "var->value_3", 3, cl){|strict|
+              flow.instance_eval {@strict = strict}
+            }.join("
             ")};
             var->rk_level = rk_level;
             break;
@@ -310,7 +331,7 @@ class AlgebraicFlow < Flow
       end # Case 0 applies during discrete update.
           # alg flows are lazy
 
-      define_method :calc_function_pointer do
+      define_c_method :calc_function_pointer do
         body "shadow->flow = &#{flow_name}", "shadow->algebraic = 1"
       end
     end
@@ -364,7 +385,7 @@ class EulerDifferentialFlow < Flow
       end ## setting var->rk_level=4 saves two function calls
           ## but there's still the wasted rk_level=1 function call...
           ## this might be a reason to handle euler steps at rk_level=1
-      define_method :calc_function_pointer do
+      define_c_method :calc_function_pointer do
         body "shadow->flow = &#{flow_name}"
       end
     end
@@ -407,13 +428,13 @@ class RK4DifferentialFlow < Flow
           case 0:
             #{flow.translate(self, "ddt_#{var_name}", 0, cl).join("
             ")};
-            var->value_1 = var->value_0 + ddt_#{var_name} * time_step / 2;
+            var->value_1 = var->value_0 + ddt_#{var_name} * time_step/2;
             break;
 
           case 1:
             #{flow.translate(self, "ddt_#{var_name}", 1, cl).join("
             ")};
-            var->value_2 = var->value_0 + ddt_#{var_name} * time_step / 2;
+            var->value_2 = var->value_0 + ddt_#{var_name} * time_step/2;
             break;
 
           case 2:
@@ -441,7 +462,7 @@ class RK4DifferentialFlow < Flow
         }
       end
 
-      define_method :calc_function_pointer do
+      define_c_method :calc_function_pointer do
         body "shadow->flow = &#{flow_name}"
       end
     end
@@ -493,7 +514,7 @@ class CexprGuard < Flow
       
       @strict = strict
       
-      define_method :calc_function_pointer do
+      define_c_method :calc_function_pointer do
         body "shadow->guard = &#{guard_name}"
       end
     end

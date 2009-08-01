@@ -185,11 +185,11 @@ class Flow_NilLink < FlowTestComponent
       y
       test.assert_fail("Didn't detect nil link.")
     rescue Exception => e
-## why does e seem to change type to CircularityError when asserting?
-#      unless e.type == Flow::NilLinkError
-#        test.assert_fail("Wrong kind of exception: #{e.type}")
+## why does e seem to change class to CircularityError when asserting?
+#      unless e.class == Flow::NilLinkError
+#        test.assert_fail("Wrong kind of exception: #{e.class}")
 #      end
-#    puts e.type, e.message; exit
+#    puts e.class, e.message; exit
 #      test.assert_kind_of(Flow::NilLinkError, e)
     end
 #    test.assert_exception(Flow::NilLinkError) {y}
@@ -257,11 +257,11 @@ require 'test/unit'
 
 class TestFlow < Test::Unit::TestCase
   
-  def set_up
+  def setup
     @world = World.new { time_step 0.01; self.zeno_limit = 100 }
   end
   
-  def tear_down
+  def teardown
     @world = nil
   end
   

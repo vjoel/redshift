@@ -1,5 +1,5 @@
 module RedShift
-  
+
 class Component
   
   class_superhash2 :flows, :transitions
@@ -9,8 +9,10 @@ class Component
     def export(*events)
       for event in events
         unless exported_events[event]
-          shadow_attr_accessor :nonpersistent, event => Object
+          before_commit do
+            shadow_attr_accessor :nonpersistent, event => Object
             ### should be reader only
+          end
           protected "#{event}=".intern
           exported_events[event] = true
         end
@@ -40,7 +42,7 @@ class Component
     end
 
     def attach states, features
-      if features.type != Array
+      if features.class != Array
         features = [features]
       end
 
@@ -95,15 +97,15 @@ class Component
   end
 
   def states
-    type.states.keys
+    self.class.states.keys
   end
   
   def flows s = state
-    type.flows s
+    self.class.flows s
   end
   
   def transitions s = state
-    type.cached_transitions s
+    self.class.cached_transitions s
   end
   
   ## move into C code in __update_cache?

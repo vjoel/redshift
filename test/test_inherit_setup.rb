@@ -38,11 +38,11 @@ require 'test/unit'
 
 class TestInheritSetup < Test::Unit::TestCase
   
-  def set_up
+  def setup
     @world = World.new { time_step 0.1 }
   end
   
-  def tear_down
+  def teardown
     @world = nil
   end
   
@@ -50,6 +50,6 @@ class TestInheritSetup < Test::Unit::TestCase
     t = @world.create(Setup_1)
     assert_equal([0,2,3], [t.x,t.y,t.z])
     assert_equal([0,2,3], [t.xx,t.yy,t.zz])
-    assert_equal(B, t.other.type)
+    assert_equal(B, t.other.class)
   end
 end

@@ -2,7 +2,7 @@ module RedShift
 
 class World
 
-  define_method :step_continuous do
+  define_c_method :step_continuous do
     declare :locals => %{
       VALUE             comp_rb_ary, *comp_ary;
       long              len;
@@ -41,7 +41,7 @@ class World
               if (var->flow &&
                   var->rk_level < rk_level &&
                   !var->algebraic)
-                (*var->flow)(comp_shdw);
+                (*var->flow)((ComponentShadow *)comp_shdw);
               if (rk_level == 4)
                 var->d_tick = 0;      //# for next step_discrete
             }
@@ -55,13 +55,12 @@ class World
   end
   private :step_continuous
 
-  define_method :step_discrete do
+  define_c_method :step_discrete do
     c_array_args {  ## performance cost? DEBUG only?
       optional :step_count
       default :step_count => "INT2FIX(-1)"
     }
     declare :locals => %{
-long gcount = 0;
       VALUE             comp;
       ComponentShadow  *comp_shdw;
       VALUE            *ptr;
@@ -76,6 +75,7 @@ long gcount = 0;
     }.tabto(0)
     insteval_proc = declare_symbol :insteval_proc
     test_event    = declare_symbol :test_event
+    capa = RUBY_VERSION.to_f >= 1.7 ? "aux.capa" : "capa"
     declare :step_discrete_subs => %{
       inline ComponentShadow *get_shadow(VALUE comp)
       { //### assert type check?
@@ -103,7 +103,7 @@ long gcount = 0;
       {
         struct RArray *nl = RARRAY(next_list);
         assert(RARRAY(list)->ptr[RARRAY(list)->len-1] == comp);
-        if (nl->len == nl->capa)
+        if (nl->len == nl->#{capa})
           rb_ary_store(next_list, nl->len, comp);
         else
           nl->ptr[nl->len++] = comp;
@@ -144,7 +144,6 @@ long gcount = 0;
         assert(BUILTIN_TYPE(guards) == T_ARRAY);
         for (i = 0; i < RARRAY(guards)->len; i++) {
           VALUE guard = RARRAY(guards)->ptr[i];
-gcount++;
 
           switch (BUILTIN_TYPE(guard)) {
           case T_DATA:
@@ -340,7 +339,6 @@ gcount++;
       
       move_all_comps(shadow->curr_G, shadow->strict_sleep);
       SWAP_VALUE(shadow->curr_G, shadow->strict_sleep);
-//#printf("%7d ", gcount);
     }
   end
   private :step_discrete

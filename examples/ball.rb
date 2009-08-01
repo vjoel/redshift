@@ -10,17 +10,17 @@ class Observer < Component
   
   state :Observing
   
-  transition (Enter => Observing)
+  transition Enter => Observing
 
-  transition (Observing => Observing) {
+  transition Observing => Observing do
     guard {ball.impact}
     action {print "\n\t ***** Time of impact #{world.clock}.\n\n"}
-  }
+  end
   
-  transition (Observing => Exit) {
+  transition Observing => Exit do
     guard {world.clock >= 20.0}
     action {print "\n\n ***** Observer leaving.\n\n"}
-  }
+  end
   
 end
 
@@ -30,7 +30,7 @@ class Ball < Component
   
   state :Falling, :Rising
   
-  flow (Falling, Rising) {
+  flow Falling, Rising do
   
     differential  " y' = v "
     euler         " v' = a "
@@ -40,9 +40,9 @@ class Ball < Component
                              0.5 * @a * t_elapsed ** 2 "
     algebraic     " y_err = (true_y - y).abs "
     
-  }
+  end
   
-  transition (Falling => Rising) {
+  transition Falling => Rising do
     guard {y <= 0}
     event :impact
     action {
@@ -51,15 +51,15 @@ class Ball < Component
       @t_elapsed = 0.0
       @bounce_count += 1
     }
-  }
+  end
   
-  transition (Rising => Falling) {
+  transition Rising => Falling do
     guard {v <= 0}
-  }
+  end
   
-  transition (Rising => Exit, Falling => Exit) {
+  transition Rising => Exit, Falling => Exit do
     guard {@bounce_count == 3}
-  }
+  end
   
   defaults {
     start Falling
@@ -103,7 +103,7 @@ while w.size > 0 do
   y << [w.clock, ball.y]
 end
 
-Plot.new ('gnuplot') {
+Plot.new('gnuplot') {
   add y, 'title "height" with lines'
   show
   pause 5

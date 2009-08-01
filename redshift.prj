@@ -1,12 +1,12 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 1.0 20)
-(Parent-Version redshift 1.0 19)
+(Project-Version redshift 1.0 21)
+(Parent-Version redshift 1.0 20)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Sun, 17 Nov 2002 12:04:06 -0800")
-(Checkin-Login tercel)
+(Checkin-Time "Sat, 15 Nov 2003 22:00:06 -0800")
+(Checkin-Login vjoel)
 (Populate-Ignore ())
 (Project-Keywords)
 (Files
@@ -35,7 +35,7 @@
 
   
   
-  (README (redshift/10_README 1.26 644))
+  (README (redshift/10_README 1.27 644))
 
 ;; Files added by populate at Sat, 26 May 2001 21:45:52 -0700,
 ;; to version 0.3(w), by joel:
@@ -71,7 +71,7 @@
 ;; to version 0.7(w), by joel:
 
   (examples/sample.rb (redshift/19_sample.rb 1.2 755))
-  (examples/ball.rb (redshift/20_ball.rb 1.9 755))
+  (examples/ball.rb (redshift/20_ball.rb 1.10 755))
 
 ;; Files added by populate at Wed, 06 Jun 2001 00:00:49 -0700,
 ;; to version 0.9(w), by joel:
@@ -178,57 +178,57 @@
 ;; Files added by populate at Sat, 16 Feb 2002 11:17:30 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test.rb (redshift/33_test.rb 1.5 775))
+  (test/test.rb (redshift/33_test.rb 1.6 775))
 
 ;; Files added by populate at Sat, 16 Feb 2002 11:17:47 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_discrete.rb (redshift/34_test_discr 1.7 644))
+  (test/test_discrete.rb (redshift/34_test_discr 1.8 644))
 
 ;; Files added by populate at Sat, 16 Feb 2002 11:17:59 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_flow.rb (redshift/35_test_flow. 1.6 644))
+  (test/test_flow.rb (redshift/35_test_flow. 1.7 644))
 
 ;; Files added by populate at Sat, 16 Feb 2002 11:18:05 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_inherit.rb (redshift/36_test_inher 1.4 644))
+  (test/test_inherit.rb (redshift/36_test_inher 1.5 644))
 
 ;; Files added by populate at Sat, 16 Feb 2002 11:18:14 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_inherit_flow.rb (redshift/37_test_inher 1.5 664))
+  (test/test_inherit_flow.rb (redshift/37_test_inher 1.6 664))
 
 ;; Files added by populate at Sat, 16 Feb 2002 11:18:20 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_inherit_setup.rb (redshift/38_test_inher 1.4 664))
+  (test/test_inherit_setup.rb (redshift/38_test_inher 1.5 664))
 
 ;; Files added by populate at Sat, 16 Feb 2002 11:18:25 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_inherit_state.rb (redshift/39_test_inher 1.5 644))
+  (test/test_inherit_state.rb (redshift/39_test_inher 1.6 644))
 
 ;; Files added by populate at Sat, 16 Feb 2002 11:18:30 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_inherit_transition.rb (redshift/40_test_inher 1.6 664))
+  (test/test_inherit_transition.rb (redshift/40_test_inher 1.7 664))
 
 ;; Files added by populate at Sat, 16 Feb 2002 11:18:37 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_numerics.rb (redshift/41_test_numer 1.4 644))
+  (test/test_numerics.rb (redshift/41_test_numer 1.5 644))
 
 ;; Files added by populate at Sat, 16 Feb 2002 11:18:42 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_setup.rb (redshift/42_test_setup 1.4 644))
+  (test/test_setup.rb (redshift/42_test_setup 1.5 644))
 
 ;; Files added by populate at Sat, 16 Feb 2002 11:18:53 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_world.rb (redshift/43_test_world 1.9 644))
+  (test/test_world.rb (redshift/43_test_world 1.10 644))
 
 ;; Files deleted by depopulate at Sun, 31 Mar 2002 00:14:51 -0800,
 ;; from version 0.23(w), by tercel:
@@ -282,7 +282,7 @@
 ;; Files added by populate at Thu, 02 May 2002 09:37:36 -0700,
 ;; to version 1.0.5(w), by tercel:
 
-  (test/test_inherit_link.rb (redshift/b/7_test_inher 1.3 644))
+  (test/test_inherit_link.rb (redshift/b/7_test_inher 1.4 644))
 
 ;; Files deleted by depopulate at Mon, 13 May 2002 01:24:37 -0700,
 ;; from version 1.0.6(w), by tercel:
@@ -297,9 +297,9 @@
 ;; Files added by populate at Mon, 13 May 2002 15:01:46 -0700,
 ;; to version 1.0.6(w), by tercel:
 
-  (test/test_flow_trans.rb (redshift/b/8_test_flow_ 1.3 644))
-  (test/test_flow_sub.rb (redshift/b/9_test_flow_ 1.3 644))
-  (test/test_flow_link.rb (redshift/b/10_test_flow_ 1.3 644))
+  (test/test_flow_trans.rb (redshift/b/8_test_flow_ 1.4 644))
+  (test/test_flow_sub.rb (redshift/b/9_test_flow_ 1.4 644))
+  (test/test_flow_link.rb (redshift/b/10_test_flow_ 1.4 644))
 
 ;; Files added by populate at Thu, 16 May 2002 00:16:02 -0700,
 ;; to version 1.0.7(w), by tercel:
@@ -309,7 +309,7 @@
 ;; Files added by populate at Thu, 16 May 2002 00:16:26 -0700,
 ;; to version 1.0.7(w), by tercel:
 
-  (test/test_discrete_isolated.rb (redshift/b/12_test_discr 1.4 644))
+  (test/test_discrete_isolated.rb (redshift/b/12_test_discr 1.5 644))
 
 ;; Files added by populate at Thu, 16 May 2002 00:16:42 -0700,
 ;; to version 1.0.7(w), by tercel:
@@ -342,15 +342,15 @@
 ;; Files added by populate at Sun, 29 Sep 2002 16:27:47 -0700,
 ;; to version 1.0.17(w), by tercel:
 
-  (lib/world.rb (redshift/b/16_world.rb 1.3 644))
-  (lib/syntax.rb (redshift/b/17_syntax.rb 1.2 644))
-  (lib/step.rb (redshift/b/18_step.rb 1.2 644))
+  (lib/world.rb (redshift/b/16_world.rb 1.4 644))
+  (lib/syntax.rb (redshift/b/17_syntax.rb 1.3 644))
+  (lib/step.rb (redshift/b/18_step.rb 1.3 644))
   (lib/state.rb (redshift/b/19_state.rb 1.1 644))
-  (lib/redshift.rb (redshift/b/20_redshift.r 1.2 644))
-  (lib/meta.rb (redshift/b/21_meta.rb 1.2 644))
-  (lib/flow.rb (redshift/b/22_flow.rb 1.3 644))
-  (lib/component.rb (redshift/b/23_component. 1.3 644))
-  (lib/clib.rb (redshift/b/24_clib.rb 1.1 644))
+  (lib/redshift.rb (redshift/b/20_redshift.r 1.3 644))
+  (lib/meta.rb (redshift/b/21_meta.rb 1.3 644))
+  (lib/flow.rb (redshift/b/22_flow.rb 1.4 644))
+  (lib/component.rb (redshift/b/23_component. 1.4 644))
+  (lib/clib.rb (redshift/b/24_clib.rb 1.2 644))
 
 ;; Files added by populate at Sun, 17 Nov 2002 12:04:01 -0800,
 ;; to version 1.0.19(w), by tercel:

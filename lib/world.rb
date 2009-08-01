@@ -69,7 +69,7 @@ class World
       next_A, next_R, next_E, next_G,
       strict_sleep
 
-    @name           = options[:name] || "#{type} #{@@count}"
+    @name           = options[:name] || "#{self.class} #{@@count}"
     self.time_step  = options[:time_step]
 ###    self.zeno_limit = options[:zeno_limit]
     self.zeno_limit = -1
@@ -83,7 +83,7 @@ class World
   end
   
   def do_setup
-    type.do_setup self
+    self.class.do_setup self
     if @setup_procs
       for pr in @setup_procs
         instance_eval(&pr)
@@ -189,7 +189,7 @@ class World
   
   def save filename = @name
     raise "\nCan't save world during its run method." if @running
-    File.delete filename rescue SystemCallError
+    File.delete(filename) rescue SystemCallError
     store = PStore.new filename
     store.transaction do
       store['world'] = self

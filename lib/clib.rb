@@ -1,3 +1,4 @@
+require 'ftools'
 require 'cgen/cshadow'
 
 module RedShift
@@ -12,6 +13,7 @@ module RedShift
 
   class Library < CShadow::Library
     @@show_times = $REDSHIFT_BUILD_TIMES
+    $CGEN_VERBOSE = $REDSHIFT_CGEN_VERBOSE ## ugh.
 
     def update_file f, template
 #      template_str = template.to_s
@@ -38,7 +40,7 @@ module RedShift
       else
         begin
           oldpwd = Dir.pwd
-          Dir.mkdir dir_name rescue SystemCallError
+          File.mkpath dir_name
           Dir.chdir dir_name
           yield
         ensure
@@ -73,7 +75,7 @@ module RedShift
         else
           File.basename(@clib_name)
         end
-      @clib_name[/\.rb$/] = ''
+      @clib_name.sub!(/\.rb$/, '')
       @clib_name.gsub!(/-/, '_')
       @clib_name.sub!(/^(?=\d)/, '_')
         # other symbols will be caught in CGenerate::Library#initialize.

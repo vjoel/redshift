@@ -1,3 +1,13 @@
+redshift 1.2.7
+
+- Changed Euler flow to operate at rk=1 rather than rk=2.
+
+- Fixed bug introduced in 1.2 that was exposed by the above change.
+
+- Added derivative and PID control examples.
+
+- Added euler flow benchmark and example.
+
 redshift 1.2.6
 
 - Added flow class for numerical differentiation (derive " rate = u' ").

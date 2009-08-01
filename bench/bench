@@ -16,6 +16,7 @@ pat = pat ? Regexp.new(pat) : //
   alg-state
   continuous
   discrete
+  euler
   formula
   half-strict
   inertness

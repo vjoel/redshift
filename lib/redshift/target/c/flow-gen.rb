@@ -323,7 +323,7 @@ class EulerDifferentialFlow
           double    ddt_#{var_name};
         }
         setup :shadow => %{
-          if (rk_level == 2) {
+          if (rk_level == 1) {
             shadow = (#{ssn} *)comp_shdw;
             cont_state = (#{cont_state_ssn} *)shadow->cont_state;
             var = &cont_state->#{var_name};
@@ -332,7 +332,7 @@ class EulerDifferentialFlow
             return;
         } # return is necessary--else shadow, cont_state, var are uninitialized
         setup :rk_level => %{
-          rk_level -= 2;
+          rk_level -= 1;
         } # has to happen before referenced alg flows are called in other setups
         body %{
           if (rk_level == 0) {
@@ -344,11 +344,9 @@ class EulerDifferentialFlow
             
             var->rk_level = 4;
           }
-          rk_level += 2;
+          rk_level += 1;
         }
-      end ## setting var->rk_level=4 saves two function calls
-          ## but there's still the wasted rk_level=1 function call...
-          ## this might be a reason to handle euler steps at rk_level=1
+      end
       define_c_method :calc_function_pointer do
         body "shadow->flow = &#{flow_name}"
       end

@@ -144,23 +144,25 @@ class World
           Data_Get_Struct(comp_ary[ci], ComponentShadow, comp_shdw);
           
           if (rk_level == 1 && !comp_shdw->has_diff) {
-            if (ci < len-1)
+            if (ci < len-1) {
               comp_ary[ci] = comp_ary[len-1];
+              ci--;
+            }
             len = RARRAY(shadow->diff_list)->len = len-1;
             comp_shdw->diff_list = 0;
-            continue;
           }
-          
-          var_count = comp_shdw->var_count;
-          var = (ContVar *)(&FIRST_CONT_VAR(comp_shdw));
-          end_var = &var[var_count];
+          else {
+            var_count = comp_shdw->var_count;
+            var = (ContVar *)(&FIRST_CONT_VAR(comp_shdw));
+            end_var = &var[var_count];
 
-          while (var < end_var) {
-            if (var->flow &&
-                var->rk_level < rk_level &&
-                !var->algebraic)
-              (*var->flow)((ComponentShadow *)comp_shdw);
-            var++;
+            while (var < end_var) {
+              if (var->flow &&
+                  var->rk_level < rk_level &&
+                  !var->algebraic)
+                (*var->flow)((ComponentShadow *)comp_shdw);
+              var++;
+            }
           }
         }
       }

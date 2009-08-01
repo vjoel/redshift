@@ -52,7 +52,8 @@ class RedShift::World
     def step_zeno
       self.debug_zeno_limit ||= zeno_limit*3
       if debug_zeno and
-         (debug_zeno_limit == ZENO_UNLIMITED or zeno_counter < debug_zeno_limit)
+         (debug_zeno_limit == RedShift::ZENO_UNLIMITED or
+          zeno_counter < debug_zeno_limit)
         self.zeno_watch_list |= select {|c| c.trans}
         report_zeno if zeno_counter >= 2*zeno_limit
 

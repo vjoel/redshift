@@ -307,7 +307,9 @@ class EulerDifferentialFlow
             cont_state = (#{cont_state_ssn} *)shadow->cont_state;
             var = &cont_state->#{var_name};
           }
-        }
+          else
+            return;
+        } # return is necessary--else shadow, cont_state, var are uninitialized
         setup :rk_level => %{
           rk_level -= 2;
         } # has to happen before referenced alg flows are called in other setups

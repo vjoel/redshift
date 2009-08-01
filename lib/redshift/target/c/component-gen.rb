@@ -21,6 +21,9 @@ module RedShift
       typedef void (*Flow)(ComponentShadow *);  // evaluates one variable
       typedef int (*Guard)(ComponentShadow *);  // evaluates a guard expr
       typedef double (*Expr)(ComponentShadow *);// evaluates a numerical expr
+      #ifdef WIN32
+      #pragma pack(push, 1)
+      #endif
       typedef struct {
         unsigned    d_tick    : 16; // last discrete tick at which flow computed
         unsigned    rk_level  :  3; // last rk level at which flow was computed
@@ -32,6 +35,9 @@ module RedShift
         double      value_2;
         double      value_3;
       } ContVar;
+      #ifdef WIN32
+      #pragma pack(pop)
+      #endif
     }.tabto(0)
 
     class FlowAttribute < CNativeAttribute
@@ -132,7 +138,7 @@ module RedShift
           "ContVar begin_vars[1]" ### wasted
         
         Component.shadow_library_include_file.declare :first_cont_var => '
-          #define FIRST_CONT_VAR(shadow) (*(&(shadow)->cont_state->begin_vars))
+          #define FIRST_CONT_VAR(shadow) ((shadow)->cont_state->begin_vars[1])
         '
       else
         shadow_struct.declare :begin_vars =>
@@ -436,7 +442,7 @@ module RedShift
               offset = (char *)&(((struct #{ssn} *)0)->#{var_name}) - (char *)0;
               return INT2FIX(offset);
             }
-          }
+          } ### can we just use offsetof() ?
         end
       end
       ### shadow_attr won't accept redefinition, and anyway there is

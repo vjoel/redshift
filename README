@@ -1,92 +1,27 @@
 To do
 =====
 
-* Declaration for non-instantiable Component classes, to reduce source bloat.
-
-* Investigate Tiny C--Linux only, but fast, and libtcc allows dynamic codegen. Maybe best used in "develop" mode, rather than for production code. Is it better to exec tcc or to use tcclib?
-
-Need atomic sequences of transitions? (Maybe by providing an event with an explicit receiver? Maybe this is a job for interrupts?)
-
-Check for abs vs. fabs (the former converts to int!) in C code.
-
-Strict continuity
-
-  link optimization
-    in #var=, check strict flag
-      if strict, move comp from sleep list to guard list
-
-  will there be a problem with unguarded transitions?
-
-  update_cache is inefficient
-
-
-Error messages
-
-  use just last line of backtrace.
-
-
-Compiler
-
-  deferred code generation
-    use transactions which say "add this flow to that state/class",
-        "add this guard to that transition", etc.
-    can sort and separate into files before committing
-      check, per file, for equality with last compile
-    retargetable to C or Ruby output
-    
-
 Syntax
 
-  see http://www.rubygarden.org/ruby?KeywordArguments
-
-  use Ruth or similar tool for truly custom syntax?
+  express flows, guards, etc, in ruby syntax and use something to parse:
   
-    -- see Ripper
-
-  use ` for equations?
-  
-    flow {
-      ` x' = y `
-      ` y = 2  `
-    }
-
-  link {
-    x Foo
-    y Bar
-  } # using method_missing
-
-  run can take seconds as arg
-    run :steps => n
-    run :time => n
-
-  Fix the option-block cruft--it's slow and clunky. Avoid instance_eval.
+    nodedump/nodewrap
+    
+    ripper
+    
+    "expansion.rb"
 
   resets and even assignment to cont-vars can use '<=' or '[]='
-  better: eval each setup or reset block in a context in which
-          for each continuous var a local var of the same name
-          has been initialized to nil, and then make the
-          assignments later -- won't work
-  use this: reset { x expr; y expr; ... }
-    where x, y, ... are the only methods in the context (instance_eval)
-    they take three kinds of args:
-      x 1         --- reset to compile-time constant
-      x "..."     --- reset to value of C expr
-      x {...}     --- reset to value of Ruby code
-      (OR SEE BELOW)
 
   check for symbol conflicts
-    user attributes may conflict with Component's attrs/methods
+    user attributes may conflict with Component's attrs
     ditto for flows and other methods defined in subclasses
     can we 'hook' method def and attr def to check for conflict? 
     or just use a consistent naming scheme to keep internals separate?
 
-  multiple resets and actions for transitions
-  
-  flows: allow numeric constants
-  
   reset clauses:
     transition A => B do
-      reset " x := expr ", ... (OR SEE ABOVE)
+      reset " x := expr ", ...
     setup and defaults, too
     this might get around the self.x danger for casual users
     OR: don't use 'foo = ...' in resets, use 'foo ...' instead
@@ -173,18 +108,6 @@ Semantics
       transition ... do
         push [or pop, in which case the dest. state is ignored]
       end
-      
-  transition only_with:
-  
-    transition ...
-      only_with c1, c2, { calc_c3 } # specifies other comps/events
-      
-      ci is:
-        component: [:link, :event] where :link is method w/o args
-        quantified:
-          all [:links, :event]
-          any [:links, :event, :which=]
-        open: as above but omit link name
   
   interrupts
     a way of enabling a transition without evaluating guards
@@ -193,7 +116,6 @@ Semantics
     can register with global interrupt manager
       notify after T seconds
       notify when global event happens (like what?)
-    should interrupts be in a priority queue for the receiving component?
     receive in any state, switch to new state optional (push ok)
     synchronous in the sense that no other components act in between
       the send and receive, and the receiver action happens before the
@@ -206,11 +128,6 @@ Semantics
         action { |args| ...}
         event ...
       end
-      
-                  timely    lossless    nonblocking   atomic
-    interrupts:     --         XX           XX          --
-    events:         XX         --           XX          --
-    sync:           XX         XX           --          XX
   
   signals
     maybe better than interrupts, more general
@@ -266,29 +183,11 @@ Semantics
     catch them if they arise in action
     pass them on to handler where?
 
-  varying method definitions by state:
-  
-    state :S1, :S2 do
-      def calc_something; ...; end
-    end
-  
-    state :S3, :S4 do
-      def calc_something; ...; end
-    end
-    
-    But how to do this without using singleton methods?
-
 Metasimualtion layer
   methods to tell an object to change state, etc.
   method to send message to object(s)
 
 Implementation
-
-  bugs
-  
-    guard "x < 1.0E-5"
-    
-    continuous :x; alias y x
 
   is it possible to give a hint/declaration to the effect that a guard
     refers only to continuous values, so only needs to be checked once
@@ -307,19 +206,8 @@ Implementation
   abstract hash-inheritance and use it in meta.rb and option-block.rb
 
   optimization
-    gcc: use registers for arg passing:
-     int  __attribute__ ((regparm(3))) fn (int x) 
-      
-    option to use float instead of double
-    compiler flags
-      -O{1-4}
-      -ffast-math
-      If these matter much, there should be a switch, like REDSHIFT_OPTIMIZE=n
-    in ruby 1.7, convert proc to methods (e.g., the guard method of a trans)
-    don't use Data_Get_Struct in flow fns, use simple casts like in
-      step_discrete inlines, with asserts
     profiling
-      cache profiling with valgrind
+      use valgrind, gprof, etc. to profile the C code
     compare with shift, matlab
     integration method
     flows
@@ -328,11 +216,7 @@ Implementation
         should raise an exception.
     guards
       clause to set how often the guard is checked
-      constant guards:
-        guard "x > 1"
     dual mode
-    investigate CPU caching issues
-    look into special processor instructions for parallelism (MMX on PIII)
   
 / garbage collection
 /   nil out the components array, do GC, reconstruct components array
@@ -354,23 +238,23 @@ x   automatically scan formulas and use best alg.
   run time error checking
     more 'if $DEBUG ...' checks
 /     use $DEBUG when testing.
-/   catch infinite loops in alg. flows
+    catch infinite loops in alg. flows
     zeno
       limit can scale w/ num components
     catch definition of flows after commit, etc.
     error reporting: use Minero Aoki's must.rb to check types etc.
-    catch:
-      algebraic "x = 0", "x = 0"
     
   exception handling
     syntax and math errors, esp. in flows, guards
     use Exception classes
   
   unit tests
-    migrate to TestUnit
-/   integrator (start with solution involving diff'able fns)
+    integrator (start with solution involving diff'able fns)
+      solve eqn in complex vars with and without Complex class
 /   inheritance
-/   transitions and events
+    transitions and events
+    dynamism:
+      changing flows and transitions on classes which have instances
   
   system tests
     compare with other integrators (accuracy)
@@ -419,8 +303,13 @@ Examples
 
 Documentation
 
-  reserved names, like do_setup
-
   restrictions
+    singleton methods cannot be exported (see Event)
     singleton methods will be lost in World#save
     can't use modules to define flows, transitions, etc.
+
+  performance notes
+    don't call run repeatedly, call run n with a block
+      otherwise discrete step happens 2x each time
+    avoid complex non-numerical constructs in flows
+      can usually be done in discrete step anyway

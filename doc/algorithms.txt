@@ -111,28 +111,33 @@ discrete_update:
   A phase consists of the actions of all components which act in that phase
   during the current step. The order of actions is not defined, but, with
   proper coding techniques, it should not be significant except possibly in
-  phase A. The phase order is:
+  phase P. The phase order is:
   
-    A - perform procedural actions (arb. ruby code, including emitting events)
+    P - perform procedural actions (arb. ruby code, such as create())
+  
+    E - emit events (with values)
   
     R - reset variables (all components in parallel)
   
     * increment d_tick (because resets may invalidate algebraic flows)
   
-    E - emit or clear events (clear is just emit :e => nil/false)
-  
     G - check all guards, possibly starting a transition
   
-  A component can act in A, R, E only if it is taking a transition.
+  A component can act in P, E, R only if it is taking a transition.
   
   A component can act in G whether or not it is taking a transition. While
   taking a transition, a false guard aborts the transition.
   
-  A transition is a sequence of phased actions starting with G. If events
-  are emitted during the transition, but not explicitly cleared, an E phase
-  is added to the end of the transition. A transition can be as short as <G>. 
+  A transition is a sequence of phased actions starting with G. A transition is
+  considered to occur within a single instant of continuous time, but may
+  extend over any number of discrete steps. A transition can be as short as <G>.
   
-  Immediately after the last phase of a transition (A, R, E, or G), the
+  An event value persists for one discrete step: from the event phase in which
+  it is emitted to the next event phase. During the event phase, assignments of
+  values to events is performed in parallel, as with resets, allowing a
+  component to propagate events it has observed (with delay).
+  
+  Immediately after the last phase of a transition (P, E, R, or G), the
   component finishes the transition, changing state and exiting if the new
   state is Exit.
   
@@ -146,16 +151,102 @@ Notes:
   The first step can begin with the guard phase.
   
   Guards are last so that the condition which triggered a transition will still
-  be true on the next step. Also, emitting events or changing variables will
-  trigger transitions to start on the same step, so components can sync on
-  the second step. Also, components newly created in A can check their guards on
-  the same step.
+  be true for (at least part of) the next step. Also, emitting events or
+  changing variables will trigger transitions to start on the same step, so
+  components can sync on the second step. Also, components newly created in P
+  can check their guards on the same step and sync on the next step with their
+  creator.
   
-  Preceding resets by actions is necessary so that guards are still true for
-  passive information gathering and for creating components.
+  Preceding resets/events by procs is necessary so that guards are still true
+  for passive information gathering and for creating components.
   
   Preceding guards by events is necessary so that events will be visible for at
-  least one cycle of actions and resets after detection. (This is in case events
-  have values that are used in actions and resets.)
+  least one cycle of procs and resets after detection. (This is in case events
+  have values that are used in procs and resets.)
+  
+  The ordering of resets and events could go either way, but having events 
+  before resets has some advantages:
+  
+    Suppose c0 and c1 are taking transitions and c0:E and c1:R.
+  
+    Then, using ER:
+  
+    - [discrete control input]
+  
+      c0:E can export a value for c1:R to use in its RHS. This is preferrable to
+      SHIFT's resets that change non-local vars.
+  
+    - [observation]
+  
+      c0:E can export a var value from c1 for some c2 to use before it is
+      changed by assignment to the LHS of c1:R. The value is consistent with
+      the last guard phase (assuming the Proc phase didn't do anything). (OTOH,
+      the value will become inconsistent with the LHS. It's a "snapshot".)
+  
+    - d_tick bumped later (after R), so AER can all use same cache values before
+      they are invalidated.
+  
+    But, using RE:
+  
+    - RHS of resets is consistent with last guard phase, even if they depend on
+      event values. 
+ 
+          G   E1  E2
+    c0  *---|---|---|---...---*
+ 
+              G   R
+    c1   ...*---|---|---...
+ 
+    The question is: should R see E1 or E2. Since G sees E1, the latter makes
+    more sense (?). This is the effect of the ER ordering.
+ 
+    - LHS of resets in c1:R can be exported by c0:E.
+ 
+      But this can be done anyway by using the same formula in two places (or in
+      just one place by using alg fmla).
+  
+  Allowing any number of components to take transitions simultaneously is
+  useful in two respects:
+  
+    No need to explicitly compute members of "collective transitions"
+    
+      Collective transitions are self-defining and self-organizing.
+    
+    Potentially fewer discrete steps to finish the discrete update, resulting
+    in fewer guard checks.
+  
+  Obviously, a cluster of related components can use empty procs to force
+  actions to occur in any order. However, this increases the number of discrete
+  steps.  Minimizing this number reduces the total number of guards that have
+  to be checked per discrete update. That's why so much effort is put into
+  selecting PERG.
+  
+  Parallelism:
+  
+    Within each action class, actions may occur in parallel in a well-defined
+    sense.
+ 
+    P - parallelizable if all actions are create() or passive or act on
+        local state only
+ 
+    E - parallelizable (by RHS eval, then LHS assign)
+ 
+    R - parallelizable (by RHS eval, then LHS assign)
+ 
+    G - parallelizable (since passive)
+ 
+    However, interactions between actions of these 4 types are highly dependent
+    on the order of serialization.
+    
+    General Principle: within a discrete step, actions should be simultaneous.
+    
+      The violation of this rule is confined to Proc actions (?).
+      
+      This principle implies that transitions may, in general, extend over 
+      several discrete steps.
+
+==Question==
+
+Is it acceptable that a component can "miss" events it is listening for due to the fact that it is taking a transition? Without blocking or queues, this is unavoidable. Is that a problem?
 
 =end

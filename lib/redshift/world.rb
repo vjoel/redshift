@@ -1,4 +1,4 @@
-require 'option-block/option-block'
+require 'option-block/option-block' #### GET RID OF THIS!!!
 require 'pstore'
 require 'enum/op'
 
@@ -9,38 +9,33 @@ class ZenoError < RuntimeError; end
 class World
   include OptionBlock
   include Enumerable
-  include CShadow
-    shadow_library RedShift.library
-    shadow_library_file "world"
+
+  @subclasses = []
+
+  class << self
+    # World is not included in subclasses. This returns nil when called on subs.
+    attr_reader :subclasses
+
+    def inherited(sub)
+      World.subclasses << sub
+    end
+  end
+  
+# see comment in redshift.rb
+  def self.new(*args, &block)
+    RedShift.require_target     # redefines World.new
+    new(*args, &block)          # which is what this line calls
+  end
   
   attr_reader :components
-  
-# The indeterminacy of hash ordering causes the .c file to get written
-# when not strictly necessary. Until deferred compile works, break
-# the def up.
-#  shadow_attr_accessor \
-#    :curr_A => Array, :curr_R => Array, :curr_E => Array, :curr_G => Array,
-#    :next_A => Array, :next_R => Array, :next_E => Array, :next_G => Array
-  shadow_attr_accessor :curr_A => Array
-  shadow_attr_accessor :curr_R => Array
-  shadow_attr_accessor :curr_E => Array
-  shadow_attr_accessor :curr_G => Array
-  shadow_attr_accessor :next_A => Array
-  shadow_attr_accessor :next_R => Array
-  shadow_attr_accessor :next_E => Array
-  shadow_attr_accessor :next_G => Array
-  shadow_attr_accessor :strict_sleep => Array
-  protected \
-    :curr_A=, :curr_R=, :curr_E=, :curr_G=,
-    :next_A=, :next_R=, :next_E=, :next_G=, :strict_sleep=
   
   option_block_defaults \
     :name         =>  nil,
     :time_step    =>  0.1,
-###    :zeno_limit   =>  -1, ## Infinity,
+    :zeno_limit   =>  100,
     :clock_start  =>  0.0,
     :clock_finish =>  Infinity
-  
+
   @@count = 0
 
   attr_reader :step_count
@@ -48,33 +43,24 @@ class World
   def started?; @started; end
   def running?; @running; end
 
-  shadow_attr_writer   :time_step    => "double   time_step"
-  shadow_attr_accessor :zeno_limit   => "long     zeno_limit"
-  protected :time_step=
-  ### what about dynamically changing time step?
-  
-  def self.new(*args, &block)
-    RedShift.library.commit # redefines self.new  
-    new(*args, &block)
-  end
-  
   def initialize(&block)
-    super ##??
+    super ## for option-block
     
-    self.curr_A = []; self.curr_R = []; self.curr_E = []; self.curr_G = []
-    self.next_A = []; self.next_R = []; self.next_E = []; self.next_G = []
+    self.curr_P = []; self.curr_E = []; self.curr_R = []; self.curr_G = []
+    self.next_P = []; self.next_E = []; self.next_R = []; self.next_G = []
+    self.active_E = []; self.prev_active_E = []
     self.strict_sleep = []
     @components = EnumerableOperator.sum  \
-      curr_A, curr_R, curr_E, curr_G,
-      next_A, next_R, next_E, next_G,
+      curr_P, curr_E, curr_R, curr_G,
+      next_P, next_E, next_R, next_G,
       strict_sleep
 
     @name           = options[:name] || "#{self.class} #{@@count}"
     self.time_step  = options[:time_step]
-###    self.zeno_limit = options[:zeno_limit]
-    self.zeno_limit = -1
-    @clock_start    = options[:clock_start]
+    self.zeno_limit = options[:zeno_limit]
+    @clock_start    = options[:clock_start] ## are these two really needed?
     @clock_finish   = options[:clock_finish]
+    @time_unit      = options[:time_unit] || "second"
     
     @step_count = 0
     
@@ -103,7 +89,9 @@ class World
   end
 
   def create(component_class, &block)
-    raise unless component_class < Component
+    unless component_class < Component # Component is abstract
+      raise TypeError, "#{component_class} is not a Component class"
+    end
     c = component_class.new(self, &block)
     curr_G << c ## problem if occurs during guard?
     c
@@ -113,7 +101,8 @@ class World
 ##    components.delete c
 ##  end
   
-  def run(steps = 1)
+  # All evolution methods untimately call step, which can be overridden.
+  def step(steps = 1)
     @running = true
     
     unless @started
@@ -122,7 +111,7 @@ class World
     end
     
     step_discrete
-    while (steps -= 1) >= 0 ## faster to use '(1..steps).each do' ?
+    steps.to_i.times do
       break if clock > @clock_finish
       @step_count += 1
       step_continuous
@@ -132,15 +121,28 @@ class World
         ## it is client's responsibility to step_discrete at this point
         ## if vars have been changed
       @running = true
-    end ### put this whole loop in C
+    end
     
     self
     
   ensure
     @running = false
   end
+  
+  def run(*args, &block)
+    ## warn "World#run is deprecated -- use #step or #age"
+    step(*args, &block)
+  end
+  
+  ## maybe this shoud be called "evolve", to make it unambiguously a verb
+  def age(time = 1.0, &block)
+    run(time.to_f/time_step, &block)
+  end
 
+  # This method is called for each discrete step after half of the zeno_limit
+  # has been exceeded.
   def step_zeno zeno_counter
+    ## one useful behavior might be to shuffle guards in the active comps
     puts "Zeno step: #{zeno_counter} / #{zeno_limit}"
     ## print out the active components and their transitions if $DEBUG_ZENO?
   end
@@ -177,7 +179,7 @@ class World
   
   def inspect
     if @started
-      sprintf "<%s: %d step%s, %s second%s, %d component%s>",
+      sprintf "<%s: %d step%s, %s #{@time_unit}%s, %d component%s>",
         @name,
         @step_count, ("s" if @step_count != 1),
         clock, ("s" if clock != 1),
@@ -199,8 +201,6 @@ class World
   end
   
   def World.open filename
-    RedShift.library.commit unless RedShift.library.committed?
-      # defines World.alloc methods
     world = nil
     store = PStore.new filename
     store.transaction do

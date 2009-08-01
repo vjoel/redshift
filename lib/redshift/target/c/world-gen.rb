@@ -1,7 +1,49 @@
 module RedShift
 
 class World
+  include CShadow
+  shadow_library RedShift.library
+  shadow_library_file "World"
+  shadow_library_source_file.include(Component.shadow_library_include_file)
 
+  World.subclasses.each do |sub|
+    file_name = CGenerator.make_c_name(sub.name).to_s
+    sub.shadow_library_file file_name
+  end
+
+  shadow_attr_accessor :curr_P => Array
+  shadow_attr_accessor :curr_E => Array
+  shadow_attr_accessor :curr_R => Array
+  shadow_attr_accessor :curr_G => Array
+  shadow_attr_accessor :next_P => Array
+  shadow_attr_accessor :next_E => Array
+  shadow_attr_accessor :next_R => Array
+  shadow_attr_accessor :next_G => Array
+  shadow_attr_accessor :active_E => Array
+  shadow_attr_accessor :prev_active_E => Array
+  shadow_attr_accessor :strict_sleep => Array
+  protected \
+    :curr_P=, :curr_E=, :curr_R=, :curr_G=,
+    :next_P=, :next_E=, :next_R=, :next_G=,
+    :active_E=, :prev_active_E=, :strict_sleep=
+  
+  shadow_attr_writer   :time_step    => "double   time_step"
+  shadow_attr_accessor :zeno_limit   => "long     zeno_limit"
+  
+  class << self
+    # Redefine World#new so that a library commit happens first.
+    def new(*args, &block)
+      commit              # redefines World.new  
+      new(*args, &block)  # which is what this line calls
+    end
+
+    alias generic_open open
+    def open(*args, &block)
+      commit              # defines World.alloc methods
+      generic_open(*args, &block)
+    end
+  end
+  
   define_c_method :step_continuous do
     declare :locals => %{
       VALUE             comp_rb_ary, *comp_ary;
@@ -51,12 +93,27 @@ class World
       }
       d_tick = 1; //# alg flows need to be recalculated
       rk_level = 0;
-    } ## assumed that comp_ary[i] was a Component
+    } # assumed that comp_ary[i] was a Component--enforced by World#create
   end
   private :step_continuous
 
+## define_c_function :my_instance_eval do
+#  shadow_library_source_file.define(:my_instance_eval).instance_eval do
+#    arguments "VALUE comp"
+#    return_type "VALUE"
+#    scope :static
+#    returns "rb_obj_instance_eval(0, 0, comp)"
+#  end
+#  
+#  shadow_library_source_file.define(:call_block).instance_eval do
+#    arguments "VALUE arg1", "VALUE block"
+#    return_type "VALUE"
+#    scope :static
+#    returns "rb_funcall(block, #{declare_symbol :call}, 0)"
+#  end
+  
   define_c_method :step_discrete do
-    c_array_args {  ## performance cost? DEBUG only?
+    c_array_args {
       optional :step_count
       default :step_count => "INT2FIX(-1)"
     }
@@ -70,34 +127,34 @@ class World
       long              all_were_g, all_are_g;
       long              zeno_counter;
       long              zeno_limit;
-      static VALUE      ExitState, GuardWrapperClass;
-      static VALUE      ActionClass, ResetClass, EventClass, GuardClass;
+      static VALUE      ExitState, GuardWrapperClass, ExprWrapperClass;
+      static VALUE      ProcClass, EventClass, ResetClass, GuardClass;
+      static VALUE      DynamicEventClass;
     }.tabto(0)
     insteval_proc = declare_symbol :insteval_proc
-    test_event    = declare_symbol :test_event
     capa = RUBY_VERSION.to_f >= 1.7 ? "aux.capa" : "capa"
     declare :step_discrete_subs => %{
       inline ComponentShadow *get_shadow(VALUE comp)
-      { //### assert type check?
+      { //## assert type check?
         return (ComponentShadow *)DATA_PTR(comp);
       }
-      inline VALUE cur_actions(ComponentShadow *comp_shdw)
+      inline VALUE cur_procs(ComponentShadow *comp_shdw)
       {
-        VALUE actions = RARRAY(comp_shdw->phases)->ptr[comp_shdw->cur_ph];
-        assert(RBASIC(actions)->klass == ActionClass);
-        return actions;
-      }
-      inline VALUE cur_resets(ComponentShadow *comp_shdw)
-      {
-        VALUE resets = RARRAY(comp_shdw->phases)->ptr[comp_shdw->cur_ph];
-        assert(RBASIC(resets)->klass == ResetClass);
-        return resets;
+        VALUE procs = RARRAY(comp_shdw->phases)->ptr[comp_shdw->cur_ph];
+        assert(RBASIC(procs)->klass == ProcClass);
+        return procs;
       }
       inline VALUE cur_events(ComponentShadow *comp_shdw)
       {
         VALUE events = RARRAY(comp_shdw->phases)->ptr[comp_shdw->cur_ph];
         assert(RBASIC(events)->klass == EventClass);
         return events;
+      }
+      inline VALUE cur_resets(ComponentShadow *comp_shdw)
+      {
+        VALUE resets = RARRAY(comp_shdw->phases)->ptr[comp_shdw->cur_ph];
+        assert(RBASIC(resets)->klass == ResetClass);
+        return resets;
       }
       inline void move_comp(VALUE comp, VALUE list, VALUE next_list)
       {
@@ -123,10 +180,19 @@ class World
         comp_shdw->world = Qnil;
         --RARRAY(list)->len;
       }
+      inline double eval_expr(VALUE comp, VALUE expr)
+      {
+        double (*fn)(ComponentShadow *), rslt;
+        assert(rb_obj_is_kind_of(expr, ExprWrapperClass));
+        fn = ((#{RedShift::Component::ExprWrapper.shadow_struct.name} *)
+               get_shadow(expr))->expr;
+        rslt = (*fn)(get_shadow(comp));
+        return rslt;
+      }
       inline int test_cexpr_guard(VALUE comp, VALUE guard)
       {
         int (*fn)(ComponentShadow *), rslt;
-        assert(RTEST(rb_obj_is_kind_of(guard, GuardWrapperClass)));
+        assert(rb_obj_is_kind_of(guard, GuardWrapperClass));
         fn = ((#{RedShift::Component::GuardWrapper.shadow_struct.name} *)
                get_shadow(guard))->guard;
         rslt = (*fn)(get_shadow(comp));
@@ -136,7 +202,14 @@ class World
       {
         VALUE link  = RARRAY(guard)->ptr[0];
         VALUE event = RARRAY(guard)->ptr[1];
-        return RTEST(rb_funcall(comp, #{test_event}, 2, link, event));
+        int link_offset = FIX2INT(link);
+        int event_idx = FIX2INT(event);
+        ComponentShadow *comp_shdw = get_shadow(comp);
+        ComponentShadow **link_shdw =
+          (ComponentShadow **)(((char *)comp_shdw) + link_offset);
+        VALUE event_value = RARRAY((*link_shdw)->event_values)->ptr[event_idx];
+
+        return event_value != Qnil; //# Qfalse is a valid event value.
       }
       inline int guard_enabled(VALUE comp, VALUE guards)
       {
@@ -152,7 +225,7 @@ class World
                 return 0;   //## faster way to call instance_eval ???
             }
             else {
-              assert(!RTEST(rb_obj_is_kind_of(guard, rb_cProc)));
+              assert(!rb_obj_is_kind_of(guard, rb_cProc));
               if (!test_cexpr_guard(comp, guard))
                 return 0;
             }
@@ -204,12 +277,12 @@ class World
         if (RTEST(phases)) {
           if (++comp_shdw->cur_ph < phases->len) {
             VALUE klass = RBASIC(phases->ptr[comp_shdw->cur_ph])->klass;
-            if (klass == ActionClass)
-              move_comp(comp, list, shadow->next_A);
-            else if (klass == ResetClass)
-              move_comp(comp, list, shadow->next_R);
+            if (klass == ProcClass)
+              move_comp(comp, list, shadow->next_P);
             else if (klass == EventClass)
               move_comp(comp, list, shadow->next_E);
+            else if (klass == ResetClass)
+              move_comp(comp, list, shadow->next_R);
             else
               rb_raise(#{declare_class ScriptError},
                 "\\nBad phase type.\\n");
@@ -232,7 +305,17 @@ class World
     }.tabto(0)
     declare :step_discrete_macros => '
       #define SWAP_VALUE(v, w) {VALUE ___tmp = v; v = w; w = ___tmp;}
-      #define EACH_COMP(lc)                             \\
+
+      #define EACH_COMP_DO(lc)                          \\
+      for (list = RARRAY(lc), list_i = list->len - 1;   \\
+           list_i >= 0 ? (                              \\
+             comp = list->ptr[list_i],                  \\
+             comp_shdw = get_shadow(comp),              \\
+             1)                                         \\
+             : 0;                                       \\
+           list_i--)
+
+      #define EACH_COMP_ADVANCE(lc)                     \\
       for (list = RARRAY(lc);                           \\
            list->len ? (                                \\
              comp = list->ptr[list->len - 1],           \\
@@ -240,17 +323,22 @@ class World
              1)                                         \\
              : 0;                                       \\
            enter_next_phase(comp, lc))
+
       int dummy;
     '.tabto(0)
     comp_id = declare_class RedShift::Component
     init %{
       ExitState     = rb_const_get(#{comp_id}, #{declare_symbol :Exit});
-      ActionClass   = rb_const_get(#{comp_id}, #{declare_symbol :Action});
-      ResetClass    = rb_const_get(#{comp_id}, #{declare_symbol :Reset});
-      EventClass    = rb_const_get(#{comp_id}, #{declare_symbol :Event});
-      GuardClass    = rb_const_get(#{comp_id}, #{declare_symbol :Guard});
+      ProcClass     = rb_const_get(#{comp_id}, #{declare_symbol :ProcPhase});
+      EventClass    = rb_const_get(#{comp_id}, #{declare_symbol :EventPhase});
+      ResetClass    = rb_const_get(#{comp_id}, #{declare_symbol :ResetPhase});
+      GuardClass    = rb_const_get(#{comp_id}, #{declare_symbol :GuardPhase});
       GuardWrapperClass
                     = rb_const_get(#{comp_id}, #{declare_symbol :GuardWrapper});
+      ExprWrapperClass
+                    = rb_const_get(#{comp_id}, #{declare_symbol :ExprWrapper});
+      DynamicEventClass
+               = rb_const_get(#{comp_id}, #{declare_symbol :DynamicEventValue});
     }
     body %{
       all_were_g = 1;
@@ -260,12 +348,13 @@ class World
       
       while (sc-- != 0) {
         struct RArray *list;
+        int            list_i;
 
         //# GUARD phase. Start on phase 4 of 4, because everything's in G.
-        EACH_COMP(shadow->curr_G) {
+        EACH_COMP_ADVANCE(shadow->curr_G) {
           len = RARRAY(comp_shdw->outgoing)->len;
           ptr = RARRAY(comp_shdw->outgoing)->ptr;
-          //# outgoing = [ trans, guard, [action, reset, event, ...], dest, ...]
+          //# outgoing = [ trans, guard, [proc, reset, event, ...], dest, ...]
           
           while (len) {
             VALUE trans, guard, phases, dest;
@@ -287,15 +376,15 @@ class World
         }
 
         //# Step finished; prepare lists for next 4-phase step.
-        SWAP_VALUE(shadow->curr_A, shadow->next_A);
-        SWAP_VALUE(shadow->curr_R, shadow->next_R);
+        SWAP_VALUE(shadow->curr_P, shadow->next_P);
         SWAP_VALUE(shadow->curr_E, shadow->next_E);
+        SWAP_VALUE(shadow->curr_R, shadow->next_R);
         SWAP_VALUE(shadow->curr_G, shadow->next_G);
         
         //# Done stepping if no transitions happened or are about to begin.
-        all_are_g = !RARRAY(shadow->curr_A)->len &&
-                    !RARRAY(shadow->curr_R)->len &&
-                    !RARRAY(shadow->curr_E)->len;
+        all_are_g = !RARRAY(shadow->curr_P)->len &&
+                    !RARRAY(shadow->curr_E)->len &&
+                    !RARRAY(shadow->curr_R)->len;
         if (all_were_g && all_are_g)
           break;
         all_were_g = all_are_g;
@@ -310,35 +399,119 @@ class World
             rb_funcall(shadow->self, #{declare_symbol :step_zeno},
                        1, INT2NUM(zeno_counter));
         
-        //# Begin a new step, starting with ACTION phase
-        EACH_COMP(shadow->curr_A) {
-          VALUE actions = cur_actions(comp_shdw);
+        //# Begin a new step, starting with PROC phase
+        EACH_COMP_ADVANCE(shadow->curr_P) {
+          VALUE procs = cur_procs(comp_shdw);
           
-          for (i = 0; i < RARRAY(actions)->len; i++) {
-            rb_funcall(comp, #{insteval_proc}, 1, RARRAY(actions)->ptr[i]);
-//#            rb_obj_instance_eval(1, &RARRAY(actions)->ptr[i], comp);
-            d_tick++;   //# each action may invalidate algebraic flows
-            //## should set flag so that alg flows always update during action
+          for (i = 0; i < RARRAY(procs)->len; i++) {
+            rb_funcall(comp, #{insteval_proc}, 1, RARRAY(procs)->ptr[i]);
+//#            rb_obj_instance_eval(1, &RARRAY(procs)->ptr[i], comp);
+//# rb_iterate(my_instance_eval, comp, call_block, RARRAY(procs)->ptr[i]);
+            d_tick++;   //# each proc may invalidate algebraic flows
+            //## should set flag so that alg flows always update during proc
           }
+        }
+
+        //# EVENT phase
+        SWAP_VALUE(shadow->active_E, shadow->prev_active_E);
+        EACH_COMP_ADVANCE(shadow->curr_E) {
+          VALUE events = cur_events(comp_shdw);
+
+          ptr = RARRAY(events)->ptr;
+          len = RARRAY(events)->len;
+          for (i = len; i > 0; i--) {
+            int   event_idx = FIX2INT(RARRAY(*ptr)->ptr[0]);
+            VALUE event_val = RARRAY(*ptr)->ptr[1];
+            
+            ptr++;
+        
+            //## maybe this distinction should be made clear in the array
+            //## itself.
+            if (TYPE(event_val) == T_DATA &&
+                rb_obj_is_kind_of(event_val, DynamicEventClass))
+              event_val = rb_funcall(comp, #{insteval_proc}, 1, event_val);
+
+            RARRAY(comp_shdw->next_event_values)->ptr[event_idx] = event_val;
+          }
+
+          rb_ary_push(shadow->active_E, comp); //## optimize
+        } 
+        
+        //# Clear old event values from previous step.
+        ptr = RARRAY(shadow->prev_active_E)->ptr;
+        len = RARRAY(shadow->prev_active_E)->len;
+        for (i = len; i > 0; i--) {
+          comp = *ptr++;
+          comp_shdw = get_shadow(comp);
+
+          rb_mem_clear(RARRAY(comp_shdw->event_values)->ptr,
+                       RARRAY(comp_shdw->event_values)->len);
+        }
+        RARRAY(shadow->prev_active_E)->len = 0;
+        
+        //# Export new event values.
+        ptr = RARRAY(shadow->active_E)->ptr;
+        len = RARRAY(shadow->active_E)->len;
+        for (i = len; i > 0; i--) {
+          comp = *ptr++;
+          comp_shdw = get_shadow(comp);
+
+          SWAP_VALUE(comp_shdw->event_values, comp_shdw->next_event_values);
         }
         
         //# RESET phase
-        EACH_COMP(shadow->curr_R) {
-          VALUE resets = cur_resets(comp_shdw);
-          rb_funcall(comp, #{declare_symbol :do_resets}, 1, resets);
+        EACH_COMP_DO(shadow->curr_R) {
+          ContVar  *var     = (ContVar *)(&comp_shdw->cont_state->begin_vars);
+          VALUE     resets  = cur_resets(comp_shdw);
+
+          ptr = RARRAY(resets)->ptr;
+          len = RARRAY(resets)->len;
+          assert(len <= comp_shdw->var_count);
+
+          for (i = len; i > 0; i--, var++, ptr++) {
+            VALUE reset = *ptr;
+            if (reset == Qnil) {
+              var->value_1 = var->value_0;
+            }
+            else {
+              if (var->algebraic)
+                rb_raise(#{declare_class AlgebraicAssignmentError},
+                    "variable has algebraic flow");
+              
+              switch(TYPE(reset)) {
+                case T_FIXNUM:
+                case T_BIGNUM:
+                case T_FLOAT:
+                  var->value_1 = NUM2DBL(reset);
+                  break;
+                default:
+                  if (RBASIC(reset)->klass == rb_cProc)
+                    var->value_1 =
+                      NUM2DBL(rb_funcall(comp, #{insteval_proc}, 1, reset));
+                  else
+                    var->value_1 = eval_expr(comp, reset);
+              }
+            }
+          }
         }
-        d_tick++;   //# resets may (in parallel) invalidate algebraic flows
+
+        EACH_COMP_ADVANCE(shadow->curr_R) {
+          ContVar  *var     = (ContVar *)(&comp_shdw->cont_state->begin_vars);
+          VALUE     resets  = cur_resets(comp_shdw);
+
+          len = RARRAY(resets)->len;
+          for (i = len; i > 0; i--, var++)
+            var->value_0 = var->value_1;
+        }
+        d_tick++;   //# resets may invalidate algebraic flows
         //## optimization: don't incr if no resets? Change name of d_tick!
-        
-        //# EVENT phase
-        EACH_COMP(shadow->curr_E) {
-          VALUE events = cur_events(comp_shdw);
-          rb_funcall(comp, #{declare_symbol :do_events}, 1, events);
-        } 
       }
       
       move_all_comps(shadow->curr_G, shadow->strict_sleep);
       SWAP_VALUE(shadow->curr_G, shadow->strict_sleep);
+      //## might be more efficient to move strict_sleep to curr_G?
+      
+      assert(RARRAY(shadow->active_E)->len == 0);
     }
   end
   private :step_discrete

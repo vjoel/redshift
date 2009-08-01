@@ -6,7 +6,7 @@ include RedShift
 
 =begin
 
-This file tests discrete features of RedShift, such as transitions and events. Inheritance of discrete behavior is tested separately in test_interitance*.rb.
+This file tests discrete features of RedShift, such as transitions and events. Inheritance of discrete behavior is tested separately in test_interit*.rb.
 
 =end
 
@@ -68,6 +68,10 @@ class Discrete_4a < DiscreteTestComponent
   transition A => B do
     name "zap"
     event :e
+    pass
+      ## pass because, as an optimization, a component finishes the transition
+      ## after completing the last phase, rather than at the end of the
+      ## discrete step.
   end
 end
 
@@ -87,15 +91,15 @@ class Discrete_4b < DiscreteTestComponent
   setup { @x = create Discrete_4a }
   def assert_consistent test
     test.assert_equal(B, state)
-    test.assert_equal(:A, @x_state_during)
+    test.assert_equal("A", @x_state_during.to_s)
     test.assert_equal("zap", @x_trans_during.name)
-    test.assert_equal(:B, @x.state.name)
+    test.assert_equal("B", @x.state.name.to_s)
     test.assert_nil(@x.active_transition)
     test.assert_nil(@x_e_after)
   end
 end
 
-# event value is true by default, and false when not exported
+# event value is true by default, and nil when not exported
 
 class Discrete_5a < DiscreteTestComponent
   transition Enter => Exit do event :e end
@@ -108,7 +112,7 @@ class Discrete_5b < DiscreteTestComponent
   setup { @x = create Discrete_5a }
   def assert_consistent test
     test.assert_equal(true, @x_e)
-    test.assert_equal(false, @x.e)
+    test.assert_equal(nil, @x.e)
   end
 end
 

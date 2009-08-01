@@ -222,4 +222,19 @@ and:
 
   state :A, :B, :C; default { @state = B }
 
+
+Advanced: class-scoped variables using closures:
+
+  class C < Component
+  
+    class_var = []
+    
+    transition do
+      action do
+        class_var << self
+      end
+    end
+  
+  end
+
 =end

@@ -1,0 +1,21 @@
+These are the goals that drive the design of the discrete and continuous update algorithms:
+
+1. Independence on component ordering.
+
+  This is why any number of transitions, related or unrelated, can be in
+  progress at the same time.
+
+2. Emulation of simultaneity.
+
+  Possible to synchronize
+
+3. Scalable.
+
+  Another reason for the overlap of transitions--reduces guard evaluations.
+
+4. Loosely coupled
+
+  Suitable for simulation as opposed to control development
+  
+  Reason for non-blocking events.
+  

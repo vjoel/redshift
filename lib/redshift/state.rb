@@ -2,6 +2,8 @@ module RedShift
 
 ## This is hacky and needs to be redesigned.
 
+## it would be nice to associate enter and leave actions with states.
+
 class State
 
   attr_reader :name, :persist_name
@@ -31,7 +33,7 @@ class State
   end
   
   def inspect
-    @name.to_s
+    "<#{@name}>"
   end
 
 end # class State

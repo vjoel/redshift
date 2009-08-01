@@ -1,135 +1,6 @@
-## PUT THIS DOC IN SOME OTHER FILE
-
-=begin
-
-Flow syntax:
-
-C expressions (operators, math functions, user-defined C functions, constants) with variables as follows:
-
-var       -- shadow attribute of the 'self' object
-
-link.var  -- shadow attribute of another ruby object
-             link is a shadow attr of self
-
-
-=end
-
-=begin
-
-=cflow expressions
-
-A cflow is a flow whose formula is a C expression involving some Ruby subexpressions. The formula is compiled to executable code before the simulation runs.
-
-The restrictions on the Ruby expressions allowed within cflow expressions are
-intended to promote efficient code. The purpose of cflows is not rapid
-development, or elegant model expression, but optimization. Inefficient
-constructs should be rewritten. For instance, using a complex expression like
-
-  radar_sensors[:front_left].target[4].range
-
-will incur the overhead of recalculation each time the expression is evaluated,
-even though the object which receives the (({range})) method call cannot
-change during continuous evolution. Instead, use intermediate variables. Define
-an instance variable ((|@front_left_target_4|)), updated when necessary during discrete evolution, and use the expression
-
-  @front_left_target_4.range
-
-The increase in efficiency comes at the cost of maintaining this new variable. Use of cflows should be considered only for mature, stable code. Premature optimization is the root of all evil.
-
-ACTUALLY: only continuous variables (no methods) can be referenced in flows.
-
-==Syntax
-
-The syntax of algebraic and differential cflows is
-
-  var = rhs
-  var' = rhs
-
-where rhs is a C expression, except that it may also have the following additional subexpressions in Ruby syntax:
-
-  @ivar
-  @@cvar
-  @ivar.method
-  @@cvar.method
-  method
-  self.method
-
-The last two are equivalent. Method arguments are not allowed, nor are special methods such as []. All use of () and [] is reserved for C expressions.
-
-Note that C has a comma operator which allows a pair (and therefore any sequence) of expressions to be evaluated, returning the value of the last one. However, on-the-fly assignments are not yet supported (see the to do list), so this isn't useful.
-
-==Semantic restrictions
-
-The value of each Ruby subexpression must be Float or convertible to Float (Fixnum, String, etc.).
-
-If a receiver.method pair occurs more than once in a cflow, the method is
-called only once on that receiver per evaluation of the expression. (The
-expression as a whole may be evaluated several times per time-step, depending
-on the integration algorithm.) Using methods that have side efffects with
-caution. Typical methods used are accessors, which have no side effects.
-
-==C interface
-
-All functions in math.h are available in the expression. The library is generated with (({CGenerator})) (in file ((*cgen.rb*))). This is a very flexible tool:
-
-* To statically link to other C files, simply place them in the same dir as the library (you may need to create the dir yourself unless the RedShift program has already run). To include a .h file, simply do the following somewhere in your Ruby code:
-
-  RedShift.library.include "my-file.h"
-  
-or
-  
-  RedShift.library.include "<lib-file.h>"
-
-The external functions declared in the .h file will be available in cflow expressions.
-
-* Definitions can be added to the library file itself (though large definitions that do not change from run to run are better kept externally). See the (({CGenerator})) documentation for details.
-
-==Limitations
-
-The cflow cannot be changed or recompiled while the simulation is running. Changes are ignored. Must reload everything to change cflows (however, can change other things without restarting). This limitation will lifted eventually.
-
-==To do
-
-* globals (store these in a unique GlobalData object)
-
-* class vars (store these in the TypeData instance)
-
-* constants: FOO, FOO.bar, FOO::BAR (as above)
-
-* link1.link2.var, etc.
-
-* WARN when variable name conflicts with ruby method.
-
-=end
-
-
 module RedShift
 
-class Flow    ## rename to equation? formula? (Rename this file, too?)
-
-  attr_reader :var, :formula
-  
-  def initialize v, f
-    @var, @formula = v, f
-  end
-  
-  def strict; true; end # can only be false for an AlgebraicFlow
-  
-  def attach cl, state
-    cont_var = cl.permissively_continuous(@var)[0]
-    cl.add_flow [state, cont_var] => flow_wrapper(cl, state)
-
-    cl.after_commit do
-      ## a pity to use after_commit, when "just_before_commit" would be ok
-      unless strict or cont_var.writable
-        raise StrictnessError,
-          "\nVariable #{cont_var.name} redefined with different strictness."
-      end
-    end
-  end
-  
-  class NilLinkError < StandardError; end
-  
+class Flow
   def translate flow_fn, result_var, rk_level, cl
     translation = {}
     setup = []    ## should use accumulator
@@ -222,7 +93,7 @@ class Flow    ## rename to equation? formula? (Rename this file, too?)
             
           else ## if var on list of cont var
             # x ==> var_x
-            var_obj = cl.cont_state_class.find_var(var.intern)
+            var_obj = cl.cont_state_class.vars[var.intern]
             if not var_obj or var_obj.writable
               # note var must have been declared at this point
               # or else we can't use the strict optimization
@@ -261,13 +132,8 @@ class Flow    ## rename to equation? formula? (Rename this file, too?)
     
 end
 
-class CircularDefinitionError < StandardError; end
 
-class AlgebraicFlow < Flow
-
-  attr_reader :strict   # true iff the RHS of the eqn. has only strictly
-                        # continuous variables.
-
+class AlgebraicFlow
   def flow_wrapper cl, state
     var_name = @var
     flow = self
@@ -300,7 +166,7 @@ class AlgebraicFlow < Flow
           var->nested = 1;
         }
         ## optimization: it might be possible to translate once and
-        ## use gsub to make each of the four versions.
+        ## use gsub to make each of the four versions, or use a template.
         body %{
           
           switch (rk_level) {
@@ -345,7 +211,7 @@ class AlgebraicFlow < Flow
 end # class AlgebraicFlow
 
 
-class EulerDifferentialFlow < Flow
+class EulerDifferentialFlow
 
   def flow_wrapper cl, state
     var_name = @var
@@ -402,7 +268,7 @@ class EulerDifferentialFlow < Flow
 end # class EulerDifferentialFlow
 
 
-class RK4DifferentialFlow < Flow
+class RK4DifferentialFlow
   
   def flow_wrapper cl, state
     var_name = @var
@@ -482,7 +348,7 @@ class RK4DifferentialFlow < Flow
 end # class RK4DifferentialFlow
 
 
-class CexprGuard < Flow
+class CexprGuard < Flow ## Kinda funny...
 
   def initialize f
     super nil, f
@@ -490,6 +356,8 @@ class CexprGuard < Flow
   
   @@serial = 0
   
+  # +cl+ is the component class
+  ## maybe all these methods should just be called wrapper?
   def guard_wrapper cl
     guard = self
     cl_cname = CGenerator.make_c_name cl.name
@@ -519,9 +387,10 @@ class CexprGuard < Flow
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;
         }
         declare :result => "int result"
-        translation = guard.translate(self, "result", 0, cl) {|strict|}
+        translation = guard.translate(self, "result", 0, cl) {|s| strict = s}
         body %{
-          #{translation};
+          #{translation.join("
+          ")};
           return result;
         }
       end
@@ -534,6 +403,56 @@ class CexprGuard < Flow
     end
   end
 
+end
+
+class Expr < Flow ## Kinda funny...
+  def initialize f
+    super nil, f
+  end
+  
+  @@serial = 0
+  
+  # +cl+ is the component class
+  def wrapper(cl)
+    expr = self
+    cl_cname = CGenerator.make_c_name cl.name
+    ex_cname = "Expr_#{@@serial}"; @@serial += 1
+    expr_name = "expr_#{cl_cname}_#{ex_cname}"
+    
+    Component::ExprWrapper.make_subclass expr_name do
+      ssn = cl.shadow_struct.name
+      cont_state_ssn = cl.cont_state_class.shadow_struct.name
+      
+      # We need the struct
+      shadow_library_source_file.include(cl.shadow_library_include_file)
+      
+      ## should use some other file (likewise for Flows)
+      shadow_library_source_file.define(expr_name).instance_eval do
+        arguments "ComponentShadow *comp_shdw"
+        return_type "double"
+        declare :shadow => %{
+          struct #{ssn} *shadow;
+          struct #{cont_state_ssn} *cont_state;
+          ContVar  *var;
+        }
+        setup :shadow => %{
+          shadow = (#{ssn} *)comp_shdw;
+          cont_state = (#{cont_state_ssn} *)shadow->cont_state;
+        }
+        declare :result => "double result"
+        translation = expr.translate(self, "result", 0, cl)
+        body %{
+          #{translation.join("
+          ")};
+          return result;
+        }
+      end
+      
+      define_c_method :calc_function_pointer do
+        body "shadow->expr = &#{expr_name}"
+      end
+    end
+  end
 end
 
 end # module RedShift

@@ -1,0 +1,3 @@
+What's different between SHIFT and RedShift?
+
+What does RedShift do that Simulink doesn't do?

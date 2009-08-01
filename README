@@ -4,7 +4,13 @@ To do
 Syntax
 
   defining and creating components
+    create ... block
+    defaults { ... }  and setup { ... }
+/ flows, transitions, etc.
+  running
+    run N { dt = ...; zeno = ... }
 ? input, output, connect
+  c-shift translator (both ways)
 
 Semantics
 
@@ -32,6 +38,8 @@ Semantics
   
 Implementation
 
+  use alias instead of def in Event#(un)export
+
   optimization
     profiling
     compare with shift, matlab
@@ -55,11 +63,14 @@ Implementation
     use AspectR
   
   run time error checking
+    catch infinite loops in alg. flows
+    
   exception handling
     syntax errors, esp. in flows, guards
   
   unit tests
     integrator (start with solution involving diff'able fns)
+      solve eqn in complex vars with and without Complex class
     inheritance
     transitions and events
   
@@ -74,13 +85,23 @@ User interface
 
   command-line debugger
     inspect methods
+    catch ^C
+    'run' in a thread
+    send event from outside
   
   run command
     should add dt, zeno, time (in sec) in optBlock
     pass block to run before/after each timestep
+  
+  nedit syntax coloring
     
   gui debugger
   output to gnuplot
+
+Examples
+  http server for simulation, html interface
+  matrices
+  distributed
 
 Documentation
 
@@ -93,20 +114,26 @@ Documentation
         ruby inheritance of attrs, methods
         transitions, flows, states, events
         advanced topics: include modules for mixins
-        occlusion of inherited trans./flows by name
-          using nil to prevent occlusion
+        overriding inherited trans./flows by name
+          using nil to prevent overriding
     no mixing scopes in create, as in "create(Foo, x := x)"
     warning about:
       'self.x = ...'
       associativity of and/or
+      C-like operators (i.e., = and == vs. := and =)
+      truth values
+      names w/ capitals etc.
+      fixnums vs. floats
     during discrete phase, cached algebraic flows do not change
       they do not have function semantics
       evaluated only once per timestep
-      this is consistent with diff flows
-      semantics is the same during continuous phase (and faster)
-        except for no extra side effects
-    world.clock_now shouldn't be used during rk
+        no extra side effects, faster
+        leads to small error when used with rk4
+    world.clock shouldn't be used during rk
       use a timer based on an EulerFlow
+   
+   dynamic semantics
+     changing a flow preserves inherited/overridden flows in subclasses
    
    restrictions
      singleton methods cannot be exported (see Event)

@@ -25,15 +25,20 @@ class Event
     
 	end
   
-# how to add/remove singleton methods?
-=begin
-  def unexport c
-    n = @name
-    cl = class <<c
-      remove_method n
+  
+  def attach cl
+  
+    unless cl.method_defined? @name
+      cl.module_eval <<-END
+      
+        def #{@name}
+          true
+        end
+      
+      END
     end
+  
   end
-=end
   
 end # class Event
 

@@ -54,7 +54,7 @@ class World
     
     step_discrete
     while (steps -= 1) >= 0
-      break if clock_now > @clock_finish
+      break if clock > @clock_finish
       @step_count += 1
       step_continuous
       step_discrete
@@ -96,7 +96,7 @@ class World
     end
   end
   
-  def clock_now
+  def clock
     @step_count * @time_step
   end
   

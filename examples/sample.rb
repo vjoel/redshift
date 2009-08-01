@@ -11,10 +11,10 @@ class Observer < Component
   
   attach({Normal => Normal}, Transition.new :observed_crash,
     proc {@save_dent = b.dent}, [],
-    proc {print "Time #{world.clock_now}. Dent is #{@save_dent}\n"})
+    proc {print "Time #{world.clock}. Dent is #{@save_dent}\n"})
   
   attach({Normal => Exit}, Transition.new :exit,
-    proc {world.clock_now == 10.5}, [],
+    proc {world.clock == 10.5}, [],
     proc {print "\n\n ***** Observer departing.\n\n"})
   
   def set_defaults
@@ -32,7 +32,7 @@ class Ball < Component
   
   attach [Falling, Rising], 
     [(AlgebraicFlow.new :y_err,
-       "t = world.clock_now - @t_last
+       "t = world.clock - @t_last
        (@y0 + @v0 * t + 0.5 * @a * t ** 2 - y).abs"),
      (RK4DifferentialFlow.new :y, "v"),
      (EulerDifferentialFlow.new :v, "a")]
@@ -41,7 +41,7 @@ class Ball < Component
     proc {y <= 0},
     [Event.new(:dent)],
     proc {self.v = -v; @y0 = y; @v0 = v;
-          @t_last = world.clock_now; @bounce_count += 1})
+          @t_last = world.clock; @bounce_count += 1})
 	
   attach({Rising => Falling}, Transition.new :peak,
     proc {v <= 0},
@@ -86,7 +86,7 @@ b = w.create(Ball) {}
 obs = w.create(Observer) {@b = b}
 
 while w.components.size > 0 do
-  t = w.clock_now
+  t = w.clock
   if t == t.floor
     print "\nTime #{t}\n"
   end

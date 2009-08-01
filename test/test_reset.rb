@@ -87,6 +87,22 @@ class ResetLinkToWrongType < Component
   end
 end
 
+class Emitter < Component
+  transition Enter => Exit do
+    event :e => 42.0
+  end
+end
+
+class Receiver < Component
+  link :c => Emitter
+  constant :result
+  transition Enter => Exit do
+    sync :c => :e
+    event :e => 0.42
+    reset :result => "e + c.e"
+  end
+end
+
 require 'test/unit'
 
 class TestReset < Test::Unit::TestCase
@@ -168,5 +184,11 @@ class TestReset < Test::Unit::TestCase
   def test_reset_link_to_wrong_type
     rl = @world.create(ResetLinkToWrongType)
     assert_raises(LinkTypeError) {@world.run 1}
+  end
+  
+  def test_reset_using_event_val
+    r = @world.create(Receiver) {|r| r.c = r.create(Emitter)}
+    @world.run 1
+    assert_equal(42.42, r.result)
   end
 end

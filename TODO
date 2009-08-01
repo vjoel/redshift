@@ -136,9 +136,6 @@ Syntax
 
 Semantics
 
-  make event values available in link expressions:
-    reset :x => "lnk.e + 2"
-
   add check for values of event after sync
     (and then repeat sync loop)
     "sync :l => {:e => 3}" or better syntax

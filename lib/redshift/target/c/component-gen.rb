@@ -751,7 +751,7 @@ module RedShift
       def define_reset(expr)
         @expr_wrapper_hash ||= {} ## could be a superhash?
         @expr_wrapper_hash[expr] ||=
-          Expr.new(expr).wrapper(self)
+          ResetExpr.new(expr).wrapper(self)
       end
       
       def define_resets(phase)

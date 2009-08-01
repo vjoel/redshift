@@ -45,6 +45,7 @@ class ConstnessError < RedShiftError; end
 class TransitionError < RedShiftError; end
 class SyntaxError < ::SyntaxError; end
 class UnconnectedInputError < RedShiftError; end
+class NoValueError < RedShiftError; end
 
 # Raised when a component tries to perform an action that makes sense only
 # during initialization.

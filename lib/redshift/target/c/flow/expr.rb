@@ -106,3 +106,5 @@ module RedShift; class Expr
     end
   end
 end; end
+
+module RedShift; class ResetExpr < Expr; end; end

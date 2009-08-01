@@ -93,6 +93,25 @@ module RedShift; class Flow
               #{var_cname} = rs_eval_input_var(shadow, &shadow->#{src_comp});
             }
           
+          elsif (event_idx = cl.exported_events[varsym])
+            unless self.kind_of? ResetExpr
+              raise NoValueError,
+                "Event #{varsym.inspect} has no value in this context."
+            end
+            
+            strict = false # strict doesn't matter
+
+            var_cname = "event_#{var}"
+            translation[var] = var_cname
+            flow_fn.declare var_cname => "double    #{var_cname}"
+            flow_fn.setup var_cname => %{\
+              VALUE event_values, event_val;
+              event_values = shadow->event_values;
+              assert(event_values != Qnil);
+              event_val = RARRAY(event_values)->ptr[#{event_idx}];
+              #{var_cname} = NUM2DBL(event_val);
+            }
+          
           elsif /\A[eE]\z/ =~ var
             translation[expr] = expr # scientific notation
           
@@ -163,6 +182,12 @@ module RedShift; class Flow
       var_type = :continuous
     elsif (kind = link_type.input_variables[varsym])
       var_type = :input
+    elsif (event_idx = link_type.exported_events[varsym])
+      unless self.kind_of? ResetExpr
+        raise NoValueError, "Event #{varsym.inspect} has no value in this context."
+      end
+      var_type = :event
+      kind = false # strict doesn't matter
     else
       raise NameError, "Unknown variable: #{var} in #{link_type}"
     end
@@ -257,6 +282,21 @@ module RedShift; class Flow
       
       translation[expr] = "#{get_var_cname}(&ct)"
       
+    when :event
+      sf.declare get_var_cname => %{
+        inline static double #{get_var_cname}(#{CT_STRUCT_NAME} *ct) {
+          VALUE event_values, event_val;
+          if (!ct->#{link_cname})
+            rs_raise(#{exc_nil}, ct->shadow->self, #{msg_nil.inspect});
+          event_values = ct->#{link_cname}->event_values;
+          assert(event_values != Qnil);
+          event_val = RARRAY(event_values)->ptr[#{event_idx}];
+          return NUM2DBL(event_val);
+        }
+      }
+
+      translation[expr] = "#{get_var_cname}(&ct)"
+    
     else
       raise ArgumentError, "Bad var_type: #{var_type.inspect}"
     end

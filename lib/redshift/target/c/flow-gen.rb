@@ -182,6 +182,9 @@ module RedShift; class Flow
       var_type = :continuous
     elsif (kind = link_type.input_variables[varsym])
       var_type = :input
+    elsif (a = link_type.link_variables[varsym])
+      var_type = :link
+      link_link_type, kind = a
     elsif (event_idx = link_type.exported_events[varsym])
       unless self.kind_of? ResetExpr
         raise NoValueError, "Event #{varsym.inspect} has no value in this context."
@@ -262,6 +265,18 @@ module RedShift; class Flow
 
       translation[expr] = "#{get_var_cname}(&ct)"
     
+    when :link
+      link_link_type_ssn = link_link_type.shadow_struct.name
+      sf.declare get_var_cname => %{
+        inline static #{link_link_type_ssn} *#{get_var_cname}(#{CT_STRUCT_NAME} *ct) {
+          if (!ct->#{link_cname})
+            rs_raise(#{exc_nil}, ct->shadow->self, #{msg_nil.inspect});
+          return ct->#{link_cname}->#{var};
+        }
+      }
+
+      translation[expr] = "#{get_var_cname}(&ct)"
+
     when :input
       src_comp    = link_type.src_comp(var.intern)
       result_name = "value_#{link}__#{var}"

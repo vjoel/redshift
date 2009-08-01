@@ -506,6 +506,31 @@ class Discrete_20 < DiscreteTestComponent
   end
 end
 
+# guard expr accepts "lnk.lnk"
+class Discrete_21 < DiscreteTestComponent
+  link :lnk => self
+  
+  total = 2
+  setup do
+    if total > 0
+      total -= 1
+      self.lnk = create(self.class)
+    end
+  end
+  
+  transition Enter => Exit do
+    guard "lnk && lnk.lnk"
+  end
+  
+  def assert_consistent test
+    if lnk && lnk.lnk
+      test.assert_equal(Exit, state)
+    else
+      test.assert_equal(Enter, state)
+    end
+  end
+end
+
 =begin
 
 test timing of other combinations of

@@ -27,13 +27,18 @@ class Scheduler < RedShift::Component
     end
   end
   
-  EPSILON = 1E-12 # float fuzziness
+  EPSILON = 1E-12 # float fuzziness, if timestep is 0.1, for example
   
+  # Returns the request object for use with unschedule
   def schedule_message delta_t, queue, message
-    request_queue << Request.new(time + delta_t - EPSILON, queue, message)
+    req = Request.new(time + delta_t - EPSILON, queue, message)
+    request_queue << req
+    req
   end
   
-  ## remove message
+  def unschedule req
+    @schedule.delete req
+  end
   
   transition do
     wait :request_queue

@@ -340,6 +340,9 @@ Semantics
 
 Implementation
 
+  improve performance of event and local storage by using native (NVector)
+    where possible, but keeping ruby array for ruby values
+
   remove -g (if not debug) from CFLAGS
     add -march=i686 -msse2 -mfpmath=sse (keep -fPIC?)
     or whatever current hw is (how to determine that?)
@@ -428,6 +431,9 @@ Implementation
   libtcc backend
   
   dot backend (see file in lib dir)
+  
+  optimization: split diff_list for different integrators, so comps with
+    only euler flows don't get iterated over as much
   
 User interface
 

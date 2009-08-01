@@ -69,15 +69,13 @@ class World
 
   # Can override the options using assignments in the block.
   def initialize # :yields: world
-    self.curr_P = []; self.curr_E = []; self.curr_R = []; self.curr_G = []
-    self.next_P = []; self.next_E = []; self.next_R = []; self.next_G = []
+    self.curr_A = []; self.curr_CR = []; self.curr_T = []
     self.active_E = []; self.prev_active_E = []
-    self.strict_sleep = []; self.finishers = []; self.inert = []
+    self.awake = []; self.prev_awake = []
+    self.strict_sleep = []; self.inert = []
     self.diff_list = []
     @components = ComponentList.new  \
-      curr_P, curr_E, curr_R, curr_G,
-      next_P, next_E, next_R, next_G,
-      strict_sleep, inert # _not_ diff_list
+      awake, prev_awake, curr_T, strict_sleep, inert # _not_ diff_list
 
     options = default_options
 
@@ -142,12 +140,7 @@ class World
       raise TypeError, "#{component.class} is not a Component class"
     end
     
-    if discrete_phase == :guard
-      next_G << component
-    else
-      curr_G << component
-    end
-    
+    awake << component
     component
   end
   
@@ -235,10 +228,7 @@ class World
       data << "%d step%s" % [step_count, ("s" if step_count != 1)]
       data << "%.#{digits}f #{@time_unit}%s" % [clock, ("s" if clock != 1)]
       data << "%d component%s" % [size, ("s" if size != 1)]
-      
-      if discrete_phase
-        data << "discrete step = #{discrete_step}, phase = #{discrete_phase}"
-      end
+      data << "discrete step = #{discrete_step}" ## only if in step_discrete?
     else
       data = ["not started. Do 'run 0' to setup, or 'run n' to run."]
     end

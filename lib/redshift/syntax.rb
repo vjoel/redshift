@@ -217,8 +217,7 @@ end
 
 module TransitionSyntax
   def self.parse block
-    parser = TransitionParser.new(block)
-    Transition.new(*parser.tr_data)
+    TransitionParser.new(block)
   end
   
   class EventBlockParser
@@ -247,17 +246,15 @@ module TransitionSyntax
   end
   
   class TransitionParser
-    def tr_data
-      [@name, @guard, @phases]
-    end
+    attr_reader :name, :parts
     
     def initialize block
-      @name = @guard = nil
-      @phases = []
+      @name = nil
+      @parts = []
       instance_eval(&block)
     end
     
-    def name n; @name = n; end
+    def name(*n); n.empty? ? @name : @name = n.first; end
     
     def guard(*args, &block)
       guard = Component::GuardPhase.new
@@ -285,23 +282,14 @@ module TransitionSyntax
       end
       
       guard << block if block
-      if @guard
-        raise NotImplementedError ###
-        @phases << guard
-      else
-        @guard = guard
-      end
+      @parts << guard
     end
     
     def action(meth = nil, &bl)
-      proc_phase = Component::ProcPhase.new
+      proc_phase = Component::ActionPhase.new
       proc_phase << meth if meth
       proc_phase << bl if bl
-      @phases << proc_phase
-    end
-    
-    def pass
-      action
+      @parts << proc_phase
     end
     
     # +h+ is a hash of :var => proc {value_expr_ruby} or "value_expr_c".
@@ -312,9 +300,9 @@ module TransitionSyntax
       end
       
       resets = Component::ResetPhase.new
-      resets.concat [[], [], []] # continuous, constant, link
+      resets.concat [nil, nil, nil] # continuous, constant, link
       resets.value_map = h
-      @phases << resets
+      @parts << resets
     end
     
     # each arg can be an event name (string or symbol), exported with value 
@@ -351,7 +339,7 @@ module TransitionSyntax
         eb = EventBlockParser.new(bl)
         events.concat(eb.events)
       end
-      @phases << events
+      @parts << events
     end
     
     def literal val
@@ -390,7 +378,6 @@ end
 # the transition--this is necessary for overriding the transition in a subclass.
 #
 def Component.transition(edges = {}, &block)
-  # allow edges like [s1, s2, s3] => d
   e = {}
   warn = []
   
@@ -417,9 +404,10 @@ def Component.transition(edges = {}, &block)
 
   if block
     edges = {Enter => Enter} if edges.empty?
-    trans = TransitionSyntax.parse(block)
-
-    trans.phases.each do |phase|
+    parser = TransitionSyntax.parse(block)
+    parts = parser.parts
+    
+    parts.each do |phase|
       case phase
       when Component::EventPhase
         phase.each do |event_phase_item|
@@ -428,6 +416,13 @@ def Component.transition(edges = {}, &block)
         end
       end
     end
+    
+    trans = Transition.new(parser.name,
+      :guard  => combine_transition_parts(parts.grep(Component::GuardPhase)),
+      :action => combine_transition_parts(parts.grep(Component::ActionPhase)),
+      :event  => combine_transition_parts(parts.grep(Component::EventPhase)),
+      :reset  => combine_transition_parts(parts.grep(Component::ResetPhase))
+    )
     
   else
     if edges == {}
@@ -438,6 +433,25 @@ def Component.transition(edges = {}, &block)
   end
   
   attach edges, trans
+end
+
+def Component.combine_transition_parts parts
+  return nil if parts.empty?
+  
+  result = parts[0].class.new
+  
+  has_value_map = defined?(result.value_map)
+  if has_value_map
+    result.value_map = {}
+  end
+  
+  parts.each do |part|
+    result.concat part
+    if has_value_map
+      result.value_map.update part.value_map
+    end
+  end
+  result
 end
 
 end

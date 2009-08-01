@@ -18,11 +18,24 @@ class SyntaxError < ::SyntaxError; end
 # during initialization.
 class AlreadyStarted < StandardError; end
 
-class Transition ## put this in meta?
-  attr_reader :name, :guard, :phases
-  def initialize n, g, p
+# These classes are derived from Array for efficient access to contents
+# from C code.
+class XArray < Array
+  def inspect; "<#{self.class.name.split("::")[-1]}: #{super[1..-2]}>"; end
+end
+
+class Transition < XArray ## put this in meta?
+  attr_reader :name
+
+  extend AccessibleIndex
+  G_IDX = 0; A_IDX = 1; R_IDX = 2; E_IDX = 3
+  index_accessor \
+    :guard => G_IDX, :action => A_IDX, :reset => R_IDX, :event => E_IDX
+
+  def initialize n, h
     @name = n || "transition_#{object_id}".intern
-    @guard, @phases = g, p
+    self.guard = h[:guard]; self.action = h[:action]
+    self.event = h[:event]; self.reset = h[:reset]
   end
 end
 
@@ -47,7 +60,7 @@ end
 class EulerDifferentialFlow < Flow; end
 class RK4DifferentialFlow < Flow; end
 
-Always = Transition.new :Always, nil, []
+Always = Transition.new :Always, :guard => nil
 
 class Component
   
@@ -57,21 +70,15 @@ class Component
   attach_state(:Enter)
   attach_state(:Exit)
 
-  # These classes are derived from Array for efficient access to contents
-  # from C code.
-  class XArray < Array
-    def inspect; "<#{self.class.name.split("::")[-1]}: #{super[1..-2]}>"; end
-  end
-  
-  class ProcPhase  < XArray; end
-  class EventPhase < XArray; end
-  class ResetPhase < XArray
+  class GuardPhase  < XArray; end
+  class ActionPhase < XArray; end
+  class EventPhase  < XArray; end
+  class ResetPhase  < XArray
     attr_accessor :value_map
     def inspect
       "<ResetPhase: #{value_map.inspect}>"
     end
   end
-  class GuardPhase < XArray; end
   
   class PhaseItem < XArray; extend AccessibleIndex; end
   

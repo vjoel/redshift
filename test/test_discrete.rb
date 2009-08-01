@@ -52,6 +52,16 @@ class Discrete_2 < DiscreteTestComponent
   end
 end
 
+class Discrete_2a < DiscreteTestComponent
+  default {@prev_world = world}
+  start Exit
+  def assert_consistent test
+    test.assert_equal(Exit, state)
+    test.assert_nil(world)
+    test.assert_nil(@prev_world.find {|c| c == self})
+  end
+end
+
 # 'start <state>' sets the start state, but fails after initialization
 
 class Discrete_3 < DiscreteTestComponent
@@ -66,12 +76,10 @@ end
 class Discrete_4a < DiscreteTestComponent
   state :A, :B; default { start A }
   transition A => B do
-    name "zap"
     event :e
-    pass
-      ## because, as an optimization, a component finishes the transition
-      ## after completing the last phase, rather than at the end of the
-      ## discrete step.
+  end
+  transition B => Exit do
+    name "zap"
   end
 end
 
@@ -91,7 +99,7 @@ class Discrete_4b < DiscreteTestComponent
   setup { @x = create Discrete_4a }
   def assert_consistent test
     test.assert_equal(B, state)
-    test.assert_equal("A", @x_state_during.to_s)
+    test.assert_equal("B", @x_state_during.to_s)
     test.assert_equal("zap", @x_trans_during.name)
     test.assert_equal("B", @x.state.name.to_s)
     test.assert_nil(@x.active_transition)
@@ -343,39 +351,53 @@ class Discrete_13 < DiscreteTestComponent
   end
 end
 
-# test that resets and events happen in parallel
+# test that resets and events all happen in parallel
 
 class Discrete_14 < DiscreteTestComponent
-  state :A1, :A2
-  continuous :x, :y, :z
+  state :A1, :A2, :B1, :B2
+  continuous :x
   link :other => self
 
   default {start A1}
-  setup { self.other ||= create(self.class) {|c| start A2; c.other = self} }
+  setup {
+    self.x = 1
+    self.other ||= create(self.class) { |c|
+      start B1
+      self.x = 10
+      c.other = self
+    }
+  }
 
-  transition A1 => Exit do
-    reset :x => 1
-    event :e => proc { other.x }
+  transition A1 => A2 do
+    reset :x => "other.x"
+    event :e => "x"
   end
   transition A2 => Exit do
-    reset :x => 2
     reset :x => proc { other.e.to_i }
-    reset :y => proc { other.e.to_i }
-    reset :z => proc { other.e.to_i }
+  end
+  
+  transition B1 => B2 do
+    reset :x => "other.x"
+    event :e => "x"
+  end
+  transition B2 => Exit do
+    reset :x => proc { other.e.to_i }
   end
 
   def assert_consistent test
-    case start_state
+    case state
     when A1
       test.assert_equal(1, x)
-      test.assert_equal(0, y)
-      test.assert_equal(0, z)
+      test.assert_equal(nil, e)
     when A2
-      test.assert_equal(0, x)
-      test.assert_equal(2, y)
-      test.assert_equal(0, z)
-    else
-      test.flunk
+      test.assert_equal(10, x)
+      test.assert_equal(1, e)
+    when B1
+      test.assert_equal(10, x)
+      test.assert_equal(nil, e)
+    when B2
+      test.assert_equal(1, x)
+      test.assert_equal(10, e)
     end
   end
 end
@@ -424,6 +446,15 @@ class Discrete_17 < DiscreteTestComponent
   end
 end
 
+# Multiple transitions can be defined using arrays of source states.
+class Discrete_18 < DiscreteTestComponent
+  state :A, :B
+  transition [A, Enter] => B
+  def assert_consistent test
+    test.assert_equal(B, state)
+  end
+end
+
 =begin
 
 test timing of other combinations of
@@ -451,7 +482,7 @@ class TestDiscrete < Test::Unit::TestCase
   def test_discrete
     testers = []
     ObjectSpace.each_object(Class) do |cl|
-      if cl <= DiscreteTestComponent and
+      if cl == cl <= DiscreteTestComponent and
          cl.instance_methods.include? "assert_consistent"
         testers << @world.create(cl)
       end

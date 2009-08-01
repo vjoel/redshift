@@ -4,9 +4,9 @@
 # Try replacing
 #   CFLAGS   =  -fPIC -g -O2 
 # with
-#   CFLAGS   = -O2 -march=i686 -msse2 -mfpmath=sse
+#   CFLAGS   = -fPIC -O2 -march=i686 -msse2 -mfpmath=sse
 
-$CFLAGS="-O2 -march=i686 -msse2 -mfpmath=sse"
+$CFLAGS="-fPIC -O2 -march=i686 -msse2 -mfpmath=sse"
 
 require 'redshift'
 

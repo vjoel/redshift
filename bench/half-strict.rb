@@ -98,6 +98,6 @@ end
 if __FILE__ == $0
   require File.join(File.dirname(__FILE__), 'bench')
   puts "half-strict:"
-  HalfStrict.do_bench_one(1000, 1000) {|l| puts l}
+  HalfStrict.do_bench_one(10_000, 100) {|l| puts l}
 end
 

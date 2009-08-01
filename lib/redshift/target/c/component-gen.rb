@@ -253,7 +253,6 @@ module RedShift
 
     shadow_attr_reader :nonpersistent, :outgoing    => Array
     shadow_attr_reader :nonpersistent, :trans       => Transition
-    shadow_attr_reader :nonpersistent, :phases      => Array
     shadow_attr_reader :nonpersistent, :dest        => State
 
     # The values of each event currently being emitted, indexed by event ID.
@@ -268,9 +267,7 @@ module RedShift
       ## needn't be persistent
     protected :var_count=
 
-    ### check for phases->len < 256
     shadow_struct.declare :bits => %{\
-      unsigned    cur_ph    : 8; //# index of upcoming ph
       unsigned    strict    : 1; //# is cur state strict?
       unsigned    checked   : 1; //# have the guards been checked?
       unsigned    has_diff  : 1; //# cur state has diff flows?
@@ -624,11 +621,11 @@ module RedShift
           
           case
           when (cont_var = cont_state_class.vars[var])
-            define_reset_continuous(cont_var, expr, phase[0])
+            define_reset_continuous(cont_var, expr, (phase[0]||=[]))
           when constant_variables[var]
-            define_reset_constant(var, expr, phase[1])
+            define_reset_constant(var, expr, (phase[1]||=[]))
           when link_variables[var]
-            define_reset_link(var, expr, phase[2])
+            define_reset_link(var, expr, (phase[2]||=[]))
           else
             raise "No such variable, #{var}"
           end
@@ -648,6 +645,11 @@ module RedShift
 
           after_commit do
             phase[cont_var.index] = reset.instance
+          end
+        
+        when Numeric
+          after_commit do
+            phase[cont_var.index] = expr.to_f
           end
 
         else
@@ -669,6 +671,11 @@ module RedShift
 
           after_commit do
             phase << [calc_offset(var), reset.instance, var]
+          end
+
+        when Numeric
+          after_commit do
+            phase << [calc_offset(var), expr.to_f, var]
           end
 
         else
@@ -717,17 +724,9 @@ module RedShift
         # transitions don't usually have names, so the following (insertion
         # order) is better than sorting by name.
         own_transitions(state).each do |trans, dst|
-          guards = trans.guard
-          define_guards(guards) if guards
-          
-          trans.phases.each do |phase|
-            case phase
-            when ResetPhase
-              define_resets(phase)
-            when EventPhase
-              define_event_phase(phase)
-            end
-          end
+          define_guards(trans.guard) if trans.guard
+          define_resets(trans.reset) if trans.reset
+          define_event_phase(trans.event) if trans.event
         end
       end
 

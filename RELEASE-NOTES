@@ -1,3 +1,7 @@
+redshift 1.2.1
+
+- Revised structure of discrete step. May break some code.
+
 redshift 1.1.59
 
 - Optimization: use diff_list in step_continuous to scan just those components

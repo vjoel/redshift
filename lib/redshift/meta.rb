@@ -117,7 +117,7 @@ class Component
         end
         all_strict &&= t_strict
 
-        ary << [t, d, t.phases, t.guard, t_strict]
+        ary << [t, d, t.guard, t_strict]
       end
 
       result = []

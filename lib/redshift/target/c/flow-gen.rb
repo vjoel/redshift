@@ -65,7 +65,10 @@ class Flow
               #{var_cname} = #{cs_cname}->#{var}.value_#{rk_level};
             }.tabto(0).split("\n")
           
-          else  
+          elsif /\A[eE]\z/ =~ var
+            translation[expr] = expr # scientific notation
+            
+          else
             raise NameError, "Unknown variable: #{var}"
           end
           

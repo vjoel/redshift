@@ -52,6 +52,7 @@ Always = Transition.new :Always, nil, []
 class Component
   
   attr_reader :start_state
+  attr_accessor :name
 
   attach_state(:Enter)
   attach_state(:Exit)
@@ -59,7 +60,7 @@ class Component
   # These classes are derived from Array for efficient access to contents
   # from C code.
   class XArray < Array
-    def inspect; "<#{self.class.name.split("::")[-1]}: #{super}>"; end
+    def inspect; "<#{self.class.name.split("::")[-1]}: #{super[1..-2]}>"; end
   end
   
   class ProcPhase  < XArray; end
@@ -108,7 +109,7 @@ class Component
   end
   
   def to_s
-    "<#{self.class} #{@name || comp_id}>"
+    "<#{self.class} #{name || comp_id}>"
   end
   
   def inspect data = nil

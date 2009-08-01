@@ -9,10 +9,6 @@ class Component
 	attr_reader :event		# {:event_name => value, ...}
 	attr_reader :enabled_transition
 
-	def create(component_class, initializer_hash = {})
-		world.create(component_class, initializer_hash)
-	end
-	
 	@inits			# key is var_name, value is init_spec
 	
 	@@input_specs	# hash mapping subclasses of Component to instances of InputSpecSet

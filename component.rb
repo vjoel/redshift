@@ -436,6 +436,10 @@ class Component
         end
       end
     end
+    alias number continuous
+      ## eventually, number values could be stored as ordinary shadow_attrs
+      ## to save space and time during continuous step. (Will need to
+      ## change Flow#translate.)
     
     def link_type
       @link_type ||= self == Component ? Hash.new :

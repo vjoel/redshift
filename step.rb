@@ -101,6 +101,7 @@ class World
       inline void move_comp(VALUE comp, VALUE list, VALUE next_list)
       {
         struct RArray *nl = RARRAY(next_list);
+        assert(RARRAY(list)->ptr[RARRAY(list)->len-1] == comp);
         if (nl->len == nl->capa)
           rb_ary_store(next_list, nl->len, comp);
         else
@@ -110,6 +111,7 @@ class World
       inline void remove_comp(VALUE comp, VALUE list)
       {
         ComponentShadow *comp_shdw = get_shadow(comp);
+        assert(RARRAY(list)->ptr[RARRAY(list)->len-1] == comp);
         assert(comp_shdw->world == shadow->self);
         comp_shdw->world = Qnil;
         --RARRAY(list)->len;
@@ -140,7 +142,7 @@ class World
           case T_DATA:
             if (RBASIC(guard)->klass == rb_cProc) {
               if (!RTEST(rb_funcall(comp, #{insteval_proc}, 1, guard)))
-                return 0;   //### faster way to call instance_eval ???
+                return 0;   //## faster way to call instance_eval ???
             }
             else {
               assert(!RTEST(rb_obj_is_kind_of(guard, rb_cProc)));
@@ -154,7 +156,8 @@ class World
               return 0; //## should use different var than zeno_counter
             break;
           case T_CLASS:
-            assert(RTEST(rb_mod_lt(guard, GuardWrapperClass)));
+            assert(RTEST(rb_funcall(guard, #{declare_symbol "<"},
+              1, GuardWrapperClass)));
             guard = rb_funcall(guard, #{declare_symbol :instance}, 0);
             RARRAY(guards)->ptr[i] = guard;
             if (!test_cexpr_guard(comp, guard))

@@ -247,6 +247,8 @@ Implementation
         should raise an exception.
     guards
       clause to set how often the guard is checked
+      constant guards:
+        guard "x > 1"
     dual mode
   
 / garbage collection

@@ -290,6 +290,12 @@ class Component
         cl.instance_eval do
           @component_class = component_class
           @vars = {}
+          file_name =
+            component_class.shadow_library_source_file.name[/.*(?=\.c$)/] +
+            "_ContState"     ## a bit hacky
+          shadow_library_file file_name
+          component_class.shadow_library_include_file.include(
+            shadow_library_include_file)
         end
         cl
       end
@@ -496,7 +502,7 @@ class Component
   library.define(:__update_cache).instance_eval do
     flow_wrapper_type = RedShift::Component::FlowWrapper.shadow_struct.name
     scope :extern ## might be better to keep static and put in world.c
-    arguments "#{RedShift::Component.shadow_struct.name} *shadow"
+    arguments "struct #{RedShift::Component.shadow_struct.name} *shadow"
     declare :locals => %{
       #{flow_wrapper_type} *flow_wrapper;
 

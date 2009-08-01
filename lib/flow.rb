@@ -105,7 +105,7 @@ The cflow cannot be changed or recompiled while the simulation is running. Chang
 
 module RedShift
 
-class Flow    ## rename to equation?
+class Flow    ## rename to equation? formula? (Rename this file, too?)
 
   attr_reader :var, :formula
   
@@ -151,6 +151,8 @@ class Flow    ## rename to equation?
           # l.x  ==>  get_l__x()->value_n
           link_type = cl.link_type[link.intern]
           raise(NameError, "\nNo such link, #{link}") unless link_type
+          flow_fn.include link_type.shadow_library_include_file
+          
           link_cs_ssn = link_type.cont_state_class.shadow_struct.name
 
           link_cname = "link_#{link}"
@@ -275,6 +277,9 @@ class AlgebraicFlow < Flow
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
       
+      # We need the struct
+      shadow_library_source_file.include(cl.shadow_library_include_file)
+      
       shadow_library_source_file.define(flow_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"
         declare :shadow => %{
@@ -352,6 +357,9 @@ class EulerDifferentialFlow < Flow
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
       
+      # We need the struct
+      shadow_library_source_file.include(cl.shadow_library_include_file)
+      
       shadow_library_source_file.define(flow_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"
         declare :shadow => %{
@@ -405,6 +413,9 @@ class RK4DifferentialFlow < Flow
     Component::FlowWrapper.make_subclass flow_name do
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
+      
+      # We need the struct
+      shadow_library_source_file.include(cl.shadow_library_include_file)
       
       shadow_library_source_file.define(flow_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"
@@ -488,6 +499,9 @@ class CexprGuard < Flow
     Component::GuardWrapper.make_subclass guard_name do
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
+      
+      # We need the struct
+      shadow_library_source_file.include(cl.shadow_library_include_file)
       
       strict = false
       

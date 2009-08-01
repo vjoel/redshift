@@ -31,6 +31,8 @@ class Component
             lt = link_type[var_name] = const_get(lt)
           end
           shadow_attr_accessor var_name => [lt]
+
+          shadow_library_include_file.include(lt.shadow_library_include_file)
         end
       end
     end

@@ -40,6 +40,8 @@ Syntax
   see http://www.rubygarden.org/ruby?KeywordArguments
 
   use Ruth or similar tool for truly custom syntax?
+  
+    -- see Ripper
 
   use ` for equations?
   

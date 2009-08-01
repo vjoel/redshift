@@ -69,7 +69,7 @@ class World_2 < World
     test.assert_equal(90.001, clock)
   end
   def assert_consistent_after test
-    test.assert_equal_float(@timer.t, clock, 1.0E-13)
+    test.assert_in_delta(@timer.t, clock, 1.0E-13)
     test.assert_equal(100.101, clock)
   end
 end
@@ -87,7 +87,7 @@ class World_2_1 < World_2
     test.assert_equal(90.001, clock)
   end
   def assert_consistent_after test
-    test.assert_equal_float(@timer.t, clock, 1.0E-13)
+    test.assert_in_delta(@timer.t, clock, 1.0E-13)
     test.assert_equal(100.001, clock)
   end
 end
@@ -260,15 +260,15 @@ class World_7 < World
     x_t1    = thing.x_start + time_step
     x_t1000 = thing.x_start + 1000 * time_step  
     
-    test.assert_equal_float(x_t0,     @t0_copy.thing.x, 1E-10)
-    test.assert_equal_float(x_t1,     @t1_copy.thing.x, 1E-10)
-    test.assert_equal_float(x_t1000,  @t1000_copy.thing.x, 1E-10)
-    test.assert_equal_float(x_t1000,  thing.x, 1E-10)
+    test.assert_in_delta(x_t0,     @t0_copy.thing.x, 1E-10)
+    test.assert_in_delta(x_t1,     @t1_copy.thing.x, 1E-10)
+    test.assert_in_delta(x_t1000,  @t1000_copy.thing.x, 1E-10)
+    test.assert_in_delta(x_t1000,  thing.x, 1E-10)
     
     # continue running with @t1_copy
     @t1_copy.run 999
     test.assert_equal(Thing::C, @t1_copy.thing.state)
-    test.assert_equal_float(x_t1000, @t1_copy.thing.x, 1E-10)
+    test.assert_in_delta(x_t1000, @t1_copy.thing.x, 1E-10)
   end
 end
 
@@ -282,11 +282,9 @@ tests:
 
 #-----#
 
-require 'runit/testcase'
-require 'runit/cui/testrunner'
-require 'runit/testsuite'
+require 'test/unit'
   
-class TestWorld < RUNIT::TestCase
+class TestWorld < Test::Unit::TestCase
   
   def test_world
     testers = []
@@ -305,7 +303,3 @@ class TestWorld < RUNIT::TestCase
     end
   end
 end
-
-END {
-  RUNIT::CUI::TestRunner.run(TestWorld.suite)
-}

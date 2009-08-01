@@ -109,10 +109,18 @@ class Component
   ## move into C code in __update_cache?
   def outgoing_transitions
     ary = []
+    strict = true
     for t, d in transitions
       ary << t << d << t.phases << t.guard
+      
+      ## this is inefficient
+      guard_list = t.guard
+      if guard_list
+        guard_list.each {|g| strict &&= g.respond_to?(:strict) && g.strict }
+      end
     end
-    ary
+
+    ary << strict # just a faster way to return mult. values
   end
   
   def self.define_guard guard

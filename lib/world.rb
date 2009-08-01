@@ -29,9 +29,10 @@ class World
   shadow_attr_accessor :next_R => Array
   shadow_attr_accessor :next_E => Array
   shadow_attr_accessor :next_G => Array
+  shadow_attr_accessor :strict_sleep => Array
   protected \
     :curr_A=, :curr_R=, :curr_E=, :curr_G=,
-    :next_A=, :next_R=, :next_E=, :next_G=
+    :next_A=, :next_R=, :next_E=, :next_G=, :strict_sleep=
   
   option_block_defaults \
     :name         =>  nil,
@@ -62,9 +63,11 @@ class World
     
     self.curr_A = []; self.curr_R = []; self.curr_E = []; self.curr_G = []
     self.next_A = []; self.next_R = []; self.next_E = []; self.next_G = []
+    self.strict_sleep = []
     @components = EnumerableOperator.sum  \
       curr_A, curr_R, curr_E, curr_G,
-      next_A, next_R, next_E, next_G
+      next_A, next_R, next_E, next_G,
+      strict_sleep
 
     @name           = options[:name] || "#{type} #{@@count}"
     self.time_step  = options[:time_step]

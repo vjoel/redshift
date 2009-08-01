@@ -118,17 +118,15 @@ end
 
 #-----#
 
-require 'runit/testcase'
-require 'runit/cui/testrunner'
-require 'runit/testsuite'
+require 'test/unit'
 
-class TestInheritTrans < RUNIT::TestCase
+class TestInheritTrans < Test::Unit::TestCase
   
-  def setup
+  def set_up
     @world = World.new { time_step 0.1 }
   end
   
-  def teardown
+  def tear_down
     @world = nil
   end
   
@@ -154,7 +152,3 @@ class TestInheritTrans < RUNIT::TestCase
     end
   end
 end
-
-END {
-  RUNIT::CUI::TestRunner.run(TestInheritTrans.suite)
-}

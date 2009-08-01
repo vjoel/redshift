@@ -157,7 +157,7 @@ module TransitionSyntax
         raise SyntaxError, "Too many arguments"
       end
       if bl
-        @events << [meth, Component::DynamicEventValue.new &bl]
+        @events << [meth, Component::DynamicEventValue.new(&bl)]
       elsif args.size > 0
         @events << [meth, args[0]]
       else

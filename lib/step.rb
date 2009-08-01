@@ -61,6 +61,7 @@ class World
       default :step_count => "INT2FIX(-1)"
     }
     declare :locals => %{
+long gcount = 0;
       VALUE             comp;
       ComponentShadow  *comp_shdw;
       VALUE            *ptr;
@@ -108,6 +109,12 @@ class World
           nl->ptr[nl->len++] = comp;
         --RARRAY(list)->len;
       }
+      inline void move_all_comps(VALUE list, VALUE next_list)
+      { //## this could be faster using memcpy
+        struct RArray *l = RARRAY(list);
+        while (l->len)
+          move_comp(l->ptr[l->len-1], list, next_list);
+      }
       inline void remove_comp(VALUE comp, VALUE list)
       {
         ComponentShadow *comp_shdw = get_shadow(comp);
@@ -137,6 +144,7 @@ class World
         assert(BUILTIN_TYPE(guards) == T_ARRAY);
         for (i = 0; i < RARRAY(guards)->len; i++) {
           VALUE guard = RARRAY(guards)->ptr[i];
+gcount++;
 
           switch (BUILTIN_TYPE(guard)) {
           case T_DATA:
@@ -215,8 +223,12 @@ class World
             finish_trans(comp_shdw);
           }
         }
-        else
-          move_comp(comp, list, shadow->next_G);
+        else {
+          if (comp_shdw->strict)
+            move_comp(comp, list, shadow->strict_sleep);
+          else
+            move_comp(comp, list, shadow->next_G);
+        }
       }
     }.tabto(0)
     declare :step_discrete_macros => '
@@ -325,6 +337,10 @@ class World
           rb_funcall(comp, #{declare_symbol :do_events}, 1, events);
         } 
       }
+      
+      move_all_comps(shadow->curr_G, shadow->strict_sleep);
+      SWAP_VALUE(shadow->curr_G, shadow->strict_sleep);
+//#printf("%7d ", gcount);
     }
   end
   private :step_discrete
@@ -332,4 +348,3 @@ class World
 end # class World
 
 end # module RedShift
-

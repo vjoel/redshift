@@ -52,14 +52,14 @@ class Flow_2_1 < Flow_2
   defaults { @x = 0 }
   flow { diff "x' = 1" }
   def assert_consistent test
-    test.assert_equal_float(world.clock - @start_time, x, 0.00001)
+    test.assert_in_delta(world.clock - @start_time, x, 0.00001)
   end
 end
 
 class Flow_2_1_1 < Flow_2_1
   flow { alg "x = -1" }
   def assert_consistent test
-    test.assert_equal_float(-1, x, 0.00001)
+    test.assert_in_delta(-1, x, 0.00001)
   end
 end
 
@@ -80,7 +80,7 @@ class Flow_3 < FlowTestComponent
   transition S2 => S1 do guard {x <= 0} end
   
   def assert_consistent test
-    test.assert_equal_float(0.5, x, 0.5 + world.time_step)
+    test.assert_in_delta(0.5, x, 0.5 + world.time_step)
   end
 end
 
@@ -100,17 +100,15 @@ end
 
 #-----#
 
-require 'runit/testcase'
-require 'runit/cui/testrunner'
-require 'runit/testsuite'
+require 'test/unit'
 
-class TestInheritFlow < RUNIT::TestCase
+class TestInheritFlow < Test::Unit::TestCase
   
-  def setup
+  def set_up
     @world = World.new { time_step 0.1 }
   end
   
-  def teardown
+  def tear_down
     @world = nil
   end
   
@@ -128,7 +126,3 @@ class TestInheritFlow < RUNIT::TestCase
     testers.each { |t| t.assert_consistent self }
   end
 end
-
-END {
-  RUNIT::CUI::TestRunner.run(TestInheritFlow.suite)
-}

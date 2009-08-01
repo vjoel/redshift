@@ -59,7 +59,7 @@ class Discrete_3 < DiscreteTestComponent
   default { start A }
   def assert_consistent test
     test.assert_equal(A, state)
-    test.assert_exception(AlreadyStarted) {start A}
+    test.assert_raises(AlreadyStarted) {start A}
   end
 end
 
@@ -284,17 +284,15 @@ test guard phases
 
 #-----#
 
-require 'runit/testcase'
-require 'runit/cui/testrunner'
-require 'runit/testsuite'
+require 'test/unit'
 
-class TestDiscrete < RUNIT::TestCase
+class TestDiscrete < Test::Unit::TestCase
   
-  def setup
+  def set_up
     @world = World.new { time_step 0.1 }
   end
   
-  def teardown
+  def tear_down
     @world = nil
   end
   
@@ -314,7 +312,3 @@ class TestDiscrete < RUNIT::TestCase
     end
   end
 end
-
-END {
-  RUNIT::CUI::TestRunner.run(TestDiscrete.suite)
-}

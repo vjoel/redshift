@@ -1,8 +1,6 @@
 #!/usr/bin/env ruby
 
-require 'runit/testcase'
-require 'runit/cui/testrunner'
-require 'runit/testsuite'
+require 'test/unit'
 
 require 'redshift/redshift'
 
@@ -13,26 +11,22 @@ class Timer < Component
   flow { diff " x' = 1 " }
 end
 
-class TestNumerics < RUNIT::TestCase
+class TestNumerics < Test::Unit::TestCase
   
-  def setup
+  def set_up
     @world = World.new { time_step 0.1 }
       
   end
   
-  def teardown
+  def tear_down
     @world = nil
   end
   
   def test_rational
     c = @world.create(Timer) {self.x = 1/2}
     @world.run 100
-    assert_equal_float(10.5, c.x, 0.000001)
+    assert_in_delta(10.5, c.x, 0.000001)
   end
 end
 
 ## should test NaN, Inf, precision, etc.
-
-END {
-  RUNIT::CUI::TestRunner.run(TestNumerics.suite)
-}

@@ -242,6 +242,9 @@ class Component
   class GuardWrapper < FunctionWrapper
     shadow_attr :guard => "Guard guard"
     @tag = "Guard"
+
+    def self.strict; @strict; end
+    def strict; @strict ||= type.strict; end
   end
 
   # one per variable, shared by subclasses which inherit it
@@ -292,7 +295,7 @@ class Component
       def add_var var_name, writable    # yields to block only if var was added
         var = find_var var_name
         if var
-          unless var.writable == writable
+          unless writable == :permissive or var.writable == writable
             raise "\nVariable #{var_name} redefined with different strictness."
           end
         else
@@ -356,9 +359,11 @@ class Component
   shadow_attr_reader :nonpersistent, :phases       => Array
   shadow_attr_reader :nonpersistent, :dest         => State
   
-  def active_transition; trans; end
+  def active_transition; trans; end # for instrospection
   
+  ## these should be short, or bitfield
   shadow_attr :nonpersistent, :cur_ph => "long cur_ph"
+  shadow_attr :nonpersistent, :strict => "long strict" # = is cur state strict?
   
   class << self
   
@@ -397,6 +402,10 @@ class Component
     
     def cont_state_class
       @cont_state_class ||= ContState.make_subclass_for(self)
+    end
+    
+    def permissively_continuous(*var_names)
+      _continuous(:permissive, var_names)
     end
     
     def strictly_continuous(*var_names)
@@ -471,6 +480,7 @@ class Component
       long        i;
       long        count;
       VALUE      *flows;
+      VALUE       strict;
     }.tabto(0)
     
     body %{
@@ -478,6 +488,9 @@ class Component
       shadow->outgoing = rb_funcall(shadow->self,
                          #{declare_symbol :outgoing_transitions}, 0);
       
+      strict = rb_funcall(shadow->outgoing, #{declare_symbol :pop}, 0);
+      shadow->strict = RTEST(strict);
+
       //# Cache flows.
       var_count = shadow->var_count;
       vars = (ContVar *)(&shadow->cont_state->begin_vars);

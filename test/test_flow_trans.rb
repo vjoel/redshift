@@ -94,7 +94,7 @@ class Flow_Transition < FlowTestComponent
     # In the alg case, calling the accessor invokes the update method. We want
     # to test that alg flows work even if the update method isn't called.
     unless state == Alg
-      test.assert_equal_float(
+      test.assert_in_delta(
         10 * t,
         x,
         0.00000000001,
@@ -120,7 +120,7 @@ class Flow_AlgebraicToEmptyFlow < FlowTestComponent
   def assert_consistent test
     return if world.clock > 2 ## should be a way to remove this component
     if state == B
-      test.assert_equal_float(0, x, 1E-10) ## is this what we want?
+      test.assert_in_delta(0, x, 1E-10) ## is this what we want?
     end
   end  
 end
@@ -128,17 +128,15 @@ end
 
 #-----#
 
-require 'runit/testcase'
-require 'runit/cui/testrunner'
-require 'runit/testsuite'
+require 'test/unit'
 
-class TestFlow < RUNIT::TestCase
+class TestFlow < Test::Unit::TestCase
   
-  def setup
+  def set_up
     @world = World.new { time_step 0.01; self.zeno_limit = 100 }
   end
   
-  def teardown
+  def tear_down
     @world = nil
   end
   
@@ -160,7 +158,6 @@ class TestFlow < RUNIT::TestCase
 end
 
 END {
-  RUNIT::CUI::TestRunner.run(TestFlow.suite)
 
 #  require 'plot/plot'
 #  Plot.new ('gnuplot') {

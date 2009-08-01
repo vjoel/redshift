@@ -110,7 +110,7 @@ class Flow    ## rename to equation?
   end
   
   def attach cl, state
-    cont_var = cl.continuous(@var)[0]
+    cont_var = cl.permissively_continuous(@var)[0]
     cl.add_flow [state, cont_var] => flow_wrapper(cl, state)
   end
   
@@ -121,6 +121,7 @@ class Flow    ## rename to equation?
     setup = []    ## should use accumulator
     
     c_formula = @formula.dup
+    strict = true
     
     re = /(?:([A-Za-z_]\w*)\.)?([A-Za-z_]\w*)(?!\w*\s*[(])/
     
@@ -130,6 +131,9 @@ class Flow    ## rename to equation?
         link, var = $1, $2
         
         if link
+          ## unless writer is private...
+          strict = false # because link can change later in dstep
+        
           # l.x  ==>  get_l__x()->value_n
           link_type = cl.link_type[link.intern]
           raise(NameError, "\nNo such link, #{link}") unless link_type
@@ -187,6 +191,9 @@ class Flow    ## rename to equation?
           
           if link_type
             # l ==> link_l
+            ## unless writer is private...
+            strict = false # because link can change later in dstep
+
             link = var
             link_cname = "link_#{link}"
             unless translation[link]
@@ -199,6 +206,13 @@ class Flow    ## rename to equation?
             
           else ## if var on list of cont var
             # x ==> var_x
+            var_obj = cl.cont_state_class.find_var(var.intern)
+            if not var_obj or var_obj.writable
+              ## note var must have been declared at this point
+              ## or else we lose the optimization
+              strict = false
+            end
+            
             var_cname = "var_#{var}"
             sh_cname = "shadow"
             cs_cname = "cont_state"
@@ -223,6 +237,8 @@ class Flow    ## rename to equation?
       end
       translation[expr]
     end
+    
+    yield strict if block_given?  ## funky way to return another value
     
     setup << "#{result_var} = #{c_formula}"
   end
@@ -452,6 +468,8 @@ class CexprGuard < Flow
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
       
+      strict = false
+      
       ## should use some other file (likewise for Flows)
       shadow_library_source_file.define(guard_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"
@@ -466,11 +484,14 @@ class CexprGuard < Flow
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;
         }
         declare :result => "int result"
+        translation = guard.translate(self, "result", 0, cl) {|strict|}
         body %{
-          #{guard.translate(self, "result", 0, cl)};
+          #{translation};
           return result;
         }
       end
+      
+      @strict = strict
       
       define_method :calc_function_pointer do
         body "shadow->guard = &#{guard_name}"

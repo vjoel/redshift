@@ -26,7 +26,7 @@ class Flow_UsingLink < FlowTestComponent
   }
   
   def assert_consistent test
-    test.assert_equal_float(
+    test.assert_in_delta(
       t**2,
       y,
       0.00000000001,
@@ -64,11 +64,11 @@ class Flow_UsingLink2 < FlowTestComponent
   end
   
   def assert_consistent test
-    test.assert_equal_float(y, y1, 0.00000000001,
+    test.assert_in_delta(y, y1, 0.00000000001,
       "in #{state.name} after #{t} sec,\n")
-    test.assert_equal_float(y, y2, 0.00000000001,
+    test.assert_in_delta(y, y2, 0.00000000001,
       "in #{state.name} after #{t} sec,\n")
-    test.assert_equal_float(y, y3, 0.00000000001,
+    test.assert_in_delta(y, y3, 0.00000000001,
       "in #{state.name} after #{t} sec,\n")
   end
 end
@@ -127,7 +127,7 @@ class Flow_UsingLink3 < FlowTestComponent
   
   def assert_consistent test
     cmp = proc do |x, y| 
-      test.assert_equal_float(x, y, 0.00000000001,
+      test.assert_in_delta(x, y, 0.00000000001,
       "in #{state.name} after #{world.clock} sec,\n")
     end
     
@@ -160,7 +160,7 @@ class Flow_Boolean < FlowTestComponent
   }
   def assert_consistent test
     cmp = proc do |x, y| 
-      test.assert_equal_float(x, y, 0.00000000001,
+      test.assert_in_delta(x, y, 0.00000000001,
       "in #{state.name} after #{world.clock} sec,\n")
     end
     
@@ -203,7 +203,7 @@ class Flow_SelfLink < FlowTestComponent
   setup {self.sl = self; self.y=1; self.z=1}
   flow {diff "y' = sl.y"; diff "z'=z"}
   def assert_consistent test
-    test.assert_equal_float(z, y, 0.00000000001)
+    test.assert_in_delta(z, y, 0.00000000001)
   end
 end
 
@@ -245,7 +245,7 @@ class Flow_Reconfig < FlowTestComponent
   end
   
   def assert_consistent test
-    test.assert_equal_float(y1, y, 0.00000000001,
+    test.assert_in_delta(y1, y, 0.00000000001,
       "in #{state.name} after #{t} sec,\n")
   end
 end
@@ -253,17 +253,15 @@ end
 
 #-----#
 
-require 'runit/testcase'
-require 'runit/cui/testrunner'
-require 'runit/testsuite'
+require 'test/unit'
 
-class TestFlow < RUNIT::TestCase
+class TestFlow < Test::Unit::TestCase
   
-  def setup
+  def set_up
     @world = World.new { time_step 0.01; self.zeno_limit = 100 }
   end
   
-  def teardown
+  def tear_down
     @world = nil
   end
   
@@ -285,7 +283,6 @@ class TestFlow < RUNIT::TestCase
 end
 
 END {
-  RUNIT::CUI::TestRunner.run(TestFlow.suite)
 
 #  require 'plot/plot'
 #  Plot.new ('gnuplot') {

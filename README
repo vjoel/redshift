@@ -1,6 +1,33 @@
 To do
 =====
 
+
+Strict continuity
+
+  prevent
+    strict_cont :x
+    alg " x = y "
+    trans action { self.y = 2 }
+
+  allow
+    setup { self.x = 1 }
+
+  link optimization
+    in #var=, check strict flag
+      if strict, move comp from sleep list to guard list
+
+  will there be a problem with unguarded transitions?
+
+  update_cache is inefficient
+
+  make test!
+
+
+Error messages
+
+  use just last line of backtrace.
+
+
 Compiler
 
   deferred code generation
@@ -13,6 +40,13 @@ Compiler
 
 Syntax
 
+  use ` for equations?
+  
+    flow {
+      ` x' = y `
+      ` y = 2  `
+    }
+
   link {
     x Foo
     y Bar
@@ -22,7 +56,7 @@ Syntax
     run :steps => n
     run :time => n
 
-  Fix the option-block cruft--its slow and clunky
+  Fix the option-block cruft--it's slow and clunky. Avoid instance_eval.
 
   resets and even assignment to cont-vars can use '<=' or '[]='
   better: eval each setup or reset block in a context in which

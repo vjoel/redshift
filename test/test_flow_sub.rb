@@ -39,32 +39,30 @@ class Flow_Sub < FlowTestComponent
   }
   def assert_consistent test
     str = "at time #{t}"
-    test.assert_equal_float(x, 2*sin(t) + 1, 0.000000001, str)
-    test.assert_equal_float(xx, (2*sin(t) + 1)**2 + 3 * (2*sin(t) + 1),
+    test.assert_in_delta(x, 2*sin(t) + 1, 0.000000001, str)
+    test.assert_in_delta(xx, (2*sin(t) + 1)**2 + 3 * (2*sin(t) + 1),
       0.000000001, str)
     
-    test.assert_equal_float(y0, y1, 0.000000001, str)
-    test.assert_equal_float(y0, y2, 0.000000001, str)
+    test.assert_in_delta(y0, y1, 0.000000001, str)
+    test.assert_in_delta(y0, y2, 0.000000001, str)
     
-    test.assert_equal_float(z0, z1, 0.000000001, str)
-    test.assert_equal_float(z0, z2, 0.000000001, str)
+    test.assert_in_delta(z0, z1, 0.000000001, str)
+    test.assert_in_delta(z0, z2, 0.000000001, str)
   end
 end
 
 
 #-----#
 
-require 'runit/testcase'
-require 'runit/cui/testrunner'
-require 'runit/testsuite'
+require 'test/unit'
 
-class TestFlow < RUNIT::TestCase
+class TestFlow < Test::Unit::TestCase
   
-  def setup
+  def set_up
     @world = World.new { time_step 0.01; self.zeno_limit = 100 }
   end
   
-  def teardown
+  def tear_down
     @world = nil
   end
   
@@ -86,7 +84,6 @@ class TestFlow < RUNIT::TestCase
 end
 
 END {
-  RUNIT::CUI::TestRunner.run(TestFlow.suite)
 
 #  require 'plot/plot'
 #  Plot.new ('gnuplot') {

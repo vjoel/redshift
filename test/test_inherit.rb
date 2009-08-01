@@ -89,17 +89,15 @@ class Z < Component
 end
 
 
-require 'runit/testcase'
-require 'runit/cui/testrunner'
-require 'runit/testsuite'
+require 'test/unit'
 
-class TestInherit < RUNIT::TestCase
+class TestInherit < Test::Unit::TestCase
   
-  def setup
+  def set_up
     @world = World.new { time_step 0.1 }
   end
   
-  def teardown
+  def tear_down
     @world = nil
   end
   
@@ -122,11 +120,7 @@ class TestInherit < RUNIT::TestCase
       assert_equal(c.state.name, z.state.name,
                    "time #{@world.clock}\n c.t: #{c.t} z.t: #{z.t}")
     
-      assert_equal_float(c.x, z.x, 0.000001)
+      assert_in_delta(c.x, z.x, 0.000001)
     end
   end
 end
-
-END {
-  RUNIT::CUI::TestRunner.run(TestInherit.suite)
-}

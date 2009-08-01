@@ -283,7 +283,7 @@ module RedShift
 
             if kind == :strict
               exc2 = shadow_library.declare_class ContinuousAssignmentError
-              msg2 = "\\\\nCannot set #{var_name}; it is strictly continuous."
+              msg2 = "Cannot reset strictly continuous #{var_name} in #{self}."
               class_eval %{
                 define_c_method :#{var_name}= do
                   arguments :value
@@ -328,7 +328,7 @@ module RedShift
           if kind == :strict
             shadow_attr_reader var_name => "double #{var_name}"
             exc2 = shadow_library.declare_class ContinuousAssignmentError
-            msg2 = "\\\\nCannot set #{var_name}; it is strictly constant."
+            msg2 = "Cannot reset strictly continuous #{var_name} in #{self}."
             
             class_eval %{
               define_c_method :#{var_name}= do
@@ -516,7 +516,7 @@ module RedShift
           
           if cont_var.strict?
             raise ContinuousAssignmentError,
-              "\nCannot set #{var}; it is strictly continuous."
+              "Cannot reset strictly continuous #{var} in #{self}.", []
           end
           
           case expr

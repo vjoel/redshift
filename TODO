@@ -1,0 +1,108 @@
+To do
+=====
+
+Syntax
+
+  express flows, guards, etc, in ruby syntax and use something to parse:
+  
+    nodedump/nodewrap
+    
+    ripper
+    
+    "expansion.rb"
+
+    vars are class methods returning Var obejcts
+
+      resets and even assignment to cont-vars can use '<<'
+
+      equations can use '=='
+
+  check for symbol conflicts
+    user attributes may conflict with Component's attrs
+    ditto for flows and other methods defined in subclasses
+    can we 'hook' method def and attr def to check for conflict? 
+    or just use a consistent naming scheme to keep internals separate?
+
+Semantics
+      
+  exception handler clauses in transitions (or use interrupts?)
+    on LockFailed { |var, value| ... }
+  
+  state stack:
+    a transition (or interrupt) can push the current state or pop back
+      to a previously saved state (like Kader's idea)
+    syntax:
+      transition ... do
+        push [or pop, in which case the dest. state is ignored]
+      end
+  
+  interrupts
+    a way of enabling a transition without evaluating guards
+      -faster
+    can do sender-receiver, rather than broadcast
+    can register with global interrupt manager
+      notify after T seconds
+      notify when global event happens (like what?)
+    receive in any state, switch to new state optional (push ok)
+    synchronous in the sense that no other components act in between
+      the send and receive, and the receiver action happens before the
+      sender action finishes (?)
+    but not parallel assignment
+    based on methods
+    in sender's action clause: 'x.foo args'
+    in receiver:
+      interrupt :foo => NewState do
+        action { |args| ...}
+        event ...
+      end
+  
+  signals
+    maybe better than interrupts, more general
+    
+    transition ... do
+      signal value => receiver_collection, ...
+    end
+    
+    on value do ... end
+    
+    is this better than a simple method call?
+      yes: can implement queue
+
+  randomize order of component list, and order of transition lists, optionally
+
+  discrete evolution
+    more flexibility:
+      start actions as well as finish actions
+      (before/after)
+      enter and exit blocks for each state
+      start_when and finish_when to implement sync
+    transitions like in statechart
+    parametric transitions?
+    attach :all, ...
+    syncronization
+      explicit?
+
+  exceptions
+    catch them if they arise in action
+    pass them on to handler where?
+
+Implementation
+
+  optimization
+    profiling
+      use valgrind, gprof, etc. to profile the C code
+    compare with shift, matlab
+  
+  run time error checking
+    more 'if $DEBUG ...' checks
+    catch definition of flows after commit, etc.
+    
+  exception handling
+    syntax and math errors, esp. in flows, guards
+    use Exception classes
+
+  error messages
+
+    Current file/line position must be saved by many constructs, e.g. reset,
+      so that it can be shown later if there is an error message
+

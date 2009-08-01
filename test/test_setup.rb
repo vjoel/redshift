@@ -12,7 +12,7 @@ end
 
 class Setup_1a < SetupTestComponent
   state :A
-  default { start A }
+  start A # same as default { start A }
   def assert_consistent test
     test.assert_equal(A, state)
   end

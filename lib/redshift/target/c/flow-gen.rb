@@ -182,6 +182,8 @@ class AlgebraicFlow
           struct #{cont_state_ssn} *cont_state;
           ContVar  *var;
         }
+        msg = "\nCircularity in algebraic formula for #{var_name} in state " +
+              "#{state} of class #{cl.name}. The component is in $rs."
         setup :shadow => %{
           shadow = (#{ssn} *)comp_shdw;
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;
@@ -189,8 +191,7 @@ class AlgebraicFlow
           assert(var->algebraic);
           if (var->nested) {
             rb_gv_set("$rs", shadow->self);
-            rb_raise(#{declare_class CircularDefinitionError},
-              "\\nCircularity in algebraic formula for #{var_name} in state #{state} of class #{cl.name}. The component is in $rs.");
+            rb_raise(#{declare_class CircularDefinitionError}, #{msg.inspect});
           }
           var->nested = 1;
         }

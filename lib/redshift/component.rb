@@ -101,10 +101,8 @@ class Component
     if $REDSHIFT_DEBUG
       unless caller[1] =~ /redshift\/world.*`create'\z/ or
              caller[0] =~ /`initialize'\z/
-        puts caller[1]; puts
-        puts caller.join("\n"); exit
-        raise "\nComponents can be created only using " +
-              "the create method of a world.\n"
+        raise ArgumentError, "Components can be created only using " +
+              "the create method of a world.", caller
       end
     end
 

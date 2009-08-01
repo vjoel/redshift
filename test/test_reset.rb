@@ -9,6 +9,7 @@ include RedShift
 class A < Component
   continuous :x
   continuous :y
+  
   link :other => A
   
   state :S1, :S2

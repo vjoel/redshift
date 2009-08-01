@@ -45,6 +45,11 @@ class Component
 end
 
 class << Component
+  # Specify the starting state +s+ of the component, as a default for the class.
+  def start(s)
+    default {start s}
+  end
+
   # Register, for the current component class, the given block to be called at
   # the beginning of initialization of an instance.
   # The block is called with the world as +self+.
@@ -62,11 +67,11 @@ class << Component
   def setup(&block)
     (@setup_procs ||= []) << block if block
   end
+  ## should default and setup allow syntax like reset? Like: default :x => 3
   
   # Define states in this component class, listed in +state_names+. A state
   # name should be a string or symbol beginning with [A-Z] and consisting of
-  # /\w/ characters. States are inherited.
-  ## Maybe we should always intern for consistency?
+  # alphanumeric (<tt>/\w/</tt>) characters. States are inherited.
   def state(*state_names)
     state_names.each do |state_name|
       state_name = state_name.to_s
@@ -325,6 +330,9 @@ end
 # only when this is done within the same call to this method.
 #
 # The block contains method calls to define guards, resets, procs, and events.
+#
+# The block also can have a call to the name method, which defines the name of
+# the transition--this is necessary for overriding the transition in a subclass.
 #
 def Component.transition(edges = {}, &block)
 

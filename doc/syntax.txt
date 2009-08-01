@@ -220,8 +220,10 @@ multiple allowed. Allows keeping initialization near equations:
 
 and:
 
-  state :A, :B, :C; default { @state = B }
+  state :A, :B, :C; default { @state = B } <-- should be "start B"
 
+
+In setup and default clauses, the state is nil, so algebraic equations do not apply yet. Use "start SomeState" in the clause to select which state the component will be in after all the initialization is done (it will be in Enter if no state is selected in this way).
 
 Advanced: class-scoped variables using closures:
 

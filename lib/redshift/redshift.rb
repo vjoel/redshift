@@ -13,13 +13,14 @@ end
 ## parse command line args
 
 if $REDSHIFT_DEBUG
-  puts "  ----------------------------------------------------------------- "
-  puts " |RedShift debugging information enabled by env var REDSHIFT_DEBUG.|"
-  puts " |    Please ignore error messages that do not halt the progam.    |"
-  puts "  ----------------------------------------------------------------- "
-  puts "\n   debug level = #{$REDSHIFT_DEBUG}\n\n" if $REDSHIFT_DEBUG != true
+  f = $stderr
+  f.puts "  ----------------------------------------------------------------- "
+  f.puts " |RedShift debugging information enabled by env var REDSHIFT_DEBUG.|"
+  f.puts " |    Please ignore error messages that do not halt the progam.    |"
+  f.puts "  ----------------------------------------------------------------- "
+  f.puts "\n   debug level = #{$REDSHIFT_DEBUG}\n\n" if $REDSHIFT_DEBUG != true
   
-  $REDSHIFT_DEBUG = $REDSHIFT_DEBUG.to_i
+  $REDSHIFT_DEBUG = ($REDSHIFT_DEBUG.to_i rescue 1)
 end
 
 class AssertionFailure < StandardError; end

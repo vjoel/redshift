@@ -79,34 +79,22 @@ class Component
   end
   
   def inspect data = nil
-    s = ": #{state}" if state
+    items = []
+    items << state if state
     
-    cts = self.class.constant_variables
-    unless cts.empty?
-      ct = cts.map {|name,kind| name.to_s}.sort.map do |name|
-          "#{name} = #{send(name)}"
-        end
-      ct = "; #{ct.join(", ")}"
+    var_types = [:constant_variables, :continuous_variables, :link_type]
+    var_types.each do |var_type|
+      var_list = self.class.send(var_type)
+      unless var_list.empty?
+        strs = var_list.map {|name,info| name.to_s}.sort.map do |name|
+            "#{name} = #{send(name) || 'nil'}"
+          end
+        items << strs.join(", ")
+      end
     end
     
-    cvs = self.class.continuous_variables
-    unless cvs.empty?
-      cv = cvs.map {|name,kind| name.to_s}.sort.map do |name|
-          "#{name} = #{send(name)}"
-        end
-      cv = "; #{cv.join(", ")}"
-    end
-    
-    lvs = self.class.link_type
-    unless lvs.empty?
-      lv = lvs.map {|name,type| name.to_s}.sort.map do |name|
-          "#{name} = #{send(name) || 'nil'}"
-        end
-      lv = "; #{lv.join(", ")}"
-    end
-    
-    d = "; #{data}" if data
-    "<#{self}#{s}#{ct}#{cv}#{lv}#{d}>"
+    items << data if data
+    return "<#{[self, items.join("; ")].join(": ")}>"
   end
   
   def initialize(world)

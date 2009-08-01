@@ -22,7 +22,6 @@ class ConstantTestComponent < Component
   flow HasOther do
     diff "x' = other.k + k + other.ks + ks"
     diff "t' = 1"
-    ###diff "k' = 1" # should error gracefully
   end
   
   transition HasOther => Stop do
@@ -30,7 +29,7 @@ class ConstantTestComponent < Component
     action do
       @y = other.k + k + other.ks + ks
     end
-    ### reset :k => proc {k+1} # should this work?
+    reset :k => proc {k+1} # should this work?
   end
   
   def assert_consistent test

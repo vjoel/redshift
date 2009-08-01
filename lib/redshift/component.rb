@@ -11,6 +11,7 @@ class ContinuousAssignmentError < StandardError; end
 class NilLinkError < StandardError; end
 class CircularDefinitionError < StandardError; end
 class StrictnessError < StandardError; end
+class ConstnessError < StandardError; end
 class TransitionError < StandardError; end
 class SyntaxError < ::SyntaxError; end
 

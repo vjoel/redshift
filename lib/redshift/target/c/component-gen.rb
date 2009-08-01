@@ -391,6 +391,8 @@ module RedShift
           define_flows(state)
           define_transitions(state)
         end
+
+        check_variables
       end
     
       def define_events
@@ -447,6 +449,15 @@ module RedShift
       end
       ### shadow_attr won't accept redefinition, and anyway there is
       ###   the contra/co variance problem.
+      
+      def check_variables
+        bad = constant_variables.keys & continuous_variables.keys
+        unless bad.empty?
+          raise ConstnessError,
+            "In class #{self}, the following variables are " +
+            "each defined as both constant and continuous: #{bad.join(", ")}."
+        end
+      end
       
       def define_continuous_variables
         continuous_variables.own.keys.sort_by{|k|k.to_s}.each do |var_name|
@@ -563,7 +574,7 @@ module RedShift
         h.keys.sort_by{|k|k.to_s}.each do |var|
           expr = h[var]
           cont_var = cont_state_class.vars[var]
-          ### what about reseting link vars?
+          ### what about reseting link vars and constants?
           unless cont_var
             raise "No such variable, #{var}"
           end

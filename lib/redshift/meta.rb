@@ -112,11 +112,6 @@ class Component
         constant_variables[var_name] = kind
       end
     end
-    ## should check for conflicts between const and cont vars
-    ## before commit, check that keys of continuous_variables and
-    ## constant_variables are disjoint
-    ##
-    ## also check that kind does not change in subclasses
   end
 
   def states

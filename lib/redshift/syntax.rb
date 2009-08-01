@@ -148,9 +148,8 @@ module FlowSyntax
       for equation in equations
         unless equation =~ /^\s*(\w+)\s*=\s*(.*)/m
           raise "parse error in\n\t#{equation}."
-        else
-          @flows << AlgebraicFlow.new($1.intern, $2.strip)
         end
+        @flows << AlgebraicFlow.new($1.intern, $2.strip)
       end
     end
     
@@ -158,9 +157,8 @@ module FlowSyntax
       for equation in equations
         unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
           raise "parse error in\n\t#{equation}."
-        else
-          @flows << EulerDifferentialFlow.new($1.intern, $2.strip)
         end
+        @flows << EulerDifferentialFlow.new($1.intern, $2.strip)
       end
     end
     
@@ -168,9 +166,8 @@ module FlowSyntax
       for equation in equations
         unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
           raise "parse error in\n\t#{equation}."
-        else
-          @flows << RK4DifferentialFlow.new($1.intern, $2.strip)
         end
+        @flows << RK4DifferentialFlow.new($1.intern, $2.strip)
       end
     end
     
@@ -272,8 +269,9 @@ module TransitionSyntax
     
     # +h+ is a hash of :var => {value_expr} or "value_expr"
     def reset(h)
-      unless h.all? {|k,v| k.is_a?(Symbol)}
-        raise SyntaxError
+      badkeys = h.keys.reject {|k| k.is_a?(Symbol)}
+      unless badkeys.empty?
+        raise SyntaxError, "Keys #{badkeys.inspect} in reset must be symbols"
       end
       
       resets = Component::ResetPhase.new

@@ -44,24 +44,36 @@ end
 class Flow    ## rename to equation? formula? put in meta?
   attr_reader :var, :formula
   
-  def initialize v, f
-    @var, @formula = v, f
-  end
-  
   # Strict flows change value only over continuous time, and not within the
   # steps of the discrete update. This can be false only for an AlgebraicFlow
-  # which depends on non-strict variables.
-  def strict; true; end
+  # which depends on non-strict variables. In the algebraic case, a flow is
+  # strict iff the RHS of the eqn. has only strictly continuous variables.
+  attr_reader :strict
+  
+  def initialize v, f
+    @var, @formula = v, f
+    @strict = true
+    self.class.needed = true
+  end
+
+  class << self; attr_accessor :needed; end
 end
 
-class AlgebraicFlow < Flow
-  attr_reader :strict   # true iff the RHS of the eqn. has only strictly
-                        # continuous variables.
-end
-
+class AlgebraicFlow < Flow; end
 class EulerDifferentialFlow < Flow; end
 class RK4DifferentialFlow < Flow; end
 class DerivativeFlow < Flow; end
+
+class DelayFlow < Flow
+  attr_reader :delay_by
+  def initialize v, f, delay_by
+    super(v, f)
+    @delay_by = delay_by
+  end
+end
+
+class CexprGuard < Flow; end ## Kinda funny...
+class Expr < Flow; end ## Kinda funny...
 
 Always = Transition.new :Always, :guard => nil
 
@@ -75,7 +87,7 @@ class Component
 
   class GuardPhase  < XArray; end
   class ActionPhase < XArray; end
-  class PostPhase < XArray; end
+  class PostPhase   < XArray; end
   class EventPhase  < XArray; end
   class ResetPhase  < XArray
     attr_accessor :value_map

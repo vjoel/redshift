@@ -12,6 +12,11 @@ Publishing RedShift
   doc, tutorial, web site
 
   tests
+  
+  user tools
+    zeno and other debuggers
+    shell
+    visualization interfaces
 
   benchmarks
   - compare with stateflow and simulink examples

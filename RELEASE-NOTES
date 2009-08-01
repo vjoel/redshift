@@ -1,3 +1,11 @@
+redshift 1.2.11
+
+- Added delay flows (for delay constant).
+
+- Added test/test_buffer.rb and examples/delay.rb.
+
+- Refactored flow files into c/flow/ subdir.
+
 redshift 1.2.10
 
 - Guards can now be one of: true, false, nil. Added tests for this..

@@ -185,7 +185,7 @@ module FlowSyntax
     def algebraic(*equations)
       equations.each do |equation|
         unless equation =~ /^\s*(\w+)\s*=\s*(.+)/m
-          raise "parse error in\n\t#{equation}."
+          raise SyntaxError, "parse error in\n\t#{equation}."
         end
         @flows << AlgebraicFlow.new($1.intern, $2.strip)
       end
@@ -194,7 +194,7 @@ module FlowSyntax
     def euler(*equations)
       for equation in equations
         unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.+)/m
-          raise "parse error in\n\t#{equation}."
+          raise SyntaxError, "parse error in\n\t#{equation}."
         end
         @flows << EulerDifferentialFlow.new($1.intern, $2.strip)
       end
@@ -203,7 +203,7 @@ module FlowSyntax
     def rk4(*equations)
       for equation in equations
         unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.+)/m
-          raise "parse error in\n\t#{equation}."
+          raise SyntaxError, "parse error in\n\t#{equation}."
         end
         @flows << RK4DifferentialFlow.new($1.intern, $2.strip)
       end
@@ -212,9 +212,23 @@ module FlowSyntax
     def derive(*equations)
       for equation in equations
         unless equation =~ /^\s*(\w+)\s*=\s*(\w+)\s*'\s*\z/m
-          raise "parse error in\n\t#{equation}."
+          raise SyntaxError, "parse error in\n\t#{equation}."
         end
         @flows << DerivativeFlow.new($1.intern, $2.strip)
+      end
+    end
+    
+    def delay(*equations)
+      opts = equations.pop
+      unless opts and opts.kind_of? Hash and opts[:by]
+        raise SyntaxError, "Missing delay term: :delay => <delay>"
+      end
+      delay_by = opts[:by]
+      equations.each do |equation|
+        unless equation =~ /^\s*(\w+)\s*=\s*(\w+)\s*/m
+          raise SyntaxError, "parse error in\n\t#{equation}."
+        end
+        @flows << DelayFlow.new($1.intern, $2.strip, delay_by)
       end
     end
     

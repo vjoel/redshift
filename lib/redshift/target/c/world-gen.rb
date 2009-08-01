@@ -874,8 +874,11 @@ class World
             VALUE   input_port;
             VALUE   other_port;
             
-            if (RBASIC(connect_spec)->klass == rb_cProc) {
-              input_port = rb_funcall(comp, #{declare_symbol :port}, 1, input_var);
+            input_port = rb_funcall(comp, #{declare_symbol :port}, 1, input_var);
+            if (connect_spec == Qnil) {
+              other_port = Qnil;
+            }
+            else if (RBASIC(connect_spec)->klass == rb_cProc) {
               other_port = rb_funcall(comp, #{insteval_proc}, 1, connect_spec);
             }
             else {

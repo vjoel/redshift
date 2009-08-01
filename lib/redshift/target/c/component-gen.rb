@@ -757,7 +757,7 @@ module RedShift
           end
           
           case connect_spec
-          when Proc
+          when Proc, NilClass
             # nothing to do in this case
           when Array
             raise "unimplemented" ##

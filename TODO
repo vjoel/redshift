@@ -5,6 +5,7 @@ Publishing RedShift
     
     check that varying timestep is ok
     export event _to_ comp?
+    sync with event value test?
     transition local vars
     tracer
 

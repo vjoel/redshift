@@ -52,7 +52,6 @@ module RedShift; class DerivativeFlow
             #{flow.translate(self, "antiddt", 2, cl).join("
             ")};
             var->value_3 = (antiddt - *scratch) / (time_step/2);
-            //# *scratch = antiddt; (worse)
             break;
             
           case 3:

@@ -27,6 +27,14 @@ class C < Component
       # has been numerically integrated (e_ndni), but the error is worse
       # for the integral of a differentiated signal (e_nind).
   end
+
+#  Some alternative examples:
+#    alg    "     u  = pow(t, 4) - 17*pow(t,3) + 102*pow(t,2) - 1300*t "
+#    alg    "   sdu  = 4*pow(t, 3) - 3*17*pow(t,2) + 2*102*t - 1300 "
+#
+#  continuous :u => 1, :nindu => 1, :ndniu =>1
+#    diff   "    u'  = 0.02*u "
+#    alg    "   sdu  = 0.02*exp(0.02*u) "
 end
 
 world = World.new

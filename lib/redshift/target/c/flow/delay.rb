@@ -59,12 +59,9 @@ module RedShift; class DelayFlow
         
         include World.shadow_library_include_file
 
-        # Note: the 'return' in cases 2,3 must be *after* alg deps are computed
+        # Note: cases 1,2 must proceed to allow alg deps to be computed,
         # since their values are used later.
         body %{
-          if (rk_level == 1 || rk_level == 2)
-            return;
-
           switch (rk_level) {
           case 0:
             ptr = shadow->#{bufname}.ptr;
@@ -151,10 +148,12 @@ module RedShift; class DelayFlow
             
             #{flow.translate(self, "ptr[offset]", 0, cl).join("
             ")};
-
-            var->rk_level = 3;
             break;
             
+          case 1:
+          case 2:
+            break;
+
           case 3:
             ptr = shadow->#{bufname}.ptr;
             len = shadow->#{bufname}.len;
@@ -168,8 +167,6 @@ module RedShift; class DelayFlow
             ")};
 
             var->value_0 = ptr[(offset + 4) % len];
-
-            var->rk_level = 4;
             break;
             
           default:
@@ -178,6 +175,7 @@ module RedShift; class DelayFlow
           }
 
           rk_level++;
+          var->rk_level = rk_level;
         }
       end
 

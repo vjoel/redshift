@@ -295,6 +295,8 @@ Implementation
     or whatever current hw is (how to determine that?)
 
   possible to use only 1 tmp value for rk4?
+  
+  revert to on-demand var evaluation during continuous update?
 
   optimization: transitive closure of strict sleep, based on declaration
     that prevents setters

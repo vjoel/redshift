@@ -56,6 +56,30 @@ class C < Component
   end
 end
 
+class ResetLink < Component
+  link :lnk => C
+  state :S
+  transition Enter => S do
+    reset :lnk => proc {create(C) {|c| c.kk = 1.337}}
+  end
+end
+
+class ResetLinkToNil < Component
+  link :lnk => C
+  state :S
+  transition Enter => S do
+    reset :lnk => proc {nil}
+  end
+end
+
+class ResetLinkToWrongType < Component
+  link :lnk => C
+  state :S
+  transition Enter => S do
+    reset :lnk => proc {create(A)}
+  end
+end
+
 require 'test/unit'
 
 class TestReset < Test::Unit::TestCase
@@ -110,5 +134,24 @@ class TestReset < Test::Unit::TestCase
       assert_equal(c.kk, c.k)
     end
   end
+  
+  def test_reset_link
+    rl = @world.create(ResetLink)
+    assert_equal(nil, rl.lnk)
+    @world.run 1
+    assert_equal(C, rl.lnk.class)
+    assert_equal(1.337, rl.lnk.k)
+  end
+  
+  def test_reset_link_to_nil
+    rl = @world.create(ResetLinkToNil)
+    assert_equal(nil, rl.lnk)
+    @world.run 1
+    assert_equal(nil, rl.lnk)
+  end
+  
+  def test_reset_link_to_wrong_type
+    rl = @world.create(ResetLinkToWrongType)
+    assert_raises(TypeError) {@world.run 1}
+  end
 end
-

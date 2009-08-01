@@ -244,6 +244,8 @@ Semantics
 
 Implementation
 
+  possible to use only 1 tmp value for rk4?
+
   optimization: record which components have no guards; don't look at them
     during discrete update
   

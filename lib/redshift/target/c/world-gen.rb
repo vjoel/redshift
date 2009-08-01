@@ -13,7 +13,18 @@ class World
     } CVCacheEntry;
   }
   
+  shadow_library_include_file.declare :link_cache_entry => %{
+    typedef struct {
+      ComponentShadow **link_ptr;
+      VALUE           value;
+    } LinkCacheEntry;
+  }
+  
+  # Initial size for the constant value cache.
   CV_CACHE_SIZE = 64
+
+  # Initial size for the link cache.
+  LINK_CACHE_SIZE = 64
   
   World.subclasses.each do |sub|
     file_name = CGenerator.make_c_name(sub.name).to_s
@@ -59,6 +70,18 @@ class World
     shadow->cv_cache_used = 0;
   }
   free_function.free "free(shadow->constant_value_cache)"
+  
+  shadow_struct.declare :link_cache => %{
+    LinkCacheEntry *link_cache;
+    int link_cache_size;
+    int link_cache_used;
+  }
+  new_method.attr_code %{
+    shadow->link_cache = 0;
+    shadow->link_cache_size = 0;
+    shadow->link_cache_used = 0;
+  }
+  free_function.free "free(shadow->link_cache)"
   
   class << self
     # Redefines World#new so that a library commit happens first.
@@ -416,6 +439,54 @@ class World
           shadow->cv_cache_used = 0;
         }
       }
+      
+      static void cache_new_link(
+        ComponentShadow **link_ptr, VALUE value,
+               #{World.shadow_struct.name} *shadow)
+      {
+        LinkCacheEntry *entry;
+        
+        if (!shadow->link_cache) {
+          int n = #{LINK_CACHE_SIZE};
+          shadow->link_cache = malloc(n*sizeof(LinkCacheEntry));
+          shadow->link_cache_size = n;
+          shadow->link_cache_used = 0;
+        }
+        if (shadow->link_cache_used == shadow->link_cache_size) {
+          int n_bytes;
+          shadow->link_cache_size *= 2;
+          n_bytes = shadow->link_cache_size*sizeof(LinkCacheEntry);
+          shadow->link_cache = realloc(shadow->link_cache, n_bytes);
+          if (!shadow->link_cache) {
+            rb_raise(#{declare_class NoMemoryError},
+                "Out of memory trying to allocate %d bytes for link cache.",
+                n_bytes);
+          }
+        }
+        entry = &shadow->link_cache[shadow->link_cache_used];
+        entry->link_ptr = link_ptr;
+        entry->value = value;
+        shadow->link_cache_used += 1;
+      }
+      static void assign_new_links(
+        #{World.shadow_struct.name} *shadow)
+      {
+        if (shadow->link_cache_used) {
+          int i;
+          LinkCacheEntry *entry;
+
+          entry = shadow->link_cache;
+          for (i = shadow->link_cache_used; i > 0; i--, entry++) {
+            ComponentShadow *comp_shdw;
+            if (NIL_P(entry->value))
+              comp_shdw = 0;
+            else
+              comp_shdw = get_shadow(entry->value);
+            *entry->link_ptr = comp_shdw;
+          }
+          shadow->link_cache_used = 0;
+        }
+      }
     }.tabto(0)
     
     declare :step_discrete_macros => '
@@ -678,6 +749,39 @@ class World
               (double *)((char *)comp_shdw + offset),
               new_value, shadow);
           }
+          
+          ptr = RARRAY(link_resets)->ptr;
+          len = RARRAY(link_resets)->len;
+          for (i = 0; i < len; i++) {
+            VALUE   pair    = ptr[i];
+            int     offset  = NUM2INT(RARRAY(pair)->ptr[0]);
+            VALUE   reset   = RARRAY(pair)->ptr[1];
+            VALUE   new_value;
+            
+            if (RBASIC(reset)->klass == rb_cProc) {
+              new_value =
+                (VALUE)(rb_funcall(comp, #{insteval_proc}, 1, reset));
+            } else
+                ; //## unimpl--see component-gen.rb
+            
+            if (!NIL_P(new_value) &&
+                rb_obj_is_kind_of(new_value, RARRAY(pair)->ptr[3]) != Qtrue) {
+              VALUE to_s = #{declare_symbol :to_s};
+              rb_raise(#{declare_class TypeError},
+                "tried to reset %s, which is declared %s, with %s.",
+                STR2CSTR(rb_funcall(RARRAY(pair)->ptr[2], to_s, 0)),
+                STR2CSTR(rb_funcall(RARRAY(pair)->ptr[3], to_s, 0)),
+                STR2CSTR(rb_funcall(
+                  rb_funcall(new_value, #{declare_symbol :class}, 0), to_s, 0))
+                );
+            }
+
+            //%% hook_do_reset_link(comp,
+            //%%     RARRAY(pair)->ptr[2], (VALUE)new_value);
+            cache_new_link(
+              (VALUE *)((char *)comp_shdw + offset),
+              new_value, shadow);
+          }
         }
         //%% hook_leave_reset_phase();
 
@@ -710,6 +814,7 @@ class World
               var->value_0 = var->value_1;
           }
           assign_new_constant_values(shadow);
+          assign_new_links(shadow);
           d_tick++;   //# resets may invalidate algebraic flows
         }
         

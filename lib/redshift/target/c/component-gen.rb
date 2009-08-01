@@ -675,7 +675,20 @@ module RedShift
             "Cannot reset strict link #{var} in #{self}.", []
         end
         
-        raise "Unimplemented" ###
+        case expr
+        when String
+          raise "Unimplemented" ## does this make sense?
+          reset = define_reset(expr)
+
+          after_commit do
+            phase << [calc_offset(var), reset.instance, var, type]
+          end
+
+        when Proc
+          after_commit do
+            phase << [calc_offset(var), expr, var, type]
+          end
+        end
       end
 
       def define_transitions(state)

@@ -8,6 +8,17 @@ class Object
   def pp arg  # for debugging :)
     p arg; arg
   end
+  
+  class AssertionFailure < StandardError; end
+  def assert(msg=nil,&bl)
+    unless bl.call
+      if msg
+        raise AssertionFailure, msg
+      else
+        raise AssertionFailure
+      end
+    end
+  end
 end
 
 module RedShift

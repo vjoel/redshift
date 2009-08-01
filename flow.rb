@@ -122,7 +122,9 @@ class Flow
     
     c_formula = @formula.dup
     
-    c_formula.gsub! /(?:([A-Za-z_]\w*)\.)?([A-Za-z_]\w*)(?!\w*\s*\()/ do |expr|
+    re = /(?:([A-Za-z_]\w*)\.)?([A-Za-z_]\w*)(?!\w*\s*[?(])/
+    
+    c_formula.gsub! re do |expr|
       unless translation[expr]
         link, var = $1, $2
         if link
@@ -177,6 +179,14 @@ class Flow
       end
       translation[expr]
     end
+    
+    # handle the case of link_var in "x' = link_var ? link_var.y : z"
+###    c_formula.gsub! /([A-Za-z_]\w*)(?=\s*\?)/ do |expr|
+###      translation[expr] = "link_" + $1
+      ### Hack, hack.
+      ### does not handle case where link_var appears without '.', as in
+      ### "x' = link_var ? 0 : 1"
+###    end
     
     setup << "#{result_var} = #{c_formula}"
   end

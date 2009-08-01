@@ -32,7 +32,20 @@ class Component
   Exit = RedShift::Exit
 
   attach({Exit => Exit}, Transition.new :exit, nil, [],
-    proc {world.remove self; @world = nil})
+    proc {
+      begin
+#puts "In Exit => Exit. Trying to remove #{inspect} from #{world}."
+        world.remove self
+      rescue NameError => e
+        if e.message == "undefined method `remove' for :removed:Symbol"
+          $stderr.puts "Attempted to remove #{inspect} twice."
+        else
+          raise
+        end
+      else
+        @world = :removed
+      end
+    })
   
   def inspect data = nil
     n = " #{@name}" if @name
@@ -425,7 +438,7 @@ class Component
     ###   the contra/co variance problem.
   
     def link_type var
-      t = @link_vars[var]
+      t = @link_vars[var] ### not inherited!!!
       case t
       when nil;   superclass.link_type var if defined? superclass.link_type
       when Class; t

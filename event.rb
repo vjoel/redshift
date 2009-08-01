@@ -41,7 +41,7 @@ class Event
   end
   
   def to_s
-    @name
+    @name.to_s
   end
   
   def inspect arg = nil

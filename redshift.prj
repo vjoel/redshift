@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 1.0 2)
-(Parent-Version redshift 1.0 1)
+(Project-Version redshift 1.0 3)
+(Parent-Version redshift 1.0 2)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Sun, 21 Apr 2002 18:21:15 -0700")
+(Checkin-Time "Fri, 26 Apr 2002 20:46:04 -0700")
 (Checkin-Login tercel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -16,14 +16,14 @@
 ;; Files added by populate at Sun, 22 Apr 2001 15:37:06 -0700,
 ;; to version 0.0(w), by joel:
 
-  (world.rb (redshift/0_world.rb 1.18 644))
+  (world.rb (redshift/0_world.rb 1.19 644))
   (transition.rb (redshift/1_transition 1.5 644))
   (state.rb (redshift/2_state.rb 1.7 644))
   
-  (redshift.rb (redshift/4_redshift.r 1.9 755))
+  (redshift.rb (redshift/4_redshift.r 1.10 755))
   
-  (flow.rb (redshift/6_flow.rb 1.10 644))
-  (component.rb (redshift/7_component. 1.15 644))
+  (flow.rb (redshift/6_flow.rb 1.11 644))
+  (component.rb (redshift/7_component. 1.16 644))
 
 ;; Files deleted by depopulate at Sun, 20 May 2001 09:27:46 -0700,
 ;; from version 0.2(w), by joel:
@@ -34,7 +34,7 @@
 ;; to version 0.2(w), by joel:
 
   
-  (event.rb (redshift/9_event.rb 1.7 644))
+  (event.rb (redshift/9_event.rb 1.8 644))
   (README (redshift/10_README 1.19 644))
 
 ;; Files added by populate at Sat, 26 May 2001 21:45:52 -0700,

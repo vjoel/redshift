@@ -178,11 +178,18 @@ if true
         for (ci = 0; ci < len; ci++) {
           done &= rb_funcall(comp_ary[ci],
                   #{declare_symbol(:step_discrete)}, 0);
-          
-          zeno_counter += 1;
-          if (zeno_counter > zeno_limit && zeno_limit >= 0)
+        }
+        
+        zeno_counter += 1;
+        if (zeno_counter > zeno_limit && zeno_limit >= 0) {
+          if (zeno_counter > 2 * zeno_limit) {
             rb_raise(#{declare_class RedShift::ZenoError},
             "\\nExceeded zeno limit of %d.\\n", zeno_limit);
+          }
+          else {
+            rb_funcall(shadow->self, #{declare_symbol :step_zeno},
+                       1, INT2NUM(zeno_counter));
+          }
         }
       }
     } ## assumed that comp_ary[i] was a Component
@@ -207,6 +214,10 @@ else
 end
   private :step_discrete
   
+  def step_zeno zeno_counter
+    puts "Zeno step: #{zeno_counter}"
+    ## print out the active components and their transitions?
+  end
   
   def clock
     @step_count * time_step + @clock_start

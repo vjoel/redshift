@@ -31,7 +31,7 @@ class Ball < Component
   
   state :Falling,:Rising
   
-  flow (Falling, Rising) {
+  flow (Falling) { ###, Rising) {
   
     differential  " y' = v "
     euler         " v' = a "
@@ -42,8 +42,8 @@ class Ball < Component
     algebraic     " y_err = (true_y - y).abs "
     
     algebraic_c   " true_y_c = @y0 + @v0 * t_elapsed +
-                               0.5 * @a * t_elapsed ** 2 "
-    algebraic_c   " y_err_c = abs(true_y_c - y) "
+                               0.5 * @a * pow(t_elapsed, 2) "
+###    algebraic_c   " y_err_c = fabs(true_y_c - y) "
   }
   
   transition (Falling => Rising) {
@@ -87,7 +87,7 @@ end # class Ball
 
 if __FILE__ == $0
 
-  n = 10
+  n = 1000
 
   bm(12) do |test|
     test.report("Run:") do

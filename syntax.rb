@@ -15,13 +15,14 @@ end
 
 def Component.defaults(&block)
 
-  @@defaults_proc[self] = block
+  @@defaults_proc[name.intern] = block
   
   module_eval <<-END
     def defaults
       super
-      if @@defaults_proc[type]
-        instance_eval(&@@defaults_proc[type])
+      pr = @@defaults_proc[:#{name}]
+      if pr
+        instance_eval(&pr)
       end
     end
   END
@@ -30,13 +31,14 @@ end
 
 def Component.setup(&block)
 
-  @@setup_proc[self] = block
+  @@setup_proc[name.intern] = block
   
   module_eval <<-END
     def setup
       super
-      if @@setup_proc[type]
-        instance_eval(&@@setup_proc[type])
+      pr = @@setup_proc[:#{name}]
+      if pr
+        instance_eval(&pr)
       end
     end
   END
@@ -89,35 +91,43 @@ class Flow
       instance_eval(&block)
     end
     
-    def algebraic equation
-      unless equation =~ /^\s*(\w+)\s*=\s*(.*)/m
-        raise "parse error in\n\t#{equation}."
-      else
-        @flows << AlgebraicFlow.new($1.intern, $2.strip)
+    def algebraic(*equations)
+      for equation in equations
+        unless equation =~ /^\s*(\w+)\s*=\s*(.*)/m
+          raise "parse error in\n\t#{equation}."
+        else
+          @flows << AlgebraicFlow.new($1.intern, $2.strip)
+        end
       end
     end
     
-    def cached_algebraic equation
-      unless equation =~ /^\s*(\w+)\s*=\s*(.*)/m
-        raise "parse error in\n\t#{equation}."
-      else
-        @flows << CachedAlgebraicFlow.new($1.intern, $2.strip)
+    def cached_algebraic(*equations)
+      for equation in equations
+        unless equation =~ /^\s*(\w+)\s*=\s*(.*)/m
+          raise "parse error in\n\t#{equation}."
+        else
+          @flows << CachedAlgebraicFlow.new($1.intern, $2.strip)
+        end
       end
     end
     
-    def euler equation
-      unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
-        raise "parse error in\n\t#{equation}."
-      else
-        @flows << EulerDifferentialFlow.new($1.intern, $2.strip)
+    def euler(*equations)
+      for equation in equations
+        unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
+          raise "parse error in\n\t#{equation}."
+        else
+          @flows << EulerDifferentialFlow.new($1.intern, $2.strip)
+        end
       end
     end
     
-    def differential equation
-      unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
-        raise "parse error in\n\t#{equation}."
-      else
-        @flows << RK4DifferentialFlow.new($1.intern, $2.strip)
+    def differential(*equations)
+      for equation in equations
+        unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.*)/m
+          raise "parse error in\n\t#{equation}."
+        else
+          @flows << RK4DifferentialFlow.new($1.intern, $2.strip)
+        end
       end
     end
     

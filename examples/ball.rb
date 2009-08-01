@@ -28,7 +28,7 @@ class Ball < Component
 
   attr_accessor :a
   
- 	state :Falling,:Rising
+   state :Falling,:Rising
   
   flow (Falling, Rising) {
   
@@ -51,7 +51,7 @@ class Ball < Component
       @t_elapsed = 0.0
       @bounce_count += 1
     }
-	}
+  }
   
   transition (Rising => Falling) {
     guard {v <= 0}
@@ -60,7 +60,7 @@ class Ball < Component
   transition (Rising => Exit, Falling => Exit) {
     guard {@bounce_count == 3}
   }
-	
+  
   defaults {
     @state = Falling
     @y0 = 100.0

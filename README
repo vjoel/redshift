@@ -9,6 +9,9 @@ Syntax
     state methods: flow Foo { def ... }
       generalization of alg flows
 / flows, transitions, etc.
+    deftly handle multiple actions in a transition, etc.
+      (chain the blocks?)
+  state S1, S2, ... should set S as init state?
   running
     run N { dt = ...; zeno = ... }
     run_while, run_until
@@ -17,12 +20,13 @@ Syntax
 
 Semantics
 
-/  inheritance
+/ inheritance
 /   explicit, calculated before run, cached
 /   implicit, based on ruby inheritance
 /   Exit transition
 /   trans.name = nil to prevent hiding
   inheritance from mixins
+  indeterminate transitions chosen randomly?
 
   math
     fixed point, rationals
@@ -35,11 +39,13 @@ Semantics
     more flexibility:
       start actions as well as finish actions
       (before/after)
+      enter and exit blocks for each state
     transitions like in statechart
     parametric transitions?
     attach :all, ...
     syncronization
       explicit?
+    allow event of transition to be a block or proc returning the events
   
 Implementation
 
@@ -57,8 +63,8 @@ Implementation
     dual mode
   
 / garbage collection
-    nil out the components array, do GC, reconstruct components array
-    do this periodically if user sets flag
+/   nil out the components array, do GC, reconstruct components array
+x   do this periodically if user sets flag
 
   math
 /   runge-kutta 4
@@ -95,7 +101,7 @@ User interface
 
   command-line debugger
     inspect methods
-    catch ^C
+    catch ^C --> redshift should break into debugger, by default
     'run' in a thread
     send event from outside
   
@@ -132,12 +138,12 @@ Documentation
     warning about:
       'self.x = ...'
       associativity of and/or
-      C-like operators (i.e., = and == vs. := and =)
+      C-like operators (i.e., = and == vs. := and =), but no ++, --
       truth values
       names w/ capitals etc.
       fixnums vs. floats
         fix / fix ==> fix
-      end of line-- finish with op to continue
+      end of line-- finish with op or comma or \ to continue
     during discrete phase, cached algebraic flows do not change
       they do not have function semantics
       evaluated only once per timestep

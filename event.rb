@@ -2,28 +2,28 @@ module RedShift
 
 class Event
 
-	attr_reader :name
+  attr_reader :name
 
-	def initialize n
-		@name = n || "[Event #{id}]".intern
+  def initialize n
+    @name = n || "[Event #{id}]".intern
         
     eval <<-END
     
       def export c
         def c.#{@name}
-	        super
+          super
         end
       end
 
       def unexport c
         def c.#{@name}
-	        nil
+          nil
         end
       end
       
     END
     
-	end
+  end
   
   
   def attach cl

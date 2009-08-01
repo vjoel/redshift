@@ -2,16 +2,16 @@ module RedShift
 
 class Flow
 
-	attr_reader :var, :formula
-	
-	def initialize v, f
-		@var, @formula = v, f
+  attr_reader :var, :formula
+  
+  def initialize v, f
+    @var, @formula = v, f
     
     @var_equals = "#{@var}=".intern
 
     @direct_getter = "__direct__#{@var}".intern
     @direct_setter = "__direct__#{@var}=".intern
-	end
+  end
   
   
   def getter state
@@ -245,7 +245,7 @@ class RK4DifferentialFlow < Flow
     END
     
   end
-	
+
 end # class RK4DifferentialFlow
 
 end # module RedShift

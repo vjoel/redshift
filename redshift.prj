@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 0 13)
-(Parent-Version redshift 0 12)
+(Project-Version redshift 0 14)
+(Parent-Version redshift 0 13)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Sun, 01 Jul 2001 11:04:58 -0700")
+(Checkin-Time "Fri, 06 Jul 2001 16:17:40 -0700")
 (Checkin-Login joel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -17,12 +17,12 @@
 ;; to version 0.0(w), by joel:
 
   (world.rb (redshift/0_world.rb 1.10 664))
-  (transition.rb (redshift/1_transition 1.4 664))
+  (transition.rb (redshift/1_transition 1.5 664))
   (state.rb (redshift/2_state.rb 1.5 664))
   
   (redshift.rb (redshift/4_redshift.r 1.4 775))
   
-  (flow.rb (redshift/6_flow.rb 1.8 664))
+  (flow.rb (redshift/6_flow.rb 1.9 664))
   (component.rb (redshift/7_component. 1.11 664))
 
 ;; Files deleted by depopulate at Sun, 20 May 2001 09:27:46 -0700,
@@ -34,8 +34,8 @@
 ;; to version 0.2(w), by joel:
 
   
-  (event.rb (redshift/9_event.rb 1.4 644))
-  (README (redshift/10_README 1.10 644))
+  (event.rb (redshift/9_event.rb 1.5 644))
+  (README (redshift/10_README 1.11 644))
 
 ;; Files added by populate at Sat, 26 May 2001 21:45:52 -0700,
 ;; to version 0.3(w), by joel:
@@ -56,7 +56,7 @@
 ;; Files added by populate at Mon, 04 Jun 2001 14:23:56 -0700,
 ;; to version 0.7(w), by joel:
 
-  (syntax.rb (redshift/13_syntax.rb 1.4 644))
+  (syntax.rb (redshift/13_syntax.rb 1.5 644))
   (meta.rb (redshift/14_meta.rb 1.1 644))
 
 ;; Files added by populate at Mon, 04 Jun 2001 14:25:07 -0700,
@@ -71,7 +71,7 @@
 ;; to version 0.7(w), by joel:
 
   (examples/sample.rb (redshift/19_sample.rb 1.1 775))
-  (examples/ball.rb (redshift/20_ball.rb 1.5 755))
+  (examples/ball.rb (redshift/20_ball.rb 1.6 755))
 
 ;; Files added by populate at Wed, 06 Jun 2001 00:00:49 -0700,
 ;; to version 0.9(w), by joel:
@@ -99,6 +99,11 @@
 ;; to version 0.11(w), by joel:
 
   (examples/persist-ball.rb (redshift/24_persist-ba 1.2 755))
+
+;; Files added by populate at Fri, 06 Jul 2001 16:17:36 -0700,
+;; to version 0.13(w), by joel:
+
+  (test/inherit.rb (redshift/25_inherit.rb 1.1 644))
 )
 (Merge-Parents)
 (New-Merge-Parents)

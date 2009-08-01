@@ -43,20 +43,18 @@ world.time_step = 0.1
 c = world.create(C)
 
 u, shift_u, delay_u, err, iddi_err = [], [], [], [], []
+gather = proc do
   time = c.t
   u       << [time, c.u]
   shift_u << [time, c.shift_u]
   delay_u << [time, c.delay_u]
   err     << [time, c.err]
   iddi_err<< [time, c.iddi_err]
+end
 
+gather.call
 world.evolve 10 do
-  time = c.t
-  u       << [time, c.u]
-  shift_u << [time, c.shift_u]
-  delay_u << [time, c.delay_u]
-  err     << [time, c.err]
-  iddi_err<< [time, c.iddi_err]
+  gather.call
 end
 
 # The buffer used to store u's history is available:

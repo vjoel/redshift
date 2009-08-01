@@ -57,14 +57,18 @@ control.plant = plant
 plant.control = control
 
 x, p_out, i_out, d_out, output = [], [], [], [], []
-
-world.evolve 1000 do
+gather = proc do
   time = world.clock
   x       << [time, plant.x]
   p_out   << [time, control.p_out]
   i_out   << [time, control.i_out]
   d_out   << [time, control.d_out]
   output  << [time, control.output]
+end
+
+gather.call
+world.evolve 1000 do
+  gather.call
 end
 
 require 'sci/plot'

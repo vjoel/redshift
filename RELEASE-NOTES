@@ -1,3 +1,7 @@
+redshift 1.2.23
+
+- Added examples/ball-tkar.rb.
+
 redshift 1.2.22
 
 - Derive flows have an option for feedback and the var_init_rhs setter.

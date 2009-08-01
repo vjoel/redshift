@@ -25,6 +25,15 @@ class Discrete_1 < DiscreteTestComponent
   end
 end
 
+# Transitions are Enter => Enter by default
+
+class Discrete_1_1 < DiscreteTestComponent
+  transition do guard {not @check}; action {@check = true} end
+  def assert_consistent test
+    test.assert(@check)
+  end
+end
+
 # Exit causes the component to leave the world
 
 class Discrete_2 < DiscreteTestComponent
@@ -35,7 +44,7 @@ class Discrete_2 < DiscreteTestComponent
   transition Enter => Exit
   def assert_consistent test
     test.assert_equal(Exit, state)
-    test.assert_equal(nil, world)
+    test.assert_equal(:removed, world)
     test.assert_nil(@prev_world.find {|c| c == self})
   end
 end

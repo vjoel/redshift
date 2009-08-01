@@ -143,6 +143,10 @@ class World_5 < World
     self.zeno_limit = 100
   end
   
+  def step_zeno zeno_counter
+    @zeno_step_reached = true
+  end
+  
   def run
     super
   rescue => @e
@@ -150,6 +154,7 @@ class World_5 < World
   
   def assert_consistent_after test
     test.assert_kind_of(ZenoError, @e)
+    test.assert(@zeno_step_reached)
   end
 end
 

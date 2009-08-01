@@ -18,6 +18,8 @@ module RedShift
 Enter = State.new :Enter, RedShift
 Exit = State.new :Exit, RedShift
 Always = Transition.new :Always, nil, [], nil
+
+class AlgebraicAssignmentError < StandardError; end
   
 class Component
   include CShadow
@@ -158,15 +160,17 @@ class Component
   
   #-- CLib stuff -----------------------------------------------#
   
+  class << self; protected; attr_accessor :flow_file; end
+  
   def self.inherited sub
-    sub.shadow_library_file((CGenerator.make_c_name sub.name).to_s)
-    ### too much is still going in the main c file
+    file_name = CGenerator.make_c_name(sub.name).to_s
+    sub.shadow_library_file file_name
   end
   
   if $DEBUG
     CLib.include "<assert.h>"
   else
-    CLib.declare :assert => %{#define assert(cond)}
+    CLib.include_file.declare :assert => %{#define assert(cond) 0}
   end
   
   CLib.declare_extern :typedefs => %{
@@ -219,9 +223,11 @@ class Component
     end
     @@count = 0
     class << self
-      def make_subclass(&bl)
+      def make_subclass(file_name, &bl)
         cl = Class.new(self)
-        const_set("Flow#{@@count}", cl)  ## use better name, nesting
+        cl.shadow_library_file file_name
+        clname = file_name.sub /^flow/, "Flow"
+        Object.const_set clname, cl
         @@count += 1
         cl.instance_eval {@source_code = bl}
         cl
@@ -373,9 +379,7 @@ class Component
   protected \
     :type_data, :type_data=,
     :cont_state, :cont_state=
-  
-  class AlgebraicAssignmentError < StandardError; end
-  
+    
   class << self
   
     def type_data
@@ -404,7 +408,7 @@ class Component
               body %{
                 cont_state = (#{ssn} *)shadow->cont_state;
                 if (cont_state->#{var_name}.algebraic &&
-                    cont_state->#{var_name}.d_tick < d_tick)
+                    cont_state->#{var_name}.d_tick != d_tick)
                   (*cont_state->#{var_name}.flow)(shadow);
               }
               returns "rb_float_new(cont_state->#{var_name}.value_0)"

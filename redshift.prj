@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 1.0 4)
-(Parent-Version redshift 1.0 3)
+(Project-Version redshift 1.0 5)
+(Parent-Version redshift 1.0 4)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Fri, 26 Apr 2002 20:56:45 -0700")
+(Checkin-Time "Wed, 01 May 2002 09:29:08 -0700")
 (Checkin-Login tercel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -16,14 +16,14 @@
 ;; Files added by populate at Sun, 22 Apr 2001 15:37:06 -0700,
 ;; to version 0.0(w), by joel:
 
-  (world.rb (redshift/0_world.rb 1.19 644))
+  (world.rb (redshift/0_world.rb 1.20 644))
   (transition.rb (redshift/1_transition 1.5 644))
   (state.rb (redshift/2_state.rb 1.7 644))
   
-  (redshift.rb (redshift/4_redshift.r 1.11 755))
+  (redshift.rb (redshift/4_redshift.r 1.12 755))
   
-  (flow.rb (redshift/6_flow.rb 1.11 644))
-  (component.rb (redshift/7_component. 1.16 644))
+  (flow.rb (redshift/6_flow.rb 1.12 644))
+  (component.rb (redshift/7_component. 1.17 644))
 
 ;; Files deleted by depopulate at Sun, 20 May 2001 09:27:46 -0700,
 ;; from version 0.2(w), by joel:
@@ -35,7 +35,7 @@
 
   
   (event.rb (redshift/9_event.rb 1.8 644))
-  (README (redshift/10_README 1.19 644))
+  (README (redshift/10_README 1.20 644))
 
 ;; Files added by populate at Sat, 26 May 2001 21:45:52 -0700,
 ;; to version 0.3(w), by joel:
@@ -183,12 +183,12 @@
 ;; Files added by populate at Sat, 16 Feb 2002 11:17:47 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_discrete.rb (redshift/34_test_discr 1.2 644))
+  (test/test_discrete.rb (redshift/34_test_discr 1.3 644))
 
 ;; Files added by populate at Sat, 16 Feb 2002 11:17:59 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_flow.rb (redshift/35_test_flow. 1.2 644))
+  (test/test_flow.rb (redshift/35_test_flow. 1.3 644))
 
 ;; Files added by populate at Sat, 16 Feb 2002 11:18:05 -0800,
 ;; to version 0.21(w), by tercel:
@@ -208,7 +208,7 @@
 ;; Files added by populate at Sat, 16 Feb 2002 11:18:25 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_inherit_state.rb (redshift/39_test_inher 1.2 644))
+  (test/test_inherit_state.rb (redshift/39_test_inher 1.3 644))
 
 ;; Files added by populate at Sat, 16 Feb 2002 11:18:30 -0800,
 ;; to version 0.21(w), by tercel:
@@ -228,7 +228,7 @@
 ;; Files added by populate at Sat, 16 Feb 2002 11:18:53 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_world.rb (redshift/43_test_world 1.2 644))
+  (test/test_world.rb (redshift/43_test_world 1.3 644))
 
 ;; Files deleted by depopulate at Sun, 31 Mar 2002 00:14:51 -0800,
 ;; from version 0.23(w), by tercel:
@@ -251,7 +251,7 @@
 
   (doc/world.txt (redshift/46_world.txt 1.1 644))
   (doc/talk.txt (redshift/47_talk.txt 1.1 644))
-  (doc/syntax.txt (redshift/48_syntax.txt 1.1 644))
+  (doc/syntax.txt (redshift/48_syntax.txt 1.2 644))
   (doc/rk4.txt (redshift/49_rk4.txt 1.1 644))
   (doc/redshift.txt (redshift/50_redshift.t 1.1 644))
   (doc/migrate.txt (redshift/51_migrate.tx 1.1 664))
@@ -272,7 +272,12 @@
 ;; Files added by populate at Sun, 21 Apr 2002 10:13:00 -0700,
 ;; to version 1.0.1(w), by tercel:
 
-  (doc/algorithms.txt (redshift/b/5_algorithms 1.1 644))
+  (doc/algorithms.txt (redshift/b/5_algorithms 1.2 644))
+
+;; Files added by populate at Sat, 27 Apr 2002 00:25:12 -0700,
+;; to version 1.0.4(w), by tercel:
+
+  (doc/efficiency.txt (redshift/b/6_efficiency 1.1 644))
 )
 (Merge-Parents)
 (New-Merge-Parents)

@@ -215,8 +215,8 @@ end
   private :step_discrete
   
   def step_zeno zeno_counter
-    puts "Zeno step: #{zeno_counter}"
-    ## print out the active components and their transitions?
+    puts "Zeno step: #{zeno_counter} / #{zeno limit}"
+    ## print out the active components and their transitions if $DEBUG_ZENO?
   end
   
   def clock

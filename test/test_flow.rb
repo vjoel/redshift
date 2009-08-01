@@ -302,24 +302,47 @@ class Flow_Reconfig < FlowTestComponent
   end
 end
 
+# Test what happens to a var when transitioning from a state in which
+# it is defined algebraically to a state in which is has no definition.
+# (This isn't quite the same as Flow_StateChange.)
+
+class Flow_AlgebraicToEmptyFlow < FlowTestComponent
+  state :A, :B
+  transition Enter => A
+  transition A => B do guard {world.clock > 1} end
+  flow A do alg "x = 1" end
+  def assert_consistent test
+    return if world.clock > 2 ## should be a way to remove this component
+    if state == B
+      test.assert_equal_float(0, x, 1E-10) ## is this what we want?
+    end
+  end  
+end
+
+# test for detection of circularity and assignment to algebraically
+# defined vars
+
+class Flow_AlgebraicErrors < FlowTestComponent
+  flow {
+    alg "x = y"
+    alg "y = x"
+    alg "z = 1"
+  }
+  
+  def assert_consistent test
+    return if world.clock > 1
+    test.assert_exception(RedShift::CircularDefinitionError) {y}
+    test.assert_exception(RedShift::AlgebraicAssignmentError) {self.z = 2}
+  end
+end
+
 ## TO DO ##
 =begin
  
- flow A do
-  alg "x = 3"
- end
- This should set x when trans A => B
- 
  varying time step (dynamically?)
  
- handling of errors:
+ handling of syntax errors
  
-   circular dep.
-   
-   syntax
-   
-   assignment to alg var
-   
 =end
 
 ###class Flow_MixedType < FlowTestComponent

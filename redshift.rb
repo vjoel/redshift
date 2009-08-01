@@ -9,6 +9,20 @@ class Object
     p arg; arg
   end
   
+  @@ptime = Time.times
+  @@rtime = Time.now.to_f
+
+  def show_times str
+    ptime = Time.times
+    rtime = Time.now.to_f
+    printf "%20s %6.2f %6.2f %6.2f %6.2f %7.3f\n", str,
+      ptime.utime - @@ptime.utime, ptime.stime - @@ptime.stime,
+      ptime.cutime - @@ptime.cutime, ptime.cstime - @@ptime.cstime,
+      rtime - @@rtime
+    @@ptime = ptime
+    @@rtime = rtime
+  end
+
   class AssertionFailure < StandardError; end
   def assert(test, msg=nil)
     unless test
@@ -17,6 +31,20 @@ class Object
       else
         raise AssertionFailure
       end
+    end
+  end
+  
+  def debug setting = true, &block
+    if block
+      begin
+        save_setting = $DEBUG
+        $DEBUG = setting
+        block.call
+      ensure
+        $DEBUG = save_setting
+      end
+    else
+      $DEBUG = setting
     end
   end
 end
@@ -48,8 +76,25 @@ module RedShift
     CLibName << '_clib'
   end
 
-  CLib = CGenerator::Library.new CLibName
+  class Library < CGenerator::Library
+    def update_file f, template
+#      template_str = template.to_s
+#      file_data = f.gets(nil)
+#      if file_data == template_str
+#        false
+#      else
+#        f.rewind
+#        f.print template_str
+#        true
+#      end
+      ### check here for unchanged files using the preamble
+      super
+    end
+  end
+
+  CLib = Library.new CLibName
   CLib.include '<math.h>'
+  CLib.purge_source_dir = :delete
 
 #  class Warning < Exception; end
 #  

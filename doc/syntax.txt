@@ -1,3 +1,5 @@
+#!ruby docs
+
 =begin
 
 To do: read syntax.rb!

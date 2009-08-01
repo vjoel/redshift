@@ -1,0 +1,16 @@
+in general:
+  use C code rather than ruby code
+  use the profiler!
+
+flows are probably not the bottleneck
+  don't try to optimize in the equations
+  euler flows are somewhat faster than rk4 (diff) flows
+    but the difference in effect on the whole sim is probably insignificant 
+  algebraic flows have very little extra performance cost
+    they are evaluated lazily, only when needed
+    results are cached when possible
+    feel free to use them to make equations more readable
+
+guards may be a bottleneck
+  try to use "C expr" or :event forms for guards which are evaluated frequently
+

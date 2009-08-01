@@ -1,74 +1,97 @@
-run n:
+#!ruby docs
+  
+=begin
 
-  if not started
-    do_setup
-    started = true
+  run n:
   
-  step_discrete
+    if not started
+      do_setup
+      started = true
   
-  for n steps
-    step_continuous
     step_discrete
-
-
-step_continuous:
-
-  for rk_level from 0 to 4
-    for each component
-      for each continuous var
-        if rk_level == 0
-          set var->rk_level = 0
-          if no flow for var, copy var->value_0 to var->value_{1,2,3}
+  
+    for n steps
+      step_continuous
+      step_discrete
+  
+  
+  step_continuous:
+  
+    for rk_level from 0 to 4
+      for each component
+        for each continuous var
+          if rk_level == 0
+            set var->rk_level = 0
+            if no flow for var, copy var->value_0 to var->value_{1,2,3}
+          else
+            if non-algebraic flow and var not updated for rk_level
+              evaluate the flow at rk_level
+            if rk_level == 4
+              clear d_tick for var
+  
+    set global d_tick = 1 so that alg flows will be recalculated
+    set rk_level = 0
+  
+  
+  step_discrete:
+  
+  0 clear active_comp, prev_active_comp arrays:
+      set length = 0 (use null termination?)
+      make sure actual size is at least that of comp array
+  
+  1 each comp:
+      check guards(*) of transitions from the current state
+      if guard of (trans, dest) is true
+        put (comp, trans, dest) in active_comp array
+  
+  2 each prev_active_comp:
+      unexport its events
+      enter dest state
+        cache [ [g,t,d], ... ] in component(**)
+        cache flows
+  
+  3 if no active_comps, done
+  3'if no active_comps AND no prev_active_comps, done (***)
+  
+  4 each active_comp:
+      export events (stored in shadow_attr :exp_evts => Array)
+      if d != state, update alg vars
+  
+  5 each active_comp:
+      do actions of trans until reset found
+      (actions should not change cont vars)
+  
+  6 each active_comp:
+      each var:
+        if t has reset for var (before next set of actions)
+          compute reset
+          store in value_1 of var
         else
-          if non-algebraic flow and var not updated for rk_level
-            evaluate the flow at rk_level
-          if rk_level == 4
-            clear d_tick for var
-            
-  set global d_tick = 1 so that alg flows will be recalculated
-  set rk_level = 0
-
-
-step_discrete:
-
-0 clear active_comp, prev_active_comp arrays:
-    set length = 0
-    make sure actual size is at least that of comp array
-
-1 each comp:
-    check guards of transitions from the current state
-    if guard of (trans, dest) is true
-      put (comp, trans, dest) in active_comp array
+          copy from value_0 to value_1
   
-2 each prev_active_comp:
-    unexport its events
-
-3 if no active_comps, done
-3'if no active_comps AND no prev_active_comps, done
-  (in case unexporting some event enables some transition)
-
-4 each active_comp:
-    export events
-
-5 each active_comp:
-    do actions of t until reset found (actions should not change cont vars)
+  7 incr d_tick if there was a reset (to invalidate cached alg flows)
   
-6 each active_comp:
-    each var:
-      if t has reset for var (before next set of actions)
-        compute reset
-        store in value_1 of var
-      else
-        copy from value_0 to value_1
+  8 each active_comp:
+      each var:
+        copy from value_1 to value_0
+  
+  9 repeat 5-8 until no more actions or resets
+  
+ 10 move active_comp array to prev_active_comp
+  
+ 11 repeat 1-10
 
-7 incr d_tick if there was a reset (to invalidate cached alg flows)
-    
-8 each active_comp:
-    each var:
-      copy from value_1 to value_0
+Notes:
 
-9 repeat 5-8 until no more actions or resets
+ (*) guard can be "c code", {ruby code}, or
+       :link1 => :event1, :link2 => :event2, ...
+ 
+ (**) g = [g_func, g_events, g_proc], g_e = [[l, e]g, ...]
+ 
+ (***) (In case unexporting some event enables some guard. Such a guard is
+     nonstandard. This behavior is costly, so it is a runtime option.)
+     if prev_active_comps but no active comps, can skip 4-10 and go back to 1
+  
+  
 
-10 move active_comp array to prev_active_comp
-
-11 repeat 1-10
+=end

@@ -1,13 +1,30 @@
 To do
 =====
 
+Compiler
+
+  deferred code generation
+    use transactions which say "add this flow to that state/class",
+        "add this guard to that transition", etc.
+    can sort and separate into files before committing
+      check, per file, for equality with last compile
+    retargetable to C or Ruby output
+    
+
 Syntax
 
   resets and even assignment to cont-vars can use '<=' or '[]='
   better: eval each setup or reset block in a context in which
           for each continuous var a local var of the same name
           has been initialized to nil, and then make the
-          assignments later
+          assignments later -- won't work
+  use this: reset { x expr; y expr; ... }
+    where x, y, ... are the only methods in the context (instance_eval)
+    they take three kinds of args:
+      x 1         --- reset to compile-time constant
+      x "..."     --- reset to value of C expr
+      x {...}     --- reset to value of Ruby code
+      (OR SEE BELOW)
 
   check for symbol conflicts
     user attributes may conflict with Component's attrs/methods
@@ -15,9 +32,13 @@ Syntax
     can we 'hook' method def and attr def to check for conflict? 
     or just use a consistent naming scheme to keep internals separate?
 
+  multiple resets and actions for transitions
+  
+  flows: allow numeric constants
+  
   reset clauses:
     transition A => B do
-      reset " x := expr ", ...
+      reset " x := expr ", ... (OR SEE ABOVE)
     setup and defaults, too
     this might get around the self.x danger for casual users
     OR: don't use 'foo = ...' in resets, use 'foo ...' instead

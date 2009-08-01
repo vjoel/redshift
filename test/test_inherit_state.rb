@@ -7,6 +7,17 @@ include RedShift
 class StateTestComponent < Component
 end
 
+class State_Inherit < StateTestComponent
+  class Sub < self
+  end
+  state :A, :B, :C
+  link :sub => Sub
+  
+  def assert_consistent test
+    test.assert_equal(self.states, create(Sub).states)
+  end
+end
+
 # repeating a state declaration is an error
 
 ###class State_Duplicate < StateTestComponent

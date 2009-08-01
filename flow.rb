@@ -139,10 +139,12 @@ class Flow
             raise "No such link, #{link}" unless link_type
 
             link_type_ssn = link_type.shadow_struct.name
-            flow_fn.declare link_cname => "#{link_type_ssn} *#{link_cname}"
-
             link_cs_ssn = link_type.cont_state_class.shadow_struct.name
-            flow_fn.declare link_cs_cname => "#{link_cs_ssn} *#{link_cs_cname}"
+            
+            flow_fn.declare link_cname => %{
+              #{link_type_ssn} *#{link_cname};
+              #{link_cs_ssn} *#{link_cs_cname};
+            }
 
             exc = flow_fn.declare_class(RuntimeError)
             msg = "Link #{link} is nil in component %s"
@@ -168,7 +170,7 @@ class Flow
         flow_fn.setup var_cname => %{
           if (#{cs_cname}->#{var}.algebraic) {
             if (#{cs_cname}->#{var}.rk_level < rk_level ||
-               (rk_level == 0 && #{cs_cname}->#{var}.d_tick < d_tick))
+               (rk_level == 0 && #{cs_cname}->#{var}.d_tick != d_tick))
               (*#{cs_cname}->#{var}.flow)(#{sh_cname});
           }
         }
@@ -200,19 +202,13 @@ class AlgebraicFlow < Flow
   def flow_wrapper cl, state
     var_name = @var
     flow = self
+    flow_name = "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}"
     
-    Component::FlowWrapper.make_subclass do
-      function_name =
-        "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}".intern
-        
-      define_method :calc_function_pointer do
-        body "shadow->flow = &#{function_name}", "shadow->algebraic = 1"
-      end
-      
+    Component::FlowWrapper.make_subclass flow_name do
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
       
-      shadow_library_source_file.define(function_name).instance_eval do
+      shadow_library_source_file.define(flow_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"
         declare :shadow => %{
           struct #{ssn} *shadow;
@@ -223,14 +219,13 @@ class AlgebraicFlow < Flow
           shadow = (#{ssn} *)comp_shdw;
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;
           var = &cont_state->#{var_name};
-        }
-        body %{
           assert(var->algebraic);
           if (var->nested)
             rb_raise(#{declare_class CircularDefinitionError},
               "\\nCircularity in algebraic formula: #{var_name}");
-          
           var->nested = 1;
+        }
+        body %{
           
           switch (rk_level) {
           case 0:
@@ -261,7 +256,12 @@ class AlgebraicFlow < Flow
           var->nested = 0;
         }
       end # Case 0 applies during discrete update.
-    end   # alg flows are lazy
+          # alg flows are lazy
+
+      define_method :calc_function_pointer do
+        body "shadow->flow = &#{flow_name}", "shadow->algebraic = 1"
+      end
+    end
   end
 
 end # class AlgebraicFlow
@@ -273,18 +273,13 @@ class EulerDifferentialFlow < Flow
     var_name = @var
     flow = self
     
-    Component::FlowWrapper.make_subclass do
-      function_name =
-        "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}".intern
-        
-      define_method :calc_function_pointer do
-        body "shadow->flow = &#{function_name}"
-      end
-      
+    flow_name = "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}"
+    
+    Component::FlowWrapper.make_subclass flow_name do
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
       
-      shadow_library_source_file.define(function_name).instance_eval do
+      shadow_library_source_file.define(flow_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"
         declare :shadow => %{
           struct #{ssn} *shadow;
@@ -315,8 +310,13 @@ class EulerDifferentialFlow < Flow
           rk_level += 2;
         }
       end ## setting var->rk_level=4 saves two function calls
-    end   ## but there's still the wasted rk_level=1 function call...
-  end     ## this might be a reason to handle euler steps at rk_level=1
+          ## but there's still the wasted rk_level=1 function call...
+          ## this might be a reason to handle euler steps at rk_level=1
+      define_method :calc_function_pointer do
+        body "shadow->flow = &#{flow_name}"
+      end
+    end
+  end
 
 end # class EulerDifferentialFlow
 
@@ -327,18 +327,13 @@ class RK4DifferentialFlow < Flow
     var_name = @var
     flow = self
     
-    Component::FlowWrapper.make_subclass do
-      function_name =
-        "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}".intern
-        
-      define_method :calc_function_pointer do
-        body "shadow->flow = &#{function_name}"
-      end
-      
+    flow_name = "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}"
+    
+    Component::FlowWrapper.make_subclass flow_name do
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
       
-      shadow_library_source_file.define(function_name).instance_eval do
+      shadow_library_source_file.define(flow_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"
         declare :shadow => %{
           struct #{ssn} *shadow;
@@ -392,6 +387,10 @@ class RK4DifferentialFlow < Flow
           rk_level++;
           var->rk_level = rk_level;
         }
+      end
+
+      define_method :calc_function_pointer do
+        body "shadow->flow = &#{flow_name}"
       end
     end
   end

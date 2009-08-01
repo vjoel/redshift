@@ -23,23 +23,14 @@ class Component
     @world = world
     @active_transition = nil
     
-    for s in states
-      for e in events s
-        e.unexport self
+    restore {
+      @state = Enter
+      defaults
+      if block
+        instance_eval(&block)
       end
-    end
-    
-    @state = Enter
-
-    defaults
-
-    if block
-      instance_eval(&block)
-    end
-
-    setup
-    
-    arrive
+      setup
+    }
 
   end
 
@@ -50,6 +41,9 @@ class Component
         e.unexport self
       end
     end
+    
+    yield if block_given?
+    
     arrive
   end
   
@@ -119,13 +113,12 @@ class Component
   end
     
   def discard_singleton_methods
-    for m in singleton_methods
-      eval <<-END
-        class <<self
-          remove_method :#{m}
-        end
-      END
-    end
+    sm = singleton_methods
+    (class <<self; self; end).class_eval {
+      for m in sm
+        remove_method m.intern
+      end
+    }
   end
   
   attach({Exit => Exit}, Transition.new :exit, nil, [],

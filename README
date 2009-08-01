@@ -11,6 +11,7 @@ Syntax
 / flows, transitions, etc.
   running
     run N { dt = ...; zeno = ... }
+    run_while, run_until
 ? input, output, connect
   c-shift translator (both ways)
 
@@ -37,12 +38,15 @@ Semantics
     transitions like in statechart
     parametric transitions?
     attach :all, ...
-
+    syncronization
+      explicit?
   
 Implementation
 
   use alias instead of def in Event#(un)export
     or use extend_object
+  
+  abstract hash-inheritance and use it in meta.rb and option-block.rb
 
   optimization
     profiling
@@ -52,7 +56,7 @@ Implementation
     guards
     dual mode
   
-/  garbage collection
+/ garbage collection
     nil out the components array, do GC, reconstruct components array
     do this periodically if user sets flag
 
@@ -81,7 +85,7 @@ Implementation
   system tests
     compare with other integrators (accuracy)
     
-  test windows version
+/ test windows version
   
 / persistence
   
@@ -147,3 +151,4 @@ Documentation
    
    restrictions
      singleton methods cannot be exported (see Event)
+     singleton methods will be lost in World#save

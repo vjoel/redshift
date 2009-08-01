@@ -90,7 +90,7 @@ obs = w.create(Observer) {@ball = ball}
 
 y = [[w.clock, ball.y]]
 
-while w.components.size > 0 do
+while w.size > 0 do
 
   t = w.clock
   if t == t.floor
@@ -104,7 +104,7 @@ while w.components.size > 0 do
 end
 
 Plot.new ('gnuplot') {
-  add y, 'title "height" w l'
+  add y, 'title "height" with lines'
   show
-  command 'pause 5'
+  pause 5
 }

@@ -4,6 +4,10 @@ module RedShift
 
 class Component
 
+  def create(component_class, &block)
+    @world.create(component_class, &block)
+  end
+
   @@defaults_proc = {}
   @@setup_proc = {}
 

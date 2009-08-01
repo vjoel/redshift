@@ -118,12 +118,17 @@ class World
     @components.each_value
   end
   
+  def size
+    @components.size
+  end
+  
   
   def save filename = @name
     store = PStore.new filename
     each { |c| c.discard_singleton_methods }
     store.transaction do
       store['world'] = self
+      yield store if block_given?
     end
     each { |c| c.restore }
   end
@@ -133,8 +138,9 @@ class World
     world = nil
     store = PStore.new filename
     store.transaction do
-      if store.roots.include? 'world'
+      if store.root? 'world'
         world = store['world']
+        yield store if block_given?
       end
     end
     if world

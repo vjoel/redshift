@@ -51,6 +51,6 @@ Plot.new ('gnuplot') {
   add dataRK4, 'title "Runge-Kutta 4th order" w l'
   add dataEuler, 'title "Euler" w l'
   show
-  command 'pause 5'
+  pause 5
 
 }

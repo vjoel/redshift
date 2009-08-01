@@ -298,6 +298,24 @@ class World
         comp_shdw->dest   = Qnil;
         comp_shdw->phases = Qnil;
       }
+      inline static void check_strict(ComponentShadow  *comp_shdw,
+                               #{World.shadow_struct.name} *shadow)
+      {
+        ContVar    *vars = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
+        long        count = comp_shdw->var_count;
+        long        i;
+        for(i = 0; i < count; i++) {
+          ContVar *var = &vars[i];
+          if (var->ck_strict) {
+            var->ck_strict = 0;
+            (*var->flow)((ComponentShadow *)comp_shdw);
+            if (var->value_0 != var->value_1) {
+              rb_raise(#{declare_class StrictnessError},
+                      "Transition violates strictness");
+            }
+          }
+        }
+      }
       inline static void enter_next_phase(VALUE comp, VALUE list,
                                    #{World.shadow_struct.name} *shadow)
       {
@@ -433,6 +451,9 @@ class World
 
         EACH_COMP_DO(shadow->finishers) {
           finish_trans(comp_shdw, shadow);
+        }
+        EACH_COMP_DO(shadow->finishers) {
+          check_strict(comp_shdw, shadow);
         }
         RARRAY(shadow->finishers)->len = 0;
         

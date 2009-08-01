@@ -1,3 +1,8 @@
+redshift 1.1.42
+
+- Added runtime check for strictness violation due to transition to state
+  with inconsistent algebraic equation.
+
 redshift 1.1.41
 
 - Added infrastructure for checking strictness and strictness violations

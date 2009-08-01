@@ -751,7 +751,7 @@ module RedShift
               Data_Get_Struct(flows[i], #{flow_wrapper_type}, flow_wrapper);
               var->flow         = flow_wrapper->flow;
               var->algebraic    = flow_wrapper->algebraic;
-              if (var->flow && var->algebraic && var->strict && var->d_tick) {
+              if (var->flow && var->algebraic && var->strict) {
                 var->value_1    = var->value_0;
                 var->ck_strict  = 1;
               }

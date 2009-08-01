@@ -43,6 +43,12 @@ Semantics
     reset ...
     action {}
     # all three on the same step?
+    
+    it would be useful to do a common computation that is needed for
+    several resets
+    
+    this could make use of the "local" framework, or be separate (even more
+      local -- to just the reset)
 
   Add a #connect method:
   

@@ -127,8 +127,8 @@ end
 
 
 # Test what happens during an action when an algebraic flow's inputs change.
-# The alg flow's value *does* change during the action, if any of the links
-# or numerical variables (including constants) that it depends on change.
+# The alg flow's value *does* change during the action, if there are changes
+# in any of the links, continuous vars, or constants that it depends on.
 
 class Flow_AlgebraicAction < FlowTestComponent
   continuous :x, :y

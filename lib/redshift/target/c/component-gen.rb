@@ -357,29 +357,18 @@ module RedShift
         var_names.collect do |var_name|
           var_name = var_name.intern if var_name.is_a? String
           
-          shadow_attr_reader var_name => "double #{var_name}"
+          (r,w), = shadow_attr_accessor var_name => "double #{var_name}"
 
           if kind == :strict
             exc2 = shadow_library.declare_class ContinuousAssignmentError
             msg2 = "Cannot reset strictly constant #{var_name} in #{self}."
+            w.setup %{
+              if (!NIL_P(shadow->state))
+                rb_raise(#{exc2}, #{msg2.inspect});
+            }
           end
 
-          class_eval %{
-            define_c_method :#{var_name}= do
-              arguments :value
-              if kind == :strict
-                body %{
-                  if (!NIL_P(shadow->state))
-                    rb_raise(#{exc2}, #{msg2.inspect});
-                }
-              end
-              body %{
-                shadow->#{var_name} = NUM2DBL(value);
-                d_tick++;
-              }
-              returns "value"
-            end
-          }
+          w.body "d_tick++"
         end
       end
 
@@ -438,9 +427,7 @@ module RedShift
           end
 
           (r,w), = shadow_attr_accessor(var_name => [var_type])
-          w.body %{
-            d_tick++;
-          }
+          w.body "d_tick++"
 
           shadow_library_include_file.include(
             var_type.shadow_library_include_file)

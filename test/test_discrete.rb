@@ -356,6 +356,25 @@ class Discrete_14 < DiscreteTestComponent
   end
 end
 
+# multiple simultaneous events
+
+class Discrete_15a < DiscreteTestComponent
+  transition Enter => Exit do
+    event {e; f}
+  end
+end
+
+class Discrete_15b < DiscreteTestComponent
+  link :x => Discrete_15a
+  setup { self.x = create Discrete_15a }
+  transition Enter => Exit do
+    guard :x => :e, :x => :f
+  end
+  def assert_consistent test
+    test.assert_equal(Exit, state)
+  end
+end
+
 =begin
 
 test timing of other combinations of

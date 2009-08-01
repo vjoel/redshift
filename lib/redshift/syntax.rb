@@ -95,18 +95,28 @@ class << Component
   end
 
   def strictly_continuous(*var_names)
-    attach_continuous_variables(false, var_names)
+    attach_continuous_variables(:strict, var_names)
   end
-  alias constant strictly_continuous ### should also prohibit LHS use
 
+  ## should allow continuous :x => 3 for default initialization
   def continuous(*var_names)
-    attach_continuous_variables(true, var_names)
+    attach_continuous_variables(:piecewise, var_names)
   end
-  alias number continuous
-    ## eventually, number values could be stored as ordinary shadow_attrs
-    ## to save space and time during continuous step. (Will need to
-    ## change Flow#translate.)
+  alias piecewise_continuous continuous
 
+  def permissively_constant(*var_names)
+    attach_constant_variables(:permissive, var_names)
+  end
+
+  def strictly_constant(*var_names)
+    attach_constant_variables(:strict, var_names)
+  end
+
+  ## should allow constant :x => 3 for default initialization
+  def constant(*var_names)
+    attach_constant_variables(:piecewise, var_names)
+  end
+  alias piecewise_constant constant
 end
 
 # Defines the flow types that can be used within a flow block.

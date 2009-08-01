@@ -105,13 +105,14 @@ module RedShift
     # one per variable, shared by subclasses which inherit it
     # not a run-time object, except for introspection
     class ContVarDescriptor
-      attr_reader :name, :writable
-      def initialize name, index_delta, cont_state, writable
+      attr_reader :name, :kind
+      def initialize name, index_delta, cont_state, kind
         @name = name  ## name needed?
         @index_delta = index_delta
         @cont_state = cont_state
-        @writable = writable
+        @kind = kind
       end
+      def strict?; @kind == :strict; end
       def index
         @cont_state.inherited_var_count + @index_delta
       end
@@ -154,16 +155,16 @@ module RedShift
         end
 
         # yields to block only if var was added
-        def add_var var_name, writable
+        def add_var var_name, kind
           var = vars[var_name]
           if var
-            unless writable == :permissive or var.writable == writable
+            unless kind == :permissive or var.kind == kind
               raise StrictnessError,
                 "\nVariable #{var_name} redefined with different strictness."
             end
           else
             var = vars[var_name] =
-              ContVarDescriptor.new(var_name, vars.own.size, self, writable)
+              ContVarDescriptor.new(var_name, vars.own.size, self, kind)
             shadow_attr var_name => "ContVar #{var_name}"
             yield if block_given?
           end
@@ -257,12 +258,12 @@ module RedShift
       def cont_state_class
         @cont_state_class ||= ContState.make_subclass_for(self)
       end
-
-      def define_continuous(writable, var_names)
+      
+      def define_continuous(kind, var_names)
         var_names.collect do |var_name|
           var_name = var_name.intern if var_name.is_a? String
           
-          cont_state_class.add_var var_name, writable do
+          cont_state_class.add_var var_name, kind do
             ssn = cont_state_class.shadow_struct.name
             exc = shadow_library.declare_class(AlgebraicAssignmentError)
             msg = "\\\\nCannot set #{var_name}; it is defined algebraically."
@@ -280,22 +281,7 @@ module RedShift
               end
             }
 
-            if writable
-              class_eval %{
-                define_c_method :#{var_name}= do
-                  arguments :value
-                  declare :cont_state => "#{ssn} *cont_state"
-                  body %{
-                    cont_state = (#{ssn} *)shadow->cont_state;
-                    if (cont_state->#{var_name}.algebraic)
-                      rb_raise(#{exc}, #{msg.inspect});
-                    cont_state->#{var_name}.value_0 = NUM2DBL(value);
-                    d_tick++;
-                  }
-                  returns "value"
-                end
-              }
-            else
+            if kind == :strict
               exc2 = shadow_library.declare_class ContinuousAssignmentError
               msg2 = "\\\\nCannot set #{var_name}; it is strictly continuous."
               class_eval %{
@@ -314,7 +300,35 @@ module RedShift
                   returns "value"
                 end
               }
+
+            else
+              class_eval %{
+                define_c_method :#{var_name}= do
+                  arguments :value
+                  declare :cont_state => "#{ssn} *cont_state"
+                  body %{
+                    cont_state = (#{ssn} *)shadow->cont_state;
+                    if (cont_state->#{var_name}.algebraic)
+                      rb_raise(#{exc}, #{msg.inspect});
+                    cont_state->#{var_name}.value_0 = NUM2DBL(value);
+                    d_tick++;
+                  }
+                  returns "value"
+                end
+              }
             end
+          end
+        end
+      end
+
+      def define_constant(kind, var_names)
+        var_names.collect do |var_name|
+          var_name = var_name.intern if var_name.is_a? String
+          if kind == :strict
+            shadow_attr_reader var_name => "double #{var_name}"
+            ## let assign when state==nil, as for strictly_continuous
+          else
+            shadow_attr_accessor var_name => "double #{var_name}"
           end
         end
       end
@@ -323,6 +337,7 @@ module RedShift
         define_events
         define_links
         define_continuous_variables
+        define_constant_variables
 
         states.values.sort_by{|s|s.to_s}.each do |state|
           define_flows(state)
@@ -391,19 +406,29 @@ module RedShift
         end
       end
       
+      def define_constant_variables
+        constant_variables.own.keys.sort_by{|k|k.to_s}.each do |var_name|
+          define_constant(constant_variables[var_name], [var_name])
+        end
+      end
+      
       def define_flows(state)
         own_flows = flows(state).own
         own_flows.keys.sort_by{|sym|sym.to_s}.each do |var|
           flow = own_flows[var]
 
-          cont_var = cont_state_class.vars[var] ||
-                        define_continuous(:permissive, [var])[0]
+          cont_var = cont_state_class.vars[var]
+          unless cont_var
+            attach_continuous_variables(:permissive, [var])
+            cont_var = define_continuous(:permissive, [var])[0]
+          end
+          
           add_flow([state, cont_var] => flow.flow_wrapper(self, state))
 
           after_commit do
             ## a pity to use after_commit, when "just_before_commit" would be ok
             ## use the defer mechanism from teja2hsif
-            unless flow.strict or cont_var.writable
+            if not flow.strict and cont_var.strict?
               raise StrictnessError,
                 "Variable #{cont_var.name} redefined with different strictness."
             end
@@ -473,7 +498,7 @@ module RedShift
             raise "No such variable, #{var}"
           end
           
-          unless cont_var.writable
+          if cont_var.strict?
             raise ContinuousAssignmentError,
               "\nCannot set #{var}; it is strictly continuous."
           end

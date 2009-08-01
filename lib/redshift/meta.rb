@@ -4,7 +4,8 @@ class Component
   
   class_superhash2 :flows, :transitions
   class_superhash :exported_events      # :event => index
-  class_superhash :link_type, :states, :continuous_variables
+  class_superhash :link_type, :states
+  class_superhash :continuous_variables, :constant_variables ## bad name
   
   @subclasses = []
 
@@ -88,12 +89,24 @@ class Component
       @cached_transitions[s] ||= transitions(s).values
     end
     
-    # kind refers to strictness: +true+, +false+, or <tt>:permissive</tt>
+    # kind is :strict, :piecewise, or :permissive
     def attach_continuous_variables(kind, var_names)
       var_names.each do |var_name|
         continuous_variables[var_name] = kind
       end
     end
+    
+    # kind is :strict, :piecewise, or :permissive
+    def attach_constant_variables(kind, var_names)
+      var_names.each do |var_name|
+        constant_variables[var_name] = kind
+      end
+    end
+    ## should check for conflicts between const and cont vars
+    ## before commit, check that keys of continuous_variables and
+    ## constant_variables are disjoint
+    ##
+    ## also check that kind does not change in subclasses
   end
 
   def states

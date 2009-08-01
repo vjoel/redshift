@@ -18,68 +18,17 @@ class Flow
         if link
           ## unless writer is private...
           strict = false # because link can change later in dstep
-        
-          # l.x  ==>  get_l__x()->value_n
-          link_type = cl.link_type[link.intern]
-          raise(NameError, "\nNo such link, #{link}") unless link_type
-          flow_fn.include link_type.shadow_library_include_file
           
-          link_cs_ssn = link_type.cont_state_class.shadow_struct.name
-
-          link_cname = "link_#{link}"
-          link_cs_cname = "link_cs_#{link}"
-          checked_var_cname = "checked_#{link}__#{var}" ## not quite unambig.
-          get_var_cname = "get_#{link}__#{var}"
-          
-          flow_fn.declare checked_var_cname => "int #{checked_var_cname}"
-          flow_fn.setup   checked_var_cname => "#{checked_var_cname} = 0"
-          
-          unless translation[link + "."]
-            translation[link + "."] = true # just so we know we've handled it
-            
-            unless translation[link]
-              translation[link] = link_cname
-              link_type_ssn = link_type.shadow_struct.name
-              flow_fn.declare link_cname => "#{link_type_ssn} *#{link_cname}"
-              flow_fn.setup   link_cname => "#{link_cname} = shadow->#{link}"
-            end ## same as below
-            
-            flow_fn.declare link_cs_cname => "#{link_cs_ssn} *#{link_cs_cname}"
-          end
-          
-          exc = flow_fn.declare_class(NilLinkError) ## class var
-          msg = "Link #{link} is nil in component %s"
-          insp = flow_fn.declare_symbol(:inspect) ## class var
-          str = "STR2CSTR(rb_funcall(shadow->self, #{insp}, 0))"
-
-          sh_cname = link_cname
-          cs_cname = link_cs_cname
-          flow_fn.declare get_var_cname => %{
-            inline ContVar *#{get_var_cname}(void) {
-              if (!#{checked_var_cname}) {
-                #{checked_var_cname} = 1;
-                if (!#{link_cname})
-                  rb_raise(#{exc}, #{msg.inspect}, #{str});
-                #{cs_cname} = (#{link_cs_ssn} *)#{link_cname}->cont_state;
-                if (#{cs_cname}->#{var}.algebraic) {
-                  if (#{cs_cname}->#{var}.rk_level < rk_level ||
-                     (rk_level == 0 && #{cs_cname}->#{var}.d_tick != d_tick))
-                    (*#{cs_cname}->#{var}.flow)((ComponentShadow *)#{sh_cname});
-                }
-              }
-              return &(#{cs_cname}->#{var});
-            }
-          } ## algebraic test is same as below
-
-          translation[expr] = "#{get_var_cname}()->value_#{rk_level}"
-          
+          translate_link(link, var, translation, flow_fn, cl, expr, rk_level)
+                    
         else # expr == 'var'
-          link_type = cl.link_type[var.intern]
+          varsym = var.intern
           
-          if link_type
+          if (link_type = cl.link_type[varsym])
             # l ==> link_l
             ## unless writer is private...
             strict = false # because link can change later in dstep
+            ## need notion of constant link
 
             link = var
             link_cname = "link_#{link}"
@@ -91,15 +40,14 @@ class Flow
               flow_fn.setup   link_cname => "#{link_cname} = shadow->#{link}"
             end
             
-          else ## if var on list of cont var
+          elsif (kind = cl.constant_variables[varsym])
+            strict &&= (kind == :strict)
+            translation[var] = "shadow->#{var}"
+          
+          elsif (kind = cl.continuous_variables[varsym])
             # x ==> var_x
-            var_obj = cl.cont_state_class.vars[var.intern]
-            if not var_obj or var_obj.writable
-              # note var must have been declared at this point
-              # or else we can't use the strict optimization
-              strict = false
-            end
-            
+            strict &&= (kind == :strict)
+
             var_cname = "var_#{var}"
             sh_cname = "shadow"
             cs_cname = "cont_state"
@@ -117,7 +65,8 @@ class Flow
               #{var_cname} = #{cs_cname}->#{var}.value_#{rk_level};
             }.tabto(0).split("\n")
           
-          ## elsif... else error
+          else  
+            raise NameError, "Unknown variable: #{var}"
           end
           
         end
@@ -129,7 +78,87 @@ class Flow
     
     setup << "#{result_var} = #{c_formula}"
   end
+  
+  # l.x  ==>  get_l__x()->value_n
+  def translate_link(link, var, translation, flow_fn, cl, expr, rk_level)
+    link_type = cl.link_type[link.intern]
+    raise(NameError, "\nNo such link, #{link}") unless link_type
+    flow_fn.include link_type.shadow_library_include_file
+
+    link_cname = "link_#{link}"
+    get_var_cname = "get_#{link}__#{var}"
+
+    varsym = var.intern
+    if link_type.constant_variables[varsym]
+      var_type = :constant
+    elsif link_type.continuous_variables[varsym]
+      var_type = :continuous
+
+      checked_var_cname = "checked_#{link}__#{var}" ## not quite unambig.
+      flow_fn.declare checked_var_cname => "int #{checked_var_cname}"
+      flow_fn.setup   checked_var_cname => "#{checked_var_cname} = 0"
+
+      link_cs_ssn = link_type.cont_state_class.shadow_struct.name
+      link_cs_cname = "link_cs_#{link}"
+    else
+      raise NameError, "Unknown variable: #{var}"
+    end
+
+    unless translation[link + "."]
+      translation[link + "."] = true # just so we know we've handled it
+
+      unless translation[link]
+        translation[link] = link_cname
+        link_type_ssn = link_type.shadow_struct.name
+        flow_fn.declare link_cname => "#{link_type_ssn} *#{link_cname}"
+        flow_fn.setup   link_cname => "#{link_cname} = shadow->#{link}"
+      end ## same as below
+
+      if var_type == :continuous
+        flow_fn.declare link_cs_cname => "#{link_cs_ssn} *#{link_cs_cname}"
+      end
+    end
+
+    exc = flow_fn.declare_class(NilLinkError) ## class var
+    msg = "Link #{link} is nil in component %s"
+    insp = flow_fn.declare_symbol(:inspect) ## class var
+    str = "STR2CSTR(rb_funcall(shadow->self, #{insp}, 0))"
+
+    case var_type
+    when :continuous
+      cs_cname = link_cs_cname
+      flow_fn.declare get_var_cname => %{
+        inline ContVar *#{get_var_cname}(void) {
+          if (!#{checked_var_cname}) {
+            #{checked_var_cname} = 1;
+            if (!#{link_cname})
+              rb_raise(#{exc}, #{msg.inspect}, #{str});
+            #{cs_cname} = (#{link_cs_ssn} *)#{link_cname}->cont_state;
+            if (#{cs_cname}->#{var}.algebraic) {
+              if (#{cs_cname}->#{var}.rk_level < rk_level ||
+                 (rk_level == 0 && #{cs_cname}->#{var}.d_tick != d_tick))
+                (*#{cs_cname}->#{var}.flow)((ComponentShadow *)#{link_cname});
+            }
+          }
+          return &(#{cs_cname}->#{var});
+        }
+      } ## algebraic test is same as above
+
+      translation[expr] = "#{get_var_cname}()->value_#{rk_level}"
     
+    when :constant
+      flow_fn.declare get_var_cname => %{
+        inline double #{get_var_cname}(void) {
+          if (!#{link_cname})
+            rb_raise(#{exc}, #{msg.inspect}, #{str});
+          return (#{link_cname}->#{var});
+        }
+      } ## algebraic test is same as above
+
+      translation[expr] = "#{get_var_cname}()"
+    end
+
+  end    
 end
 
 

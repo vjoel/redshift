@@ -213,6 +213,66 @@ class Discrete_9b < DiscreteTestComponent
   end
 end
 
+# test C expressions as guards
+
+class Discrete_10a < DiscreteTestComponent
+  state :A, :B
+  continuous :v
+  transition Enter => A do
+    action {self.v = 1}
+  end
+  transition A => B do
+    action {self.v = 2}
+  end
+end
+
+class Discrete_10b < DiscreteTestComponent
+  state :A, :B
+  transition Enter => A do
+    guard "x.v == 1"
+  end
+  transition A => B do
+    guard "x.v == 3"
+  end
+  link :x => Discrete_10a
+  setup { self.x = create Discrete_10a }
+  def assert_consistent test
+    test.assert_equal(A, state)
+  end
+end
+
+# multiple guard terms with C exprs
+
+class Discrete_11a < DiscreteTestComponent
+  state :A, :B
+  continuous :v
+  transition Enter => A do
+    action {self.v = 1}
+  end
+  transition A => B do
+    action {self.v = 2}
+    event :e
+  end
+end
+
+class Discrete_11b < DiscreteTestComponent
+  state :A, :B
+  transition Enter => A do
+    guard "x.v == 1", "0"
+  end
+  transition Enter => A do
+    guard "x.v == 1", :x => :e
+  end
+  transition Enter => A do
+    guard "x.v == 1" do false end
+  end
+  link :x => Discrete_11a
+  setup { self.x = create Discrete_11a }
+  def assert_consistent test
+    test.assert_equal(Enter, state)
+  end
+end
+
 =begin
 
 test timing of various combinations of

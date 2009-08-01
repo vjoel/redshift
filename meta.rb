@@ -2,7 +2,7 @@ module RedShift
   
 class Component
 
-  ## Simplify all this with SuperHash
+  ## Simplify all this with SuperHash -- flatten hashes at commit, cache them
   
   @@flows = {}
   @@transitions = {}
@@ -264,6 +264,10 @@ class Component
 ###  def events s = state
 ###    Component.events type, s
 ###  end
+  
+  def self.define_guard guard
+    guard.guard_wrapper self
+  end
   
 end # class Component
 

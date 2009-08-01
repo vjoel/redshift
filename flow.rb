@@ -103,7 +103,7 @@ The cflow cannot be changed or recompiled while the simulation is running. Chang
 
 module RedShift
 
-class Flow
+class Flow    ## rename to equation?
 
   attr_reader :var, :formula
   
@@ -398,7 +398,49 @@ class RK4DifferentialFlow < Flow
 end # class RK4DifferentialFlow
 
 
-class CexprGuard
+class CexprGuard < Flow
+
+  def initialize f
+    super nil, f
+  end
+  
+  @@serial = 0
+  
+  def guard_wrapper cl
+    guard = self
+    cl_cname = CGenerator.make_c_name cl.name
+    g_cname = "Guard_#{@@serial}"; @@serial += 1
+    guard_name = "guard_#{cl_cname}_#{g_cname}"
+    
+    Component::GuardWrapper.make_subclass guard_name do
+      ssn = cl.shadow_struct.name
+      cont_state_ssn = cl.cont_state_class.shadow_struct.name
+      
+      ## should use some other file (likewise for Flows)
+      shadow_library_source_file.define(guard_name).instance_eval do
+        arguments "ComponentShadow *comp_shdw"
+        return_type "int"
+        declare :shadow => %{
+          struct #{ssn} *shadow;
+          struct #{cont_state_ssn} *cont_state;
+          ContVar  *var;
+        }
+        setup :shadow => %{
+          shadow = (#{ssn} *)comp_shdw;
+          cont_state = (#{cont_state_ssn} *)shadow->cont_state;
+        }
+        declare :result => "int result"
+        body %{
+          #{guard.translate(self, "result", 0, cl)};
+          return result;
+        }
+      end
+      
+      define_method :calc_function_pointer do
+        body "shadow->guard = &#{guard_name}"
+      end
+    end
+  end
 
 end
 

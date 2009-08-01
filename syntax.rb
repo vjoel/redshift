@@ -187,9 +187,8 @@ module TransitionSyntax
       for arg in args
         case arg
         when Hash;    guard.concat arg.to_a   # { :link => :event }
-        when Array;   guard << arg            # [:link, :event]
-                                                       ### , value] ?
-        when String;  raise NotImplementedError ### # "c expr"
+        when Array;   guard << arg            # [:link, :event] ## , value] ?
+        when String;  guard << CexprGuard.new(arg.strip)
         when Proc;    guard << arg            # proc { ... }
         else          raise SyntaxError
         end
@@ -275,6 +274,11 @@ def Component.transition(edges = {}, &block)
     end
     t = TransitionSyntax.parse(block)
     exported = {}
+    if t.guard
+      t.guard.map! do |g|
+        g.is_a?(CexprGuard) ? define_guard(g) : g
+      end
+    end
     for phase in t.phases
       if phase.is_a? Component::Event
         for ev_pair in phase

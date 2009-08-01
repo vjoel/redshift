@@ -189,7 +189,7 @@ class World
       long              all_were_g, all_are_g;
       long              zeno_counter;
       long              zeno_limit;
-      static VALUE      ExitState;
+      static VALUE      ExitState, GuardWrapperClass;
       static VALUE      ActionClass, ResetClass, EventClass, GuardClass;
     }.tabto(0)
     insteval_proc = declare_symbol :insteval_proc
@@ -238,25 +238,56 @@ class World
         comp_shdw->world = Qnil;
         --RARRAY(list)->len;
       }
-      inline int guard_enabled(VALUE comp, VALUE guard)
+      inline int test_cexpr_guard(VALUE comp, VALUE guard)
+      {
+        int (*fn)(ComponentShadow *), rslt;
+        assert(RTEST(rb_obj_is_kind_of(guard, GuardWrapperClass)));
+        fn = ((#{RedShift::Component::GuardWrapper.shadow_struct.name} *)
+               get_shadow(guard))->guard;
+        rslt = (*fn)(get_shadow(comp));
+//#printf(" Result = %d", rslt);
+        return rslt;
+      }
+      inline int test_event_guard(VALUE comp, VALUE guard)
+      {
+        VALUE link  = RARRAY(guard)->ptr[0];
+        VALUE event = RARRAY(guard)->ptr[1];
+        return RTEST(rb_funcall(comp, #{test_event}, 2, link, event));
+      }
+      inline int guard_enabled(VALUE comp, VALUE guards)
       {
         int i;
-        assert(BUILTIN_TYPE(guard) == T_ARRAY);
-        for (i = 0; i < RARRAY(guard)->len; i++) {
-          VALUE g = RARRAY(guard)->ptr[i];
-          if (BUILTIN_TYPE(g) == T_ARRAY) {
-            assert(RARRAY(g)->len == 2);    //## Future: allow 3: [l,e,value]
-            {
-              VALUE link_sym  = RARRAY(g)->ptr[0];
-              VALUE event     = RARRAY(g)->ptr[1];
-              
-              if (!RTEST(rb_funcall(comp, #{test_event}, 2, link_sym, event)))
+        assert(BUILTIN_TYPE(guards) == T_ARRAY);
+        for (i = 0; i < RARRAY(guards)->len; i++) {
+          VALUE guard = RARRAY(guards)->ptr[i];
+
+          switch (BUILTIN_TYPE(guard)) {
+          case T_DATA:
+            if (RBASIC(guard)->klass == rb_cProc) {
+              if (!RTEST(rb_funcall(comp, #{insteval_proc}, 1, guard)))
+                return 0;   //### faster way to call instance_eval ???
+            }
+            else {
+              assert(!RTEST(rb_obj_is_kind_of(guard, rb_cProc)));
+              if (!test_cexpr_guard(comp, guard))
                 return 0;
             }
-          }
-          else //# assume Proc
-            if (!RTEST(rb_funcall(comp, #{insteval_proc}, 1, g)))
+            break;
+          case T_ARRAY:
+            assert(RARRAY(guard)->len == 2); //## Future: allow 3: [l,e,value]
+            if (!zeno_counter || !test_event_guard(comp, guard))
               return 0;
+            break;
+          case T_CLASS:
+            assert(RTEST(rb_mod_lt(guard, GuardWrapperClass)));
+            guard = rb_funcall(guard, #{declare_symbol :instance}, 0);
+            RARRAY(guards)->ptr[i] = guard;
+            if (!test_cexpr_guard(comp, guard))
+              return 0;
+            break;
+          default:
+            assert(false);
+          }
         }
         return 1;
       }
@@ -324,11 +355,13 @@ class World
     '.tabto(0)
     comp_id = declare_class RedShift::Component
     init %{
-      ExitState   = rb_const_get(#{comp_id}, #{declare_symbol :Exit});
-      ActionClass = rb_const_get(#{comp_id}, #{declare_symbol :Action});
-      ResetClass  = rb_const_get(#{comp_id}, #{declare_symbol :Reset});
-      EventClass  = rb_const_get(#{comp_id}, #{declare_symbol :Event});
-      GuardClass  = rb_const_get(#{comp_id}, #{declare_symbol :Guard});
+      ExitState     = rb_const_get(#{comp_id}, #{declare_symbol :Exit});
+      ActionClass   = rb_const_get(#{comp_id}, #{declare_symbol :Action});
+      ResetClass    = rb_const_get(#{comp_id}, #{declare_symbol :Reset});
+      EventClass    = rb_const_get(#{comp_id}, #{declare_symbol :Event});
+      GuardClass    = rb_const_get(#{comp_id}, #{declare_symbol :Guard});
+      GuardWrapperClass
+                    = rb_const_get(#{comp_id}, #{declare_symbol :GuardWrapper});
     }
     body %{
       all_were_g = 1;

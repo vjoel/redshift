@@ -16,7 +16,8 @@ include RedShift
 #
 # [Note: exceptions caused by algebraically defining a strict var
 #  in terms of a non-strict var are caught at compile time. See
-#  test_strictness_error.rb.]
+#  test_strictness_error.rb. Similarly, a reset on a strict var can
+#  be caught at compile time. See test_strict_reset_error.rb.]
 
 class SCWorld < World
   def num_checks
@@ -64,7 +65,7 @@ class A < TestComponent
     name "t2"
     guard " x > 0.73 "
   end
-
+  
   def assert_consistent(test)
     case state
     when Enter
@@ -73,9 +74,14 @@ class A < TestComponent
       t1_count = num_checks["t1"]
       t2_count = num_checks["t2"]
       
-      test.assert(world.step_count, t1_count)
-      test.assert(world.step_count, t2_count)
-    
+      step_count = world.step_count
+      step_count = (step_count == 0 ? step_count : step_count + 1)
+      # This accounts for the fact that step_discrete is called an "extra"
+      # time at the start of one call to World#step or #evolve.
+      
+      test.assert_equal(step_count, t1_count)
+      test.assert_equal(step_count, t2_count)
+      
     when Exit
       ## we really only need to do these tests once...
       old_x = x
@@ -128,7 +134,7 @@ class B < TestComponent
   
   transition S => T do
     guard "time > 0"
-    action {self.time = 0} # so we do it again next timestep
+    reset :time => 0 # so we do it again next timestep
   end
   
   transition T => U
@@ -146,7 +152,7 @@ class B < TestComponent
   end
 end
 
-class D < Component
+class D1 < Component
   strictly_continuous :x
   setup do
     self.x = 1
@@ -158,7 +164,26 @@ class D < Component
     algebraic " x = 2 "
   end
   
-  transition Enter => Inconsistent
+  transition Enter => Inconsistent do
+    guard "x > 0"
+  end
+end
+
+class D2 < Component
+  strictly_continuous :x
+  setup do
+    self.x = 1
+  end
+  
+  state :Inconsistent
+  
+  flow Inconsistent do
+    algebraic " x = 2 "
+  end
+  
+  transition Enter => Inconsistent do
+    guard {x > 0}
+  end
 end
 
 
@@ -200,10 +225,17 @@ class TestStrictContinuity < Test::Unit::TestCase
     assert(b)
   end
   
-  def test_algebraic_inconsistency
-    d = @world.create(D)
+  def test_algebraic_inconsistency1
+    d = @world.create(D1)
     assert_raises(RedShift::StrictnessError) do
-      @world.run 1
+      @world.run 10
+    end
+  end
+  
+  def test_algebraic_inconsistency2
+    d = @world.create(D2)
+    assert_raises(RedShift::StrictnessError) do
+      @world.run 10
     end
   end
 end

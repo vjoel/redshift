@@ -26,7 +26,8 @@ class World
   protected \
     :curr_P=, :curr_E=, :curr_R=, :curr_G=,
     :next_P=, :next_E=, :next_R=, :next_G=,
-    :active_E=, :prev_active_E=, :strict_sleep=
+    :active_E=, :prev_active_E=, :strict_sleep=,
+    :finishers
   
   shadow_attr_accessor :time_step    => "double   time_step"
   shadow_attr_accessor :zeno_limit   => "long     zeno_limit"
@@ -39,7 +40,7 @@ class World
   shadow_attr_reader   :discrete_phase  => Symbol
   
   class << self
-    # Redefine World#new so that a library commit happens first.
+    # Redefines World#new so that a library commit happens first.
     def new(*args, &block)
       commit              # redefines World.new  
       new(*args, &block)  # which is what this line calls
@@ -63,7 +64,7 @@ class World
   slif.declare :get_shadow => %{
     inline static ComponentShadow *get_shadow(VALUE comp)
     {
-      assert(rb_obj_is_kind_of(comp, #{slif.declare_class Component}));
+      assert(RTEST(rb_obj_is_kind_of(comp, #{slif.declare_module CShadow})));
       return (ComponentShadow *)DATA_PTR(comp);
     }
   }
@@ -189,7 +190,8 @@ class World
         while (l->len)
           move_comp(l->ptr[l->len-1], list, next_list);
       }
-      inline static void remove_comp(VALUE comp, VALUE list)
+      inline static void remove_comp(VALUE comp, VALUE list,
+                                   #{World.shadow_struct.name} *shadow)
       {
         ComponentShadow *comp_shdw = get_shadow(comp);
         assert(RARRAY(list)->ptr[RARRAY(list)->len-1] == comp);
@@ -310,8 +312,9 @@ class World
             var->ck_strict = 0;
             (*var->flow)((ComponentShadow *)comp_shdw);
             if (var->value_0 != var->value_1) {
-              rb_raise(#{declare_class StrictnessError},
-                      "Transition violates strictness");
+              rb_funcall(comp_shdw->self,
+                #{declare_symbol :handle_strictness_error}, 3, INT2NUM(i),
+                rb_float_new(var->value_0), rb_float_new(var->value_1));
             }
           }
         }
@@ -331,12 +334,11 @@ class World
             else if (klass == ResetClass)
               move_comp(comp, list, shadow->next_R);
             else
-              rb_raise(#{declare_class ScriptError},
-                "\\nBad phase type.\\n");
+              rb_raise(#{declare_class ScriptError}, "Bad phase type.");
           }
           else {
             if (comp_shdw->dest == ExitState)
-              remove_comp(comp, list);
+              remove_comp(comp, list, shadow);
             else
               move_comp(comp, list, shadow->next_G);
             rb_ary_push(shadow->finishers, comp); //## optimize
@@ -395,7 +397,6 @@ class World
     
     body %{
       //%% hook_begin();
-      
       started_events = 0;
       all_were_g = 1;
       shadow->zeno_counter = 0;
@@ -412,7 +413,7 @@ class World
         shadow->discrete_phase = guard_phase_sym;
 
         EACH_COMP_ADVANCE(shadow->curr_G) {
-          len = RARRAY(comp_shdw->outgoing)->len;
+          len = RARRAY(comp_shdw->outgoing)->len - 1; //# last is strict flag
           ptr = RARRAY(comp_shdw->outgoing)->ptr;
           
           while (len) {
@@ -449,13 +450,19 @@ class World
         SWAP_VALUE(shadow->curr_R, shadow->next_R);
         SWAP_VALUE(shadow->curr_G, shadow->next_G);
 
-        EACH_COMP_DO(shadow->finishers) {
-          finish_trans(comp_shdw, shadow);
+        if (RARRAY(shadow->finishers)->len) {
+          EACH_COMP_DO(shadow->finishers) {
+            finish_trans(comp_shdw, shadow);
+          }
+          EACH_COMP_DO(shadow->finishers) {
+            check_strict(comp_shdw, shadow);
+            //## optimize: only keep comps with var->ck_strict on this list
+            //## option to skip this check
+          }
+          RARRAY(shadow->finishers)->len = 0;
+          d_tick++; //# In case some comp entered new state with new alg. eqns.
+          //## optimize by detecting just this condition
         }
-        EACH_COMP_DO(shadow->finishers) {
-          check_strict(comp_shdw, shadow);
-        }
-        RARRAY(shadow->finishers)->len = 0;
         
         //# Done stepping if no transitions happened or are about to begin.
         all_are_g = !RARRAY(shadow->curr_P)->len &&
@@ -496,8 +503,6 @@ class World
             //## for procs, using code similar to that for guards.
 //#            rb_obj_instance_eval(1, &RARRAY(procs)->ptr[i], comp);
 //# rb_iterate(my_instance_eval, comp, call_block, RARRAY(procs)->ptr[i]);
-//# The following is not needed any more, since writers do it.
-//#            d_tick++;   //# each proc may invalidate algebraic flows
           }
         }
         //%% hook_leave_proc_phase();
@@ -593,16 +598,18 @@ class World
           SWAP_VALUE(comp_shdw->event_values, comp_shdw->next_event_values);
         }
         
-        EACH_COMP_ADVANCE(shadow->curr_R) {
-          ContVar  *var     = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
-          VALUE     resets  = cur_resets(comp_shdw);
+        if (RARRAY(shadow->curr_R)->len) {
+          EACH_COMP_ADVANCE(shadow->curr_R) {
+            ContVar  *var     = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
+            VALUE     resets  = cur_resets(comp_shdw);
 
-          len = RARRAY(resets)->len;
-          for (i = len; i > 0; i--, var++)
-            var->value_0 = var->value_1;
+            len = RARRAY(resets)->len;
+            for (i = len; i > 0; i--, var++)
+              var->value_0 = var->value_1;
+          }
+          d_tick++;   //# resets may invalidate algebraic flows
         }
-        d_tick++;   //# resets may invalidate algebraic flows
-        //## optimization: don't incr if no resets? Change name of d_tick!
+        
         //%% hook_end_parallel_assign();
       }
       

@@ -61,7 +61,11 @@ class Flow
                    (rk_level == 0 && #{cs_cname}->#{var}.d_tick != d_tick))
                   (*#{cs_cname}->#{var}.flow)((ComponentShadow *)#{sh_cname});
               }
+              else {
+                #{cs_cname}->#{var}.d_tick = d_tick;
+              }
             }
+            # The d_tick assignment is explained in component-gen.rb.
             setup << %{
               #{var_cname} = #{cs_cname}->#{var}.value_#{rk_level};
             }.tabto(0).split("\n")
@@ -175,10 +179,14 @@ class Flow
                  (rk_level == 0 && #{cont_var}.d_tick != d_tick))
                 (*#{cont_var}.flow)((ComponentShadow *)ct->#{link_cname});
             }
+            else {
+              #{cont_var}.d_tick = d_tick;
+            }
           }
           return &(#{cont_var});
         }
       } ## algebraic test is same as above
+      # The d_tick assignment is explained in component-gen.rb.
       #    struct #{cl.shadow_struct.name} *shadow;
 
       translation[expr] = "#{get_var_cname}(&ct)->value_#{rk_level}"

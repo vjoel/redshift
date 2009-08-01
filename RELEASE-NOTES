@@ -1,3 +1,11 @@
+redshift 1.1.44
+
+- Fixed reporting of strictness violations.
+
+- Added test/test_strict_reset_error.rb.
+
+- Outgoing transitions are cached for each state.
+
 redshift 1.1.43
 
 - Optimization for strictly continuous var readers.

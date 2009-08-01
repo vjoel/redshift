@@ -181,6 +181,7 @@ class Component
 
     init_strict_flags
     update_cache
+    clear_ck_strict # update_cache leaves these set assuming finishing a trans
   end
 
   def do_defaults

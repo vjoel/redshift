@@ -324,12 +324,25 @@ module RedShift
                   if (cont_state->#{var_name}.algebraic &&
                       (cont_state->#{var_name}.strict ?
                        !cont_state->#{var_name}.d_tick :
-                       cont_state->#{var_name}.d_tick != d_tick))
+                       cont_state->#{var_name}.d_tick != d_tick)) {
                     (*cont_state->#{var_name}.flow)((ComponentShadow *)shadow);
+                  }
+                  else {
+                    cont_state->#{var_name}.d_tick = d_tick;
+                  }
                 }
+                # The d_tick assign above is because we now know that the
+                # current-ness of the value has been relied upon (possibly to
+                # go to strict sleep), and so the ck_strict flag must be set
+                # later, so strictness will get checked at the end of any
+                # transitions (but only if someone has relied on it).
+                
                 returns "rb_float_new(cont_state->#{var_name}.value_0)"
               end
             }
+            
+            ## the .strict ? check can be done statically (but cost is
+            ## recompile if strict decl changes).
 
             if kind == :strict
               exc2 = shadow_library.declare_class StrictnessError
@@ -340,10 +353,10 @@ module RedShift
                   declare :cont_state => "#{ssn} *cont_state"
                   body %{
                     cont_state = (#{ssn} *)shadow->cont_state;
-                    if (cont_state->#{var_name}.algebraic)
-                      rb_raise(#{exc}, #{msg.inspect});
                     cont_state->#{var_name}.value_0 = NUM2DBL(value);
                     d_tick++;
+                    if (cont_state->#{var_name}.algebraic)
+                      rb_raise(#{exc}, #{msg.inspect});
                     if (!NIL_P(shadow->state))
                       rb_raise(#{exc2}, #{msg2.inspect});
                   }
@@ -358,10 +371,10 @@ module RedShift
                   declare :cont_state => "#{ssn} *cont_state"
                   body %{
                     cont_state = (#{ssn} *)shadow->cont_state;
-                    if (cont_state->#{var_name}.algebraic)
-                      rb_raise(#{exc}, #{msg.inspect});
                     cont_state->#{var_name}.value_0 = NUM2DBL(value);
                     d_tick++;
+                    if (cont_state->#{var_name}.algebraic)
+                      rb_raise(#{exc}, #{msg.inspect});
                   }
                   returns "value"
                 end
@@ -608,7 +621,7 @@ module RedShift
       def define_reset_continuous cont_var, expr, phase
         if cont_var.strict?
           raise StrictnessError,
-            "Cannot reset strictly continuous #{var} in #{self}.", []
+            "Cannot reset strictly continuous #{cont_var} in #{self}.", []
         end
 
         case expr
@@ -632,7 +645,7 @@ module RedShift
             "Cannot reset strictly constant #{var} in #{self}.", []
         end
         
-        raise ### TODO
+        raise "Unimplemented" ###
       end
 
       def define_reset_link var, expr, phase
@@ -642,7 +655,7 @@ module RedShift
             "Cannot reset strict link #{var} in #{self}.", []
         end
         
-        raise ### TODO
+        raise "Unimplemented" ###
       end
 
       def define_transitions(state)
@@ -697,6 +710,31 @@ module RedShift
         }
       }
     end
+    
+    define_c_method :clear_ck_strict do
+      declare :locals => %{
+        ContVar    *vars;
+        long        var_count;
+        long        i;
+      }
+      body %{
+        vars = (ContVar *)&FIRST_CONT_VAR(shadow);
+        var_count = shadow->var_count;
+
+        for (i = 0; i < var_count; i++) {
+          vars[i].ck_strict = 0;
+        }
+      }
+    end
+    
+    # Called by World#step_discrete.
+    # Only for certain kinds of strictness errors.
+    def handle_strictness_error var_idx, new_val, old_val
+      var_name = cont_state.var_at_index(var_idx).name
+      raise StrictnessError,
+        "Transition violated strictness: var #{var_name}:" +
+        " new value #{new_val} != #{old_val} in #{self.inspect}"
+    end
 
     define_c_method :update_cache do body "__update_cache(shadow)" end
 
@@ -727,7 +765,7 @@ module RedShift
         shadow->outgoing = rb_funcall(shadow->self,
                            #{declare_symbol :outgoing_transitions}, 0);
 
-        strict = rb_funcall(shadow->outgoing, #{declare_symbol :pop}, 0);
+        strict = rb_funcall(shadow->outgoing, #{declare_symbol :last}, 0);
         shadow->strict = RTEST(strict);
 
         //# Cache flows.
@@ -753,7 +791,8 @@ module RedShift
               Data_Get_Struct(flows[i], #{flow_wrapper_type}, flow_wrapper);
               var->flow         = flow_wrapper->flow;
               var->algebraic    = flow_wrapper->algebraic;
-              if (var->flow && var->algebraic && var->strict) {
+              if (var->flow && var->algebraic && var->strict &&
+                  var->d_tick > 0) { //# did anyone rely on the strictness?
                 var->value_1    = var->value_0;
                 var->ck_strict  = 1;
               }

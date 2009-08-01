@@ -105,7 +105,28 @@ class Component
       @cached_transitions ||= {}
       @cached_transitions[s] ||= transitions(s).values
     end
-    
+  
+    def cached_outgoing_transitions s
+      @cached_outgoing_transitions ||= {}
+      @cached_outgoing_transitions[s] ||=
+        begin
+          ary = []
+          strict = true
+          cached_transitions(s).each do |t, d|
+            ary << t << d << t.phases << t.guard
+
+            guard_list = t.guard
+            guard_list and guard_list.each do |g|
+              strict &&= g.respond_to?(:strict) && g.strict
+            end
+          end
+
+          ary << strict # just a faster way to return mult. values
+          ary.freeze
+          ary
+        end
+    end
+
     # kind is :strict, :piecewise, or :permissive
     def attach_continuous_variables(kind, var_names)
       var_names.each do |var_name|
@@ -133,23 +154,8 @@ class Component
     self.class.cached_transitions s
   end
   
-  ## move into C code in __update_cache?
-  ## can't this be cached in some per-class location?
-  ## This seems to be a major bottleneck.
   def outgoing_transitions
-    ary = []
-    strict = true
-    for t, d in transitions
-      ary << t << d << t.phases << t.guard
-      
-      ## this is inefficient -- cache by state?
-      guard_list = t.guard
-      if guard_list
-        guard_list.each {|g| strict &&= g.respond_to?(:strict) && g.strict }
-      end
-    end
-
-    ary << strict # just a faster way to return mult. values
+    self.class.cached_outgoing_transitions state
   end
   
 end # class Component

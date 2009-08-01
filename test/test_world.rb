@@ -93,7 +93,8 @@ end
 
 # test create and remove
 
-if World.methods.include? :remove
+puts "World#remove TEST DISABLED **************************"
+if false && World.instance_methods.include?("remove")
   class World_3 < World
     setup do @x = create(Component) end
     def run
@@ -109,7 +110,8 @@ end
 
 # test garbage collection
 
-if World.methods.include? :remove
+puts "GC TEST DISABLED **************************"
+if false
   class World_4 < World
     setup do
       @x = create(Component)

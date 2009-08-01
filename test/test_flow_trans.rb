@@ -110,7 +110,7 @@ end
 
 # Test what happens to a var when transitioning from a state in which
 # it is defined algebraically to a state in which is has no definition.
-# (This isn't quite the same as Flow_StateChange.)
+# (This isn't quite the same as Flow_Transition.)
 
 class Flow_AlgebraicToEmptyFlow < FlowTestComponent
   state :A, :B
@@ -125,6 +125,37 @@ class Flow_AlgebraicToEmptyFlow < FlowTestComponent
   end  
 end
 
+
+# Test what happens when a transition changes the algebraic flow of a variable
+
+class Flow_AlgToAlg < FlowTestComponent
+  state :A, :B
+  flow A, B do diff "t' = 1" end
+  flow A do alg "x = 1" end
+  flow B do alg "x = 2" end
+  start A
+  transition A => B do
+    guard "t > 0.2"
+    action do
+      @snapshotA = x
+    end
+  end
+  transition B => B do
+    guard {!@snapshotB}
+    action do
+      @snapshotB = x
+    end
+  end
+  def assert_consistent test
+    return if t > 0.4 ## should be a way to remove this component
+    case state
+    when A; test.assert_equal(1, x)
+    when B; test.assert_equal(2, x)
+            test.assert_equal(1, @snapshotA)
+            test.assert_equal(2, @snapshotB)
+    end
+  end
+end
 
 # Test what happens during an action when an algebraic flow's inputs change.
 # The alg flow's value *does* change during the action, if there are changes

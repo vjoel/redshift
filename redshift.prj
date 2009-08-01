@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 1.1 43)
-(Parent-Version redshift 1.1 42)
+(Project-Version redshift 1.1 44)
+(Parent-Version redshift 1.1 43)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Tue, 13 Feb 2007 19:08:09 -0800")
+(Checkin-Time "Mon, 24 Dec 2007 10:22:24 -0800")
 (Checkin-Login vjoel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -228,7 +228,7 @@
 ;; Files added by populate at Sat, 16 Feb 2002 11:18:53 -0800,
 ;; to version 0.21(w), by tercel:
 
-  (test/test_world.rb (redshift/43_test_world 1.15 644))
+  (test/test_world.rb (redshift/43_test_world 1.16 644))
 
 ;; Files deleted by depopulate at Sun, 31 Mar 2002 00:14:51 -0800,
 ;; from version 0.23(w), by tercel:
@@ -297,14 +297,14 @@
 ;; Files added by populate at Mon, 13 May 2002 15:01:46 -0700,
 ;; to version 1.0.6(w), by tercel:
 
-  (test/test_flow_trans.rb (redshift/b/8_test_flow_ 1.8 644))
+  (test/test_flow_trans.rb (redshift/b/8_test_flow_ 1.9 644))
   (test/test_flow_sub.rb (redshift/b/9_test_flow_ 1.6 644))
   (test/test_flow_link.rb (redshift/b/10_test_flow_ 1.7 644))
 
 ;; Files added by populate at Thu, 16 May 2002 00:16:02 -0700,
 ;; to version 1.0.7(w), by tercel:
 
-  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.7 644))
+  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.8 644))
 
 ;; Files added by populate at Thu, 16 May 2002 00:16:26 -0700,
 ;; to version 1.0.7(w), by tercel:
@@ -386,21 +386,21 @@
 
   (lib/redshift/world.rb (redshift/b/30_world.rb 1.15 644))
   (lib/redshift/target/spec.rb (redshift/b/31_spec.rb 1.1 644))
-  (lib/redshift/target/c/world-gen.rb (redshift/b/32_world-gen. 1.17 644))
+  (lib/redshift/target/c/world-gen.rb (redshift/b/32_world-gen. 1.18 644))
   (lib/redshift/target/c.rb (redshift/b/33_c.rb 1.3 644))
   (lib/redshift/target/c/library.rb (redshift/b/34_library.rb 1.3 644))
-  (lib/redshift/target/c/flow-gen.rb (redshift/b/35_flow-gen.r 1.9 644))
-  (lib/redshift/target/c/component-gen.rb (redshift/b/36_component- 1.20 644))
+  (lib/redshift/target/c/flow-gen.rb (redshift/b/35_flow-gen.r 1.10 644))
+  (lib/redshift/target/c/component-gen.rb (redshift/b/36_component- 1.21 644))
   (lib/redshift/syntax.rb (redshift/b/37_syntax.rb 1.12 644))
   (lib/redshift/state.rb (redshift/b/38_state.rb 1.1 644))
   (lib/redshift/redshift.rb (redshift/b/39_redshift.r 1.8 644))
-  (lib/redshift/meta.rb (redshift/b/40_meta.rb 1.6 644))
-  (lib/redshift/component.rb (redshift/b/41_component. 1.15 644))
+  (lib/redshift/meta.rb (redshift/b/40_meta.rb 1.7 644))
+  (lib/redshift/component.rb (redshift/b/41_component. 1.16 644))
 
 ;; Files added by populate at Sun, 16 May 2004 11:14:12 -0700,
 ;; to version 1.0.23(w), by vjoel:
 
-  (test/test_strict_continuity.rb (redshift/b/42_test_stric 1.8 644))
+  (test/test_strict_continuity.rb (redshift/b/42_test_stric 1.9 644))
   (test/test_reset.rb (redshift/b/43_test_reset 1.4 644))
   (test/test_exit.rb (redshift/b/44_test_exit. 1.3 644))
 
@@ -428,7 +428,7 @@
 ;; Files added by populate at Fri, 28 May 2004 14:39:08 -0700,
 ;; to version 1.1.10(w), by vjoel:
 
-  (TODO (redshift/b/49_TODO 1.17 644))
+  (TODO (redshift/b/49_TODO 1.18 644))
 
 ;; Files added by populate at Fri, 28 May 2004 19:33:23 -0700,
 ;; to version 1.1.10(w), by vjoel:
@@ -464,6 +464,11 @@
 ;; to version 1.1.19(w), by vjoel:
 
   (lib/accessible-index.rb (redshift/c/4_accessible 1.1 644))
+
+;; Files added by populate at Mon, 24 Dec 2007 10:18:45 -0800,
+;; to version 1.1.43(w), by vjoel:
+
+  (test/test_strict_reset_error.rb (redshift/c/5_test_stric 1.1 644))
 )
 (Merge-Parents)
 (New-Merge-Parents)

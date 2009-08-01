@@ -6,6 +6,13 @@ Bugs
   Make sure the arrays used internally are not shared:
   call rb_ary_modify() before setting len or etc.
   
+  discrete_update is not reentrant -- fix by putting globals
+  into world state
+  
+  what happens if an exception (or throw or break) happens inside
+  of a block during discrete_update? (e.g. an action, reset, or
+  guard block)
+  
 Syntax
 
   replace strictly_* with strict_* and alias back for compat
@@ -36,8 +43,14 @@ Syntax
     ditto for flows and other methods defined in subclasses
     can we 'hook' method def and attr def to check for conflict? 
     or just use a consistent naming scheme to keep internals separate?
+  
+  flow /Foo.*/ ...
+    matches on name of states
 
 Semantics
+
+  register event observers:
+    on comp=>event do ... end
 
   Does permissive make sense?
 
@@ -220,6 +233,29 @@ Semantics
   world class, which the class could override as needed
 
 Implementation
+
+  Allow c-coded actions:
+  
+    transition do
+      action " func(self, x*2, lnk.y) "
+    end
+    
+    cdef <<END
+      func(SelfShadowClass *self, double arg1, double arg2) {
+        ...
+      }
+    END
+
+  Store the evaluated state for each component/strict-guard pair, so that
+  it only has to be evaluated once. (Like strict sleep, but partial.)
+
+  Optimization: d_tick = 0 means "never evaluated";
+    d_tick = 1 means correct as of start of discrete update
+    
+    -- this should mean one less eval of alg flows at start of discrete update
+    
+    -- warning: during cont update, alg flows are only updated if explicitly
+       referenced by diff flows
 
   Debug mode that uses hooks to add extra checking:
   

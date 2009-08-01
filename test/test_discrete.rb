@@ -319,9 +319,46 @@ class Discrete_13 < DiscreteTestComponent
   end
 end
 
+# test that resets and events happen in parallel
+
+class Discrete_14 < DiscreteTestComponent
+  state :A1, :A2
+  continuous :x, :y, :z
+  link :other => self
+
+  default {start A1}
+  setup { self.other ||= create(self.class) {|c| start A2; c.other = self} }
+
+  transition A1 => Exit do
+    reset :x => 1
+    event :e => proc { other.x }
+  end
+  transition A2 => Exit do
+    reset :x => 2
+    reset :x => proc { other.e.to_i }
+    reset :y => proc { other.e.to_i }
+    reset :z => proc { other.e.to_i }
+  end
+
+  def assert_consistent test
+    case start_state
+    when A1
+      test.assert_equal(1, x)
+      test.assert_equal(0, y)
+      test.assert_equal(0, z)
+    when A2
+      test.assert_equal(0, x)
+      test.assert_equal(2, y)
+      test.assert_equal(0, z)
+    else
+      test.flunk
+    end
+  end
+end
+
 =begin
 
-test timing of various combinations of
+test timing of other combinations of
   action, guard, event, reset
 
 test guard phases

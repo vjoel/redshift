@@ -512,28 +512,6 @@ class World
           }
 
           rb_ary_push(shadow->active_E, comp); //## optimize
-        } 
-        
-        //# Clear old event values from previous step.
-        ptr = RARRAY(shadow->prev_active_E)->ptr;
-        len = RARRAY(shadow->prev_active_E)->len;
-        for (i = len; i > 0; i--) {
-          comp = *ptr++;
-          comp_shdw = get_shadow(comp);
-
-          rb_mem_clear(RARRAY(comp_shdw->event_values)->ptr,
-                       RARRAY(comp_shdw->event_values)->len);
-        }
-        RARRAY(shadow->prev_active_E)->len = 0;
-        
-        //# Export new event values.
-        ptr = RARRAY(shadow->active_E)->ptr;
-        len = RARRAY(shadow->active_E)->len;
-        for (i = len; i > 0; i--) {
-          comp = *ptr++;
-          comp_shdw = get_shadow(comp);
-
-          SWAP_VALUE(comp_shdw->event_values, comp_shdw->next_event_values);
         }
         //%% hook_leave_event_phase();
         
@@ -583,6 +561,30 @@ class World
           }
         }
 
+        //# Clear old event values from previous step.
+        //#   (As of v1.1.32, considered as part of reset phase)
+        ptr = RARRAY(shadow->prev_active_E)->ptr;
+        len = RARRAY(shadow->prev_active_E)->len;
+        for (i = len; i > 0; i--) {
+          comp = *ptr++;
+          comp_shdw = get_shadow(comp);
+
+          rb_mem_clear(RARRAY(comp_shdw->event_values)->ptr,
+                       RARRAY(comp_shdw->event_values)->len);
+        }
+        RARRAY(shadow->prev_active_E)->len = 0;
+        
+        //# Export new event values.
+        //#   (As of v1.1.32, considered as part of reset phase)
+        ptr = RARRAY(shadow->active_E)->ptr;
+        len = RARRAY(shadow->active_E)->len;
+        for (i = len; i > 0; i--) {
+          comp = *ptr++;
+          comp_shdw = get_shadow(comp);
+
+          SWAP_VALUE(comp_shdw->event_values, comp_shdw->next_event_values);
+        }
+        
         EACH_COMP_ADVANCE(shadow->curr_R) {
           ContVar  *var     = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
           VALUE     resets  = cur_resets(comp_shdw);

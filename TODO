@@ -30,7 +30,8 @@ Syntax
 
 Semantics
 
-  evaluate Events in parallel with Resets
+  one phase should be able to have both events and resets
+    because we evaluate Events in parallel with Resets
   
   inheritance among states:
   
@@ -184,7 +185,7 @@ Implementation
   guards should not be written in numerical order (".._0", "..._1"), but
   in a more meaningful way so that changing order doesn't force recompile
   
-  unified internal rep. or phases
+  unified internal repr. for phases
   
   insert a mnemonic for quick detection of phase type in discrete update
 

@@ -96,19 +96,16 @@ class Trans_3 < TransTestComponent
 end
 
 class Trans_3_1 < Trans_3
-  def assert_consistent test
-    # just so it gets created
-  end
 end
 
 class Trans_3a < TransTestComponent
   state :A
+  link :c
+  setup {self.c = create(Trans_3_1)}
+  
   transition Enter => A do
-    guard {
-      ObjectSpace.each_object(Trans_3_1) {|@t|}
-      @t.e == "fred"
-    }
-    action { @worked = true }
+    sync :c => :e
+    action { @worked = (c.e == "fred") }
   end
   def assert_consistent test
     test.assert(world.clock == 0 || @worked)

@@ -232,7 +232,7 @@ class World
     parent.declare :static_locals => %{
       static VALUE      ExitState, GuardWrapperClass, ExprWrapperClass;
       static VALUE      ActionClass, EventClass, ResetClass, GuardClass;
-      static VALUE      GuardPhaseItemClass, QMatchClass;
+      static VALUE      QMatchClass;
       static VALUE      PostClass, DynamicEventClass, SyncClass;
     }.tabto(0)
     
@@ -249,7 +249,6 @@ class World
     
     insteval_proc = declare_symbol :insteval_proc
     capa = RUBY_VERSION.to_f >= 1.7 ? "aux.capa" : "capa"
-    gpi = Component::GuardPhaseItem
     epi = Component::EventPhaseItem
     spi = Component::SyncPhaseItem
     
@@ -334,20 +333,6 @@ class World
         rslt = (*fn)(get_shadow(comp));
         return rslt;
       }
-      inline static int test_event_guard(VALUE comp, VALUE guard)
-      {
-        VALUE link  = RARRAY(guard)->ptr[#{gpi::LINK_OFFSET_IDX}];
-        VALUE event = RARRAY(guard)->ptr[#{gpi::EVENT_INDEX_IDX}];
-        int link_offset = FIX2INT(link);
-        int event_idx = FIX2INT(event);
-        ComponentShadow *comp_shdw = get_shadow(comp);
-        ComponentShadow **link_shdw =
-          (ComponentShadow **)(((char *)comp_shdw) + link_offset);
-        VALUE event_value = *link_shdw ? 
-          RARRAY((*link_shdw)->event_values)->ptr[event_idx] : Qnil;
-
-        return event_value != Qnil; //# Qfalse is a valid event value.
-      }
       inline static int guard_enabled(VALUE comp, VALUE guards,
                                       int discrete_step)
       {
@@ -377,11 +362,7 @@ class World
 
             case T_ARRAY:
               kl = RBASIC(guard)->klass;
-              if (kl == GuardPhaseItemClass) {
-                if (discrete_step == 0 || !test_event_guard(comp, guard))
-                  return 0;
-              }
-              else if (kl == QMatchClass) {
+              if (kl == QMatchClass) {
                 int len = RARRAY(guard)->len;
                 VALUE *ptr = RARRAY(guard)->ptr;
                 assert(len > 0);
@@ -635,15 +616,21 @@ class World
                 default:
                   if (RBASIC(reset)->klass == rb_cProc) {
                     VALUE val = rb_funcall(comp, #{insteval_proc}, 1, reset);
-                    if (TYPE(val) == T_FLOAT)
-                      new_value = NUM2DBL(val);
-                    else {
-                      VALUE to_s = #{declare_symbol :to_s};
-                      rs_raise(#{declare_class VarTypeError}, comp,
-                        "tried to reset cont var with %s.",
-                        STR2CSTR(rb_funcall(
-                          rb_funcall(val, #{declare_symbol :class}, 0), to_s, 0))
-                      );
+                    switch(TYPE(val)) {
+                      case T_FLOAT:
+                        new_value = RFLOAT(val)->value;
+                        break;
+                      case T_FIXNUM:
+                        new_value = FIX2INT(val);
+                        break;
+                      default:
+                        rs_raise(#{declare_class VarTypeError}, comp,
+                          "tried to reset cont var with %s.",
+                          STR2CSTR(rb_funcall(
+                            rb_funcall(val, #{declare_symbol :class}, 0),
+                            #{declare_symbol :to_s},
+                            0))
+                        );
                     }
                   }
                   else
@@ -779,12 +766,10 @@ class World
         return did_reset;
       }
 
-      inline static void do_actions(ComponentShadow *comp_shdw, int type,
+      inline static void do_actions(ComponentShadow *comp_shdw, VALUE actions,
                               #{World.shadow_struct.name} *shadow)
       {
         long  i;
-        VALUE actions = type == 0 ?
-          cur_actions(comp_shdw) : cur_posts(comp_shdw);
         VALUE comp    = comp_shdw->self;
         
         assert(RTEST(actions));
@@ -900,8 +885,6 @@ class World
       ResetClass    = #{get_const[:ResetPhase]};
       GuardClass    = #{get_const[:GuardPhase]};
       SyncClass     = #{get_const[:SyncPhase]};
-      GuardPhaseItemClass
-                    = #{get_const[:GuardPhaseItem]};
       QMatchClass   = #{get_const[:QMatch]};
       GuardWrapperClass = #{get_const[:GuardWrapper]};
       ExprWrapperClass  = #{get_const[:ExprWrapper]};
@@ -1004,13 +987,28 @@ class World
         }
         //%% hook_leave_sync_phase();
               
-        //%% hook_enter_eval_phase();
+        if (!RARRAY(shadow->curr_T)->len) {
+          //%% hook_end_step();
+          break; //# out of main loop
+        }
+
         EACH_COMP_DO(shadow->curr_T) {
           //%% hook_begin_eval_events(comp);
           if (eval_events(comp_shdw, shadow))
             rb_ary_push(shadow->active_E, comp);
           //%% hook_end_eval_events(comp);
-          
+        }
+        
+        //# Export new event values.
+        EACH_COMP_DO(shadow->active_E) {
+          SWAP_VALUE(comp_shdw->event_values, comp_shdw->next_event_values);
+          //%% hook_export_events(comp, comp_shdw->event_values);
+        }
+        SWAP_VALUE(shadow->active_E, shadow->prev_active_E);
+        assert(RARRAY(shadow->active_E)->len == 0);
+        
+        //%% hook_enter_eval_phase();
+        EACH_COMP_DO(shadow->curr_T) {
           //%% hook_begin_eval_resets(comp);
           if (eval_continuous_resets(comp_shdw, shadow))
             rb_ary_push(shadow->curr_CR, comp);
@@ -1027,32 +1025,12 @@ class World
 
         //%% hook_enter_action_phase();
         EACH_COMP_DO(shadow->curr_A) {
-          do_actions(comp_shdw, 0, shadow);
+          do_actions(comp_shdw, cur_actions(comp_shdw), shadow);
         }
         RARRAY(shadow->curr_A)->len = 0;
         //%% hook_leave_action_phase();
 
         //%% hook_begin_parallel_assign();
-        //# Clear old event values from previous step.
-        EACH_COMP_DO(shadow->prev_active_E) {
-          rb_mem_clear(RARRAY(comp_shdw->event_values)->ptr,
-                       RARRAY(comp_shdw->event_values)->len);
-        }
-        RARRAY(shadow->prev_active_E)->len = 0;
-        
-        if (!RARRAY(shadow->curr_T)->len) {
-          //%% hook_end_step();
-          break; //# out of main loop
-        }
-
-        //# Export new event values.
-        EACH_COMP_DO(shadow->active_E) {
-          SWAP_VALUE(comp_shdw->event_values, comp_shdw->next_event_values);
-          //%% hook_export_events(comp, comp_shdw->event_values);
-        }
-        SWAP_VALUE(shadow->active_E, shadow->prev_active_E);
-        assert(RARRAY(shadow->active_E)->len == 0);
-        
         did_reset = 0;
         EACH_COMP_DO(shadow->curr_CR) {
           did_reset = assign_new_cont_values(comp_shdw) || did_reset;
@@ -1064,7 +1042,7 @@ class World
 
         //%% hook_enter_post_phase();
         EACH_COMP_DO(shadow->curr_P) {
-          do_actions(comp_shdw, 1, shadow);
+          do_actions(comp_shdw, cur_posts(comp_shdw), shadow);
         }
         RARRAY(shadow->curr_P)->len = 0;
         //%% hook_leave_post_phase();
@@ -1100,6 +1078,13 @@ class World
         assert(RARRAY(shadow->curr_T)->len == 0);
         assert(RARRAY(shadow->prev_awake)->len == 0);
 
+        //# Clear event values.
+        EACH_COMP_DO(shadow->prev_active_E) {
+          rb_mem_clear(RARRAY(comp_shdw->event_values)->ptr,
+                       RARRAY(comp_shdw->event_values)->len);
+        }
+        RARRAY(shadow->prev_active_E)->len = 0;
+        
         //%% hook_end_step();
       }
       

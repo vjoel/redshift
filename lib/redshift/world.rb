@@ -140,7 +140,7 @@ class World
       raise TypeError, "#{component.class} is not a Component class"
     end
     
-    awake << component
+    awake << component if component.world == self
     component
   end
   
@@ -148,7 +148,7 @@ class World
   def remove c
     if components.summands.any? {|list| list.delete(c)}
       raise unless c.world == self
-      c.__set_world(nil)
+      c.__set__world(nil)
     else
       raise "Tried to remove #{c} from #{self}, but its world is #{c.world}."
     end

@@ -699,10 +699,10 @@ module RedShift
       def define_guards(guards)
         guards.map! do |g|
           case g
-          when GuardPhaseItem, Symbol
+          when Symbol
             # already saw this guard, as in: transition [S, T] => U
             g
-           
+          
           when QMatch
             g
           
@@ -729,28 +729,6 @@ module RedShift
           when String
             define_guard(g)
           
-          when Array
-            var_name, event_name = g
-
-            var_type, strictness = link_variables[var_name]
-            event_idx = var_type.exported_events[event_name]
-            
-            unless event_idx
-              raise "Can't find event #{event_name.inspect} in events of" +
-                    " #{var_type}, linked from #{self} as #{var_name.inspect}."
-            end
-
-            item = GuardPhaseItem.new
-            item.event_index = event_idx
-            item.link = var_name
-            item.event = event_name
-
-            after_commit do
-              item.link_offset = offset_of_var(var_name)
-            end
-
-            item
-
           else
             raise "What is #{g.inspect}?"
           end

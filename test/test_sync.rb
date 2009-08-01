@@ -6,24 +6,22 @@
 require 'redshift'
 require 'test/unit'
 
-if false
-  class RedShift::World
-    def hook_begin
-      puts "===== begin discrete update ====="
-    end
-    
-    def hook_enter_sync_phase
-      puts "enter sync phase"
-    end
-    
-    def hook_can_sync comp, can_sync
-      puts "    #{comp.inspect}: can_sync=#{can_sync.inspect}"
-    end
-    
-    def hook_sync_step syncers, changed
-      puts "  sync step, changed=#{changed.inspect}"
-      puts "  syncers = #{syncers.inspect}"
-    end
+class DebugSyncWorld #< RedShift::World
+  def hook_begin
+    puts "===== begin discrete update ====="
+  end
+  
+  def hook_enter_sync_phase
+    puts "enter sync phase"
+  end
+  
+  def hook_can_sync comp, can_sync
+    puts "    #{comp.inspect}: can_sync=#{can_sync.inspect}"
+  end
+  
+  def hook_sync_step syncers, changed
+    puts "  sync step, changed=#{changed.inspect}"
+    puts "  syncers = #{syncers.inspect}"
   end
 end
 
@@ -55,6 +53,32 @@ class TestSync < Test::Unit::TestCase
     transition Enter => Exit do
       sync :next => :e
     end
+  end
+  
+  class EmitTwo < RedShift::Component
+    state :EmitE, :EmitF, :EmitEF
+    transition Enter => EmitE do
+      event :e
+    end
+    transition EmitE => EmitF do
+      event :f
+    end
+    transition EmitF => EmitEF do
+      event :e, :f
+    end
+  end
+  
+  class SyncTwo < RedShift::Component
+    link :next
+    setup {self.next = create(EmitTwo)}
+    transition Enter => Exit do
+      sync :next => :e
+      sync :next => :f
+      action do
+        @worked = (self.next.state == EmitTwo::EmitF)
+      end
+    end
+    attr_reader :worked
   end
   
   def setup
@@ -89,6 +113,13 @@ class TestSync < Test::Unit::TestCase
     r.next = @w.create Emitter_f
     @w.run 10
     assert_equal(RedShift::Component::Enter, r.state)
+  end
+  
+  def test_sync_two_events
+    s2 = @w.create(SyncTwo)
+    assert_equal(nil, s2.worked)
+    @w.run 1
+    assert_equal(true, s2.worked)
   end
   
   def test_cyclic

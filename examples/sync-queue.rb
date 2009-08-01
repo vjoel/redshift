@@ -34,8 +34,7 @@ class Client < RedShift::Component
     sync :server => :serve
     event :accept
     post do
-      # in the post clause, events have been assigned their new values
-      self.time_left = server.serve
+      self.time_left = server.serve # can do this as reset
       puts "%4.2f: #{self} receiving service, time_left=#{time_left}" %
         world.clock
     end

@@ -13,7 +13,7 @@ This file tests discrete features of RedShift, such as transitions and events. I
 class DiscreteTestComponent < Component
   def initialize(*args)
     super
-    @t = world.clock
+    @t = world.clock if world
   end
 end
 
@@ -74,36 +74,51 @@ class Discrete_3 < DiscreteTestComponent
 end
 
 class Discrete_4a < DiscreteTestComponent
-  state :A, :B; default { start A }
+  state :A, :B; start A
   transition A => B do
-    event :e
+    event :e => 3
   end
   transition B => Exit do
-    name "zap"
+    event :e => 4
   end
 end
 
 class Discrete_4b < DiscreteTestComponent
-  state :A, :B; default { start A }
+  state :A, :B; start A
+  link :x
+  constant :x_e_value_in_reset
+  
   transition A => B do
-    guard { 
-      # during guard evaluation, the transition emitting e is still active
-      if @x.e
-        @x_state_during = @x.state.name
-        @x_trans_during = @x.active_transition
-      end
-      @x.e
+    sync :x => :e
+    guard {
+      @x_e_value_in_guard = [x.e] #no value during guard
+      true
     }
-    action
+    reset :x_e_value_in_reset => proc {x.e}
+    action {
+      @x_e_value_in_action = x.e
+    }
+    post {
+      @x_e_value_in_post = x.e
+    }
   end
-  setup { @x = create Discrete_4a }
+  
+  transition B => Exit do
+    sync :x => :e
+    guard {
+      @x_e_value_in_guard2 = [x.e] #no value during guard
+      true
+    }
+  end
+  
+  setup { self.x = create Discrete_4a }
   def assert_consistent test
-    test.assert_equal(B, state)
-    test.assert_equal("B", @x_state_during.to_s)
-    test.assert_equal("zap", @x_trans_during.name)
-    test.assert_equal("B", @x.state.name.to_s)
-    test.assert_nil(@x.active_transition)
-    test.assert_nil(@x_e_after)
+    test.assert_equal(Exit, state)
+    test.assert_equal([nil], @x_e_value_in_guard)
+    test.assert_equal(3, @x_e_value_in_action)
+    test.assert_equal(3, @x_e_value_in_post)
+    test.assert_equal(3, x_e_value_in_reset)
+    test.assert_equal([nil], @x_e_value_in_guard2)
   end
 end
 
@@ -114,13 +129,15 @@ class Discrete_5a < DiscreteTestComponent
 end
 
 class Discrete_5b < DiscreteTestComponent
+  link :x
   transition do
-    guard {@x.e && @x_e = @x.e}  # note assignment
+    sync :x => :e
+    action {@x_e = [x.e]}
   end
-  setup { @x = create Discrete_5a }
+  setup { self.x = create Discrete_5a }
   def assert_consistent test
-    test.assert_equal(true, @x_e)
-    test.assert_equal(nil, @x.e)
+    test.assert_equal([true], @x_e)
+    test.assert_equal(nil, x.e)
   end
 end
 
@@ -134,11 +151,12 @@ class Discrete_6a < DiscreteTestComponent
 end
 
 class Discrete_6b < DiscreteTestComponent
+  link :x
   transition do
-    guard {@x.e}
-    action {@x_e = @x.e}
+    sync :x => :e
+    action {@x_e = x.e}
   end
-  setup { @x = create Discrete_6a }
+  setup { self.x = create Discrete_6a }
   def assert_consistent test
     test.assert_equal(Discrete_6a::EventValue, @x_e)
   end
@@ -156,11 +174,12 @@ class Discrete_7a < DiscreteTestComponent
 end
 
 class Discrete_7b < DiscreteTestComponent
+  link :x
   transition do
-    guard {@x.e}
-    action {@x_e = @x.e}
+    sync :x => :e
+    action {@x_e = x.e}
   end
-  setup { @x = create Discrete_7a }
+  setup { self.x = create Discrete_7a }
   def assert_consistent test
     test.assert_equal(Discrete_7a::EventValue, @x_e)
   end
@@ -180,7 +199,7 @@ class Discrete_7d < DiscreteTestComponent
   link :x => Discrete_7c
   setup { self.x = create Discrete_7c }
   transition Enter => A do
-    guard [:x, :g]
+    sync :x => :g
     action {@x_g = x.g}
   end
   def assert_consistent test
@@ -204,10 +223,10 @@ end
 class Discrete_8b < DiscreteTestComponent
   state :A, :B
   transition Enter => A do
-    guard :x => :e
+    sync :x => :e
   end
   transition A => B do
-    guard [:x, :f]    # alt. syntax, in future will allow value
+    sync [:x, :f]    # alt. syntax, in future will allow value
     action {@x_f = x.f; @x_g = x.g}
   end
   link :x => Discrete_8a
@@ -234,13 +253,16 @@ end
 class Discrete_9b < DiscreteTestComponent
   state :A, :B, :C
   transition Enter => A do
-    guard :x => :e
+    sync :x => :e
   end
   transition A => B do
-    guard [:x, :f], :x => :e      # x.f AND x.e
+    sync [:x, :f]
+    sync :x => :e      # x.f AND x.e
+    # or we could write sync :x => [:f, :e]
   end
   transition A => C do
-    guard [:x, :f] do false end   # x.f AND FALSE
+    sync [:x, :f]
+    guard do false end   # x.f AND FALSE
   end
   link :x => Discrete_9a
   setup { self.x = create Discrete_9a }
@@ -292,14 +314,15 @@ class Discrete_11a < DiscreteTestComponent
 end
 
 class Discrete_11b < DiscreteTestComponent
-  state :A, :B
+  state :A, :B, :C
   transition Enter => A do
     guard "x.v == 1", "0"
   end
-  transition Enter => A do
-    guard "x.v == 1", :x => :e
+  transition Enter => B do
+    guard "x.v == 1"
+    sync :x => :f
   end
-  transition Enter => A do
+  transition Enter => C do
     guard "x.v == 1" do false end
   end
   link :x => Discrete_11a
@@ -320,7 +343,7 @@ end
 class Discrete_12b < DiscreteTestComponent
   link :comp => Discrete_12a
   transition Enter => Exit do
-    guard :comp => :e
+    sync :comp => :e
   end
   def assert_consistent test
     test.assert_equal(Enter, state)
@@ -414,7 +437,7 @@ class Discrete_15b < DiscreteTestComponent
   link :x => Discrete_15a
   setup { self.x = create Discrete_15a }
   transition Enter => Exit do
-    guard :x => :e, :x => :f
+    sync :x => [:e, :f]
   end
   def assert_consistent test
     test.assert_equal(Exit, state)
@@ -479,7 +502,7 @@ class Discrete_20 < DiscreteTestComponent
   end
   def assert_consistent test
     test.assert_equal(Exit, state)
-    test.assert_not(@fail)
+    test.assert_equal(nil, @fail)
   end
 end
 
@@ -510,7 +533,7 @@ class TestDiscrete < Test::Unit::TestCase
   def test_discrete
     testers = []
     ObjectSpace.each_object(Class) do |cl|
-      if cl == cl <= DiscreteTestComponent and
+      if cl <= DiscreteTestComponent and
          cl.instance_methods.include? "assert_consistent"
         testers << @world.create(cl)
       end

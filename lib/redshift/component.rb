@@ -13,7 +13,12 @@ module RedShift
 module AugmentedException
   attr_reader :object
   
-  def initialize(msg)
+  def initialize(*msg)
+    if msg.empty?
+      super; return
+    end
+    
+    msg = msg.first if msg.size == 1
     if defined?(msg.first)
       msg, @object = *msg
       s = ((@object.inspect rescue
@@ -60,11 +65,16 @@ class Transition < XArray ## put this in meta?
     :guard => G_IDX, :sync => S_IDX, :action => A_IDX,
     :reset => R_IDX, :event => E_IDX, :post => P_IDX
 
-  def initialize n, h
-    @name = n || "transition_#{object_id}".intern
-    self.guard = h[:guard]; self.sync = h[:sync]
-    self.action = h[:action]; self.reset = h[:reset]
-    self.event = h[:event]; self.post = h[:post]
+  def initialize spec
+    if spec.kind_of? Hash
+      spec = spec.dup
+      def spec.method_missing(m, *); self[m]; end
+    end
+    
+    @name = spec.name || "transition_#{object_id}".intern
+    self.guard = spec.guards; self.sync = spec.syncs
+    self.action = spec.actions; self.reset = spec.resets
+    self.event = spec.events; self.post = spec.posts
   end
 end
 
@@ -109,7 +119,7 @@ end
 class CexprGuard < Flow; end ## Kinda funny...
 class Expr < Flow; end ## Kinda funny...
 
-Always = Transition.new :Always, :guard => nil
+Always = Transition.new :name => :Always, :guard => nil
 
 class Component
   
@@ -161,14 +171,6 @@ class Component
     def inspect; "<Event #{event}: #{value.inspect}>"; end
   end
   
-  class GuardPhaseItem < PhaseItem
-    LINK_OFFSET_IDX = 0; EVENT_INDEX_IDX = 1; LINK_IDX = 2; EVENT_IDX = 3
-    index_accessor :link_offset => LINK_OFFSET_IDX,
-                   :event_index => EVENT_INDEX_IDX,
-                   :link => LINK_IDX, :event => EVENT_IDX
-    def inspect; "<Guard #{link}.#{event}>"; end
-  end
-
   class DynamicEventValue < Proc; end
   class ExprEventValue < String; end
   
@@ -281,10 +283,14 @@ class Component
     end
 
     yield if block_given?
-
-    init_flags
-    update_cache
-    clear_ck_strict # update_cache leaves these set assuming finishing a trans
+    
+    if state == Exit
+      __set__world nil
+    else
+      init_flags
+      update_cache
+      clear_ck_strict # update_cache leaves these set assuming finishing a trans
+    end
   end
 
   def do_defaults

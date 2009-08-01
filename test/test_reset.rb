@@ -17,7 +17,7 @@ class A < Component
   state :S1, :S2
   
   transition Enter => S1 do
-    reset :y => 1           # literal value
+    reset :y => 1           # literal value (float or int)
   end
 
   transition S1 => S2 do

@@ -29,11 +29,11 @@ class EventTestComponent < Component
   state :T1, :T2
   setup {@result = []; self.sub = create(Sub)}
   transition Enter => T1 do
-    guard :sub => :e1
+    sync :sub => :e1
     action {@result << sub.e1}
   end
   transition T1 => T2 do
-    guard :sub => :e2
+    sync :sub => :e2
     action {@result << sub.e2}
   end
 

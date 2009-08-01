@@ -331,7 +331,7 @@ class StrictGuardsEvaled3 < TestComponent
       post {raise}
     end
     transition Enter => S1 do
-      guard :emitter => :e
+      sync :emitter => :e
     end
     transition S1 => Exit do
       guard "y > 0"

@@ -1,12 +1,35 @@
+test: lnk=>strict ==> lnk=>nonstrict
+
+better sync syntax to avoid the :l=>:e, :l=>:f prob
+  sync {l.e, l.f} ?
+
+add check for values of event after sync
+  (and then repeat sync loop)
+  "sync :l => {:e => 3}" or better syntax
+
+        when Hash;    @guards.concat(arg.sort_by {|l,e| l.to_s})
+                                              # { :link => :event }
+        ## need something like [:set_link, :event]
+        when Array;   @guards << arg            # [:link, :event] ## , value] ?
+        
+        ## should define, for each link, a TransitionParser method which returns
+        ## a dummy link object that responds to #event and returns
+        ## a dummy event that responds to #==(value) so that you can write
+        ##
+        ##   guard link_var.some_event == 123
+        ##
+        ## instead of
+        ##
+        ##  [:link_var, :some_event, 123]
+
+
 Publishing RedShift
 ===================
 
-  core for 1.2 release
+  core for 1.3 release
 
-    unambiguous [determinate] sync
     transition local vars
-    action %{ pseudo-c-code }
-    record trajectory in vector of doubles (like delay)
+    tracer
     better error messages?
 
   doc, tutorial, web site

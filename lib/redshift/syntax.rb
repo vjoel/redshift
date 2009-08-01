@@ -302,85 +302,83 @@ module TransitionSyntax
     
     def initialize block
       @name = nil
-      @guards = []; @syncs = []; @actions = []
-      @resets = []; @events = []; @posts = []
       instance_eval(&block)
     end
     
     def name(*n); n.empty? ? @name : @name = n.first; end
     
-    def sync(h)
-      items = h.map do |link_name, event|
-        item = Component::SyncPhaseItem.new
-        item.link_name = link_name
-        item.event = event
-        item
+    def sync(*a)
+      @syncs ||= Component::SyncPhase.new
+      
+      if a.last.kind_of?(Hash)
+        a.concat a.pop.to_a
       end
-      @syncs << Component::SyncPhase.new.concat(items)
-      ### simplify and remove the combine step:
-      ### (@syncs ||= Component::SyncPhase.new)....
+      
+      a.each do |link_name, event|
+        link_names = case link_name
+        when Array; link_name
+        else [link_name]
+        end
+        
+        events = case event
+        when Array; event
+        else [event]
+        end
+        
+        link_names.each do |ln|
+          events.each do |e|
+            item = Component::SyncPhaseItem.new
+            item.link_name = ln
+            item.event = e
+            @syncs << item
+          end
+        end
+      end
     end
     
     def wait(*args)
-      guard = Component::GuardPhase.new
+      @guards ||= Component::GuardPhase.new
       
       args.each do |arg|
         case arg
         when Hash
-          guard.concat(arg.sort_by {|q,m| q.to_s}.map{|q,m| 
+          @guards.concat(arg.sort_by {|q,m| q.to_s}.map{|q,m| 
             Component::QMatch[q.to_sym,*m]})
                                  # { :queue => match }
         when Symbol
-          guard << Component::QMatch[arg]   # :queue
+          @guards << Component::QMatch[arg]   # :queue
         else raise SyntaxError
         end
       end
-      @guards << guard
     end
     
     def guard(*args, &block)
-      guard = Component::GuardPhase.new
+      @guards ||= Component::GuardPhase.new
       
       args.each do |arg|
         case arg
-        when Hash;    guard.concat(arg.sort_by {|l,e| l.to_s})
-                                              # { :link => :event }
-        ## need something like [:set_link, :event]
-        when Array;   guard << arg            # [:link, :event] ## , value] ?
-        when String;  guard << arg.strip      # "<expression>"
-        when Proc;    guard << arg            # proc { ... }
-        when Symbol;  guard << arg            # :method
+        when String;  @guards << arg.strip      # "<expression>"
+        when Proc;    @guards << arg            # proc { ... }
+        when Symbol;  @guards << arg            # :method
         when nil, true;     # no condition
-        when false;   guard << arg
-        else          raise SyntaxError
+        when false;   @guards << arg
+        else          raise SyntaxError, "'guard #{arg.inspect}'"
         end
-        ## should define, for each link, a TransitionParser method which returns
-        ## a dummy link object that responds to #event and returns
-        ## a dummy event that responds to #==(value) so that you can write
-        ##
-        ##   guard link_var.some_event == 123
-        ##
-        ## instead of
-        ##
-        ##  [:link_var, :some_event, 123]
       end
       
-      guard << block if block
-      @guards << guard
+      @guards << block if block
     end
     
     def action(meth = nil, &bl)
-      action_phase = Component::ActionPhase.new
-      action_phase << meth if meth
-      action_phase << bl if bl
-      @actions << action_phase
+      @actions ||= Component::ActionPhase.new
+      @actions << meth if meth
+      @actions << bl if bl
     end
     
     def post(meth = nil, &bl)
-      post_phase = Component::PostPhase.new
-      post_phase << meth if meth
-      post_phase << bl if bl
-      @posts << post_phase
+      @posts ||= Component::PostPhase.new
+      @posts << meth if meth
+      @posts << bl if bl
     end
     alias after post
     
@@ -391,10 +389,10 @@ module TransitionSyntax
         raise SyntaxError, "Keys #{badkeys.inspect} in reset must be symbols"
       end
       
-      resets = Component::ResetPhase.new
-      resets.concat [nil, nil, nil] # continuous, constant, link
-      resets.value_map = h
-      @resets << resets
+      @resets ||= Component::ResetPhase.new
+      @resets.value_map ||= {}
+      @resets.concat [nil, nil, nil] # continuous, constant, link
+      @resets.value_map.update h
     end
     
     # each arg can be an event name (string or symbol), exported with value 
@@ -407,21 +405,21 @@ module TransitionSyntax
     #  :e => literal {...}
     #
     def event(*args, &bl)
-      events = Component::EventPhase.new
+      @events ||= Component::EventPhase.new
       for arg in args
         case arg
         when Symbol, String
           item = Component::EventPhaseItem.new
           item.event = arg
           item.value = true
-          events << item
+          @events << item
         
         when Hash
           arg.sort_by {|e,v| e.to_s}.each do |e,v|
             item = Component::EventPhaseItem.new
             item.event = e
             item.value = v
-            events << item
+            @events << item
           end
         else
           raise SyntaxError, "unrecognized event specifier #{arg}."
@@ -429,9 +427,8 @@ module TransitionSyntax
       end
       if bl
         eb = EventBlockParser.new(bl)
-        events.concat(eb.events)
+        @events.concat(eb.events)
       end
-      @events << events
     end
     
     def literal val
@@ -498,21 +495,14 @@ def Component.transition(edges = {}, &block)
     edges = {Enter => Enter} if edges.empty?
     parser = TransitionSyntax.parse(block)
     
-    parser.events.each do |phase|
-      phase.each do |event_phase_item|
+    if parser.events
+      parser.events.each do |event_phase_item|
         event_phase_item.index = export(event_phase_item.event)[0]
-          # cache index
+            # cache index
       end
     end
     
-    trans = Transition.new(parser.name,
-      :guard  => combine_transition_parts(parser.guards),
-      :sync   => combine_transition_parts(parser.syncs),
-      :action => combine_transition_parts(parser.actions),
-      :event  => combine_transition_parts(parser.events),
-      :reset  => combine_transition_parts(parser.resets),
-      :post   => combine_transition_parts(parser.posts)
-    )
+    trans = Transition.new(parser)
     
   else
     if edges == {}
@@ -523,25 +513,6 @@ def Component.transition(edges = {}, &block)
   end
   
   attach edges, trans
-end
-
-def Component.combine_transition_parts parts
-  return nil if parts.empty?
-  
-  result = parts[0].class.new
-  
-  has_value_map = defined?(result.value_map)
-  if has_value_map
-    result.value_map = {}
-  end
-  
-  parts.each do |part|
-    result.concat part
-    if has_value_map
-      result.value_map.update part.value_map
-    end
-  end
-  result
 end
 
 end

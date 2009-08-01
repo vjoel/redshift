@@ -72,7 +72,7 @@ class World
     self.curr_P = []; self.curr_E = []; self.curr_R = []; self.curr_G = []
     self.next_P = []; self.next_E = []; self.next_R = []; self.next_G = []
     self.active_E = []; self.prev_active_E = []
-    self.strict_sleep = []
+    self.strict_sleep = []; self.finishers = []
     @components = ComponentList.new  \
       curr_P, curr_E, curr_R, curr_G,
       next_P, next_E, next_R, next_G,

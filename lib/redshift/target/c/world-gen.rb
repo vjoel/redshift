@@ -22,6 +22,7 @@ class World
   shadow_attr_accessor :active_E => Array
   shadow_attr_accessor :prev_active_E => Array
   shadow_attr_accessor :strict_sleep => Array
+  shadow_attr_accessor :finishers => Array
   protected \
     :curr_P=, :curr_E=, :curr_R=, :curr_G=,
     :next_P=, :next_E=, :next_R=, :next_G=,
@@ -287,9 +288,7 @@ class World
       }
       inline static void finish_trans(ComponentShadow  *comp_shdw,
                                #{World.shadow_struct.name} *shadow)
-      { //## should this be deferred to end of step? (in case alg flow
-        //## changes discretely)
-        //%% hook_finish_transition(comp_shdw->self, comp_shdw->trans,
+      { //%% hook_finish_transition(comp_shdw->self, comp_shdw->trans,
         //%%                        comp_shdw->dest);
         if (comp_shdw->state != comp_shdw->dest) {
           comp_shdw->state = comp_shdw->dest;
@@ -322,7 +321,7 @@ class World
               remove_comp(comp, list);
             else
               move_comp(comp, list, shadow->next_G);
-            finish_trans(comp_shdw, shadow);
+            rb_ary_push(shadow->finishers, comp); //## optimize
           }
         }
         else {
@@ -386,8 +385,6 @@ class World
 
       //%% hook_begin_step();
       
-      //## use goto rather than convoluted loop?
-
       while (1) {
         struct RArray *list;
         int            list_i;
@@ -419,7 +416,7 @@ class World
               dest    = ptr[--len];
               trans   = ptr[--len];
               start_trans(comp_shdw, shadow, trans, dest, phases);
-              all_were_g = 0; //## better name? no_trans? sleep?
+              all_were_g = 0;
               break;
             }
             else
@@ -434,6 +431,11 @@ class World
         SWAP_VALUE(shadow->curr_E, shadow->next_E);
         SWAP_VALUE(shadow->curr_R, shadow->next_R);
         SWAP_VALUE(shadow->curr_G, shadow->next_G);
+
+        EACH_COMP_DO(shadow->finishers) {
+          finish_trans(comp_shdw, shadow);
+        }
+        RARRAY(shadow->finishers)->len = 0;
         
         //# Done stepping if no transitions happened or are about to begin.
         all_are_g = !RARRAY(shadow->curr_P)->len &&

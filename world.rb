@@ -46,6 +46,9 @@ class World
   end
 
   def create(component_class, &block)
+    
+    FlowLib.commit unless FlowLib.committed? or FlowLib.empty?
+
     c = component_class.new(self, &block)
     @components[c.id] = c
   end
@@ -63,7 +66,7 @@ class World
       @step_count += 1
       step_continuous
       step_discrete
-      yield if block_given?
+      yield self if block_given?
     end
     
     self

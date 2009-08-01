@@ -52,7 +52,11 @@ Semantics
       explicit?
     events that persist until sender changes state (or end of discrete step?)
 ?   allow event of transition to be a block or proc returning the events
-  
+
+Metasimualtion layer
+  methods to tell an object to change state, etc.
+  method to send message to object(s)
+
 Implementation
 
   use eval %{ ... } instead of eval <<END ... END
@@ -88,6 +92,9 @@ x   do this periodically if user sets flag
       justify '$RK_level < 2'
     var step
     symbolic integration
+    other integrators:
+      average x' at endpoints to get approx. delta_x
+    automatically scan formulas and use best alg.
 
   debugging, logging
     use AspectR, alias

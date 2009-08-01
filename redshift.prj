@@ -1,12 +1,12 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 0 18)
-(Parent-Version redshift 0 17)
+(Project-Version redshift 0 19)
+(Parent-Version redshift 0 18)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Wed, 03 Oct 2001 00:20:46 -0700")
-(Checkin-Login joel)
+(Checkin-Time "Thu, 01 Nov 2001 00:14:48 -0800")
+(Checkin-Login tercel)
 (Populate-Ignore ())
 (Project-Keywords)
 (Files
@@ -16,14 +16,14 @@
 ;; Files added by populate at Sun, 22 Apr 2001 15:37:06 -0700,
 ;; to version 0.0(w), by joel:
 
-  (world.rb (redshift/0_world.rb 1.11 664))
-  (transition.rb (redshift/1_transition 1.5 664))
-  (state.rb (redshift/2_state.rb 1.6 664))
+  (world.rb (redshift/0_world.rb 1.12 644))
+  (transition.rb (redshift/1_transition 1.5 644))
+  (state.rb (redshift/2_state.rb 1.6 644))
   
-  (redshift.rb (redshift/4_redshift.r 1.4 775))
+  (redshift.rb (redshift/4_redshift.r 1.5 755))
   
-  (flow.rb (redshift/6_flow.rb 1.9 664))
-  (component.rb (redshift/7_component. 1.11 664))
+  (flow.rb (redshift/6_flow.rb 1.9 644))
+  (component.rb (redshift/7_component. 1.11 644))
 
 ;; Files deleted by depopulate at Sun, 20 May 2001 09:27:46 -0700,
 ;; from version 0.2(w), by joel:
@@ -35,7 +35,7 @@
 
   
   (event.rb (redshift/9_event.rb 1.5 644))
-  (README (redshift/10_README 1.13 644))
+  (README (redshift/10_README 1.14 644))
 
 ;; Files added by populate at Sat, 26 May 2001 21:45:52 -0700,
 ;; to version 0.3(w), by joel:
@@ -70,8 +70,8 @@
 ;; Files added by populate at Mon, 04 Jun 2001 14:25:13 -0700,
 ;; to version 0.7(w), by joel:
 
-  (examples/sample.rb (redshift/19_sample.rb 1.1 775))
-  (examples/ball.rb (redshift/20_ball.rb 1.7 755))
+  (examples/sample.rb (redshift/19_sample.rb 1.1 755))
+  (examples/ball.rb (redshift/20_ball.rb 1.8 755))
 
 ;; Files added by populate at Wed, 06 Jun 2001 00:00:49 -0700,
 ;; to version 0.9(w), by joel:
@@ -108,12 +108,27 @@
 ;; Files added by populate at Tue, 10 Jul 2001 18:53:37 -0700,
 ;; to version 0.14(w), by joel:
 
-  (examples/ball-bench.rb (redshift/26_ball-bench 1.3 755))
+  
 
 ;; Files added by populate at Sat, 15 Sep 2001 21:08:35 -0700,
 ;; to version 0.15(w), by joel:
 
-  (cflow.rb (redshift/27_cflow.rb 1.3 644))
+  (cflow.rb (redshift/27_cflow.rb 1.4 644))
+
+;; Files added by populate at Wed, 31 Oct 2001 22:51:39 -0800,
+;; to version 0.18(w), by tercel:
+
+  (examples/algebraic.rb (redshift/28_algebraic. 1.1 755))
+
+;; Files deleted by depopulate at Thu, 01 Nov 2001 00:14:37 -0800,
+;; from version 0.18(w), by tercel:
+
+  ; (examples/ball-bench.rb ())
+
+;; Files added by populate at Thu, 01 Nov 2001 00:14:45 -0800,
+;; to version 0.18(w), by tercel:
+
+  (examples/bench.rb (redshift/29_bench.rb 1.1 755))
 )
 (Merge-Parents)
 (New-Merge-Parents)

@@ -7,16 +7,18 @@ require 'redshift/syntax.rb'
 
 module RedShift
 
-def run(*args)
-	if @@world
-		@@world.run(*args)
-	else
-		raise "No world specified."
-	end
-end
+  def run(*args)
+    if @@world
+      @@world.run(*args)
+    else
+      raise "No world specified."
+    end
+  end
+  module_function :run
 
-def warn str
-  $stderr.printf "Warning: #{str}\n\tFile %s, line %d\n", __FILE__, __LINE__
-end
+  def warn str
+    $stderr.printf "Warning: #{str}\n\tFile %s, line %d\n", __FILE__, __LINE__
+  end
+  module_function :warn
 
 end # module RedShift

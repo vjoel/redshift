@@ -37,13 +37,15 @@ class Ball < Component
     euler         " v' = a "
     
     euler         " t_elapsed' = 1.0 "
+if false
     algebraic     " true_y = @y0 + @v0 * t_elapsed +
                              0.5 * @a * t_elapsed ** 2 "
     algebraic     " y_err = (true_y - y).abs "
-    
-    algebraic_c   " true_y_c = @y0 + @v0 * t_elapsed +
+else    
+    algebraic_c   " true_y = @y0 + @v0 * t_elapsed +
                                0.5 * @a * pow(t_elapsed, 2) "
-###    algebraic_c   " y_err_c = fabs(true_y_c - y) "
+    algebraic_c   " y_err = fabs(true_y - y) "
+end
   }
   
   transition (Falling => Rising) {
@@ -87,7 +89,7 @@ end # class Ball
 
 if __FILE__ == $0
 
-  n = 1000
+  n = 100
 
   bm(12) do |test|
     test.report("Run:") do
@@ -109,7 +111,5 @@ if __FILE__ == $0
 
     end
   end
-
-  puts "_________________________________________________________________"
 
 end

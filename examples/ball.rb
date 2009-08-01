@@ -28,7 +28,7 @@ class Ball < Component
 
   attr_accessor :a
   
-  state :Falling,:Rising
+  state :Falling, :Rising
   
   flow (Falling, Rising) {
   

@@ -76,7 +76,7 @@ module RedShift
         cl = Class.new(self)
         cl.shadow_library_file file_name
         clname = file_name.sub /^#{@tag}/i, @tag
-        Object.const_set clname, cl
+        Object.const_set clname, cl ## maybe put in other namespace?
         before_commit {cl.class_eval &bl}
           # this is deferred to commit time to resolve forward refs
           ## this would be more elegant with defer.rb
@@ -128,10 +128,10 @@ module RedShift
       ## maybe this should be in cgen as "shadow_aligned N"
       if /mswin/i =~ RUBY_PLATFORM
         shadow_struct.declare :begin_vars =>
-          "double begin_vars" ### wasted
+          "ContVar begin_vars[1]" ### wasted
         
         Component.shadow_library_include_file.declare :first_cont_var => '
-          #define FIRST_CONT_VAR(shadow) (*(1+&shadow->cont_state->begin_vars))
+          #define FIRST_CONT_VAR(shadow) (*(&(shadow)->cont_state->begin_vars))
         '
       else
         shadow_struct.declare :begin_vars =>
@@ -140,7 +140,7 @@ module RedShift
           # platforms but this seems to work for x86 and sparc
 
         Component.shadow_library_include_file.declare :first_cont_var => '
-          #define FIRST_CONT_VAR(shadow) (shadow->cont_state->begin_vars)
+          #define FIRST_CONT_VAR(shadow) ((shadow)->cont_state->begin_vars)
         '
       end
       
@@ -415,7 +415,7 @@ module RedShift
           var_type = link_type[var_name]
 
           unless var_type.is_a? Class
-            var_type = var_type.to_s.split(/::/).inject(Object) do |p, n|
+            var_type = var_type.to_s.split(/::/).inject(self) do |p, n|
               p.const_get(n)
             end
             link_type[var_name] = var_type

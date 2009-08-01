@@ -21,7 +21,7 @@ class AlreadyStarted < StandardError; end
 class Transition ## put this in meta?
   attr_reader :name, :guard, :phases
   def initialize n, g, p
-    @name = n || "transition_#{id}".intern
+    @name = n || "transition_#{object_id}".intern
     @guard, @phases = g, p
   end
 end
@@ -208,7 +208,7 @@ class Component
   
   ## shouldn't be necessary
   def insteval_proc pr
-    instance_eval &pr
+    instance_eval(&pr)
   end
   
 end # class Component

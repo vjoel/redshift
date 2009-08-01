@@ -30,9 +30,12 @@ tests.sort!
 #  exit!
 #end
 
+require 'rbconfig'
+ruby = Config::CONFIG["RUBY_INSTALL_NAME"]
+
 failed = tests.reject do |file|
   puts "_"*50 + "\nStarting #{file}...\n"
-  system "ruby #{file}"
+  system "#{ruby} #{file}"
 #  pid = fork { ## should use popen3 so we can weed out successful output
 #    $REDSHIFT_CLIB_NAME = file
 #    require 'redshift'

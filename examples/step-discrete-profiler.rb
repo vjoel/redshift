@@ -12,7 +12,7 @@ include RedShift
 
 n_components = 100
 n_seconds = 100
-$use_slow_guard = false
+$use_slow_guard = true
 
 class ProfilingExample < Component
   continuous :x
@@ -32,6 +32,12 @@ end
 
 class ProfilingWorld < World
   attr_accessor :guard_time, :proc_time, :reset_time
+  
+  def cpu_time
+    #Time.now
+    Process.times.utime # for short runs, this doesn't have enough granularity
+  end
+  
   def initialize(*args)
     super
     @guard_time = 0
@@ -40,30 +46,30 @@ class ProfilingWorld < World
   end
   
   def hook_enter_guard_phase
-    @guard_start = Time.now
+    @guard_start = cpu_time
   end
   
   def hook_leave_guard_phase
-    t = Time.now
+    t = cpu_time
     @guard_time += t - @guard_start
   end
   
   def hook_enter_proc_phase
-    @proc_start = Time.now
+    @proc_start = cpu_time
   end
   
   def hook_leave_proc_phase
-    t = Time.now
+    t = cpu_time
     @proc_time += t - @proc_start
   end
   
   def hook_enter_reset_phase
-    @reset_start = Time.now
+    @reset_start = cpu_time
   end
   
   def hook_leave_reset_phase
-    t = Time.now
-    @reset_time += t - @reset_start
+    t = cpu_time
+    @reset_time += cpu_time - @reset_start
   end
 end
 
@@ -75,7 +81,7 @@ end
 w.age n_seconds
 
 x = n_components * n_seconds
-puts "Times are averages per component, per second of run."
+puts "Times are averages per component, per second of simulation."
 printf "Guard time: %10.3f ms\n", (w.guard_time/x)*1_000_000
 printf "Proc time:  %10.3f ms\n", (w.proc_time/x)*1_000_000
 printf "Reset time: %10.3f ms\n", (w.reset_time/x)*1_000_000

@@ -51,7 +51,7 @@ class World
   
   def default_options
     {
-      :name         =>  "#{self.class} #{@@count}",
+      :name         =>  "#{self.class}_#{@@count}",
       :time_unit    =>  "second",
       :time_step    =>  0.1,
       :zeno_limit   =>  100,

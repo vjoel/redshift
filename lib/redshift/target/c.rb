@@ -13,7 +13,8 @@ begin
   clib_name.gsub!(/-/, '_')
   clib_name.sub!(/^(?=\d)/, '_')
     # other symbols will be caught in CGenerator::Library#initialize.
-  clib_name << '_clib'
+  clib_name << "_clib_#{RUBY_VERSION.delete('.')}"
+  ## maybe name should be _ext instead of _clib?
   $REDSHIFT_CLIB_NAME = clib_name
 end
 

@@ -534,6 +534,22 @@ class Discrete_21 < DiscreteTestComponent
   end
 end
 
+# alg flow evaluated after state change remembers its value,
+# even if never explicitly evaluated before.
+class Discrete_22 < DiscreteTestComponent
+  state :S
+  flow Enter do
+    alg " x = 123 "
+  end
+  transition Enter => S
+  
+  def assert_consistent test
+    if state == S
+      test.assert_equal(123, x)
+    end
+  end
+end
+
 =begin
 
 test timing of other combinations of

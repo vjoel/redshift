@@ -4,9 +4,6 @@ Publishing RedShift
   core for 1.3 release
     
     clean up world (save/load etc)
-    export event _to_ comp?
-    sync with event value test?
-    transition local vars
     tracer
 
   doc, tutorial, web site
@@ -140,6 +137,10 @@ Syntax
 
 Semantics
 
+  export event _to_ comp? and sync on event alone w/o link?
+    export [:e, 4] => :lnk  # sender
+    sync :e                 # receiver
+  
   add check for values of event after sync
     (and then repeat sync loop)
     "sync :l => {:e => 3}" or better syntax
@@ -186,51 +187,6 @@ Semantics
   inheritance among states:
   
     "state Foo has everything that Bar has, plus ...."
-
-  how to set a local var during a transition (which can be accessed by
-  events, actions, resets):
-    
-    transition do
-      local :x => "t+1", :y => proc {x+1} # parallel
-      local :x => "x+1" # sequential
-      
-      local :x2
-      local :y2 do
-        self.x2 = x + 1
-        self.y2 = y
-      end
-      
-      # all locals happen before any resets, events, actions
-      reset :z => "x+y", :w => :y
-    end
-    
-    locals could be stored in cont var slots, rk>0
-    
-    The following are for the old semantics:
-    
-    transition do
-      local :x
-      action do
-        local.x = y
-      end
-      reset :z => proc { local.x }
-    end
-
-    transition do
-      action do |local|
-        local.x = y   # or local["x"] = y
-      end
-      reset :z => proc { |local| local.x }
-    end
-    
-    transition do
-      reset local.x => "y*2", :y => "local.x - 3"
-      action { local.x += 1}
-    end
-    
-    use || or use standard name
-    predeclare or use method_missing or use hash or:
-      local { Hash.new } # or struct_with :x, :y
 
   a transition that can happen only once per discrete step, to easily
   prevent zeno pb (useful for utility transitions, such as output)
@@ -342,6 +298,8 @@ Semantics
     so that setup clauses can be added later
 
 Implementation
+
+  option to dump all C code to one file (amalgam), so compiler can optimize more
 
   improve performance of event and local storage by using native (NVector)
     where possible, but keeping ruby array for ruby values

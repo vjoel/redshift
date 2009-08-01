@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 0 5)
-(Parent-Version redshift 0 4)
+(Project-Version redshift 0 6)
+(Parent-Version redshift 0 5)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Sun, 27 May 2001 21:51:38 -0700")
+(Checkin-Time "Tue, 29 May 2001 09:14:01 -0700")
 (Checkin-Login joel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -16,14 +16,14 @@
 ;; Files added by populate at Sun, 22 Apr 2001 15:37:06 -0700,
 ;; to version 0.0(w), by joel:
 
-  (world.rb (redshift/0_world.rb 1.5 664))
-  (transition.rb (redshift/1_transition 1.3 664))
-  (state.rb (redshift/2_state.rb 1.3 664))
-  (sample.rb (redshift/3_sample.rb 1.4 775))
+  (world.rb (redshift/0_world.rb 1.6 664))
+  (transition.rb (redshift/1_transition 1.4 664))
+  (state.rb (redshift/2_state.rb 1.4 664))
+  (sample.rb (redshift/3_sample.rb 1.5 775))
   (redshift.rb (redshift/4_redshift.r 1.2 775))
   
-  (flow.rb (redshift/6_flow.rb 1.4 664))
-  (component.rb (redshift/7_component. 1.5 664))
+  (flow.rb (redshift/6_flow.rb 1.5 664))
+  (component.rb (redshift/7_component. 1.6 664))
 
 ;; Files deleted by depopulate at Sun, 20 May 2001 09:27:46 -0700,
 ;; from version 0.2(w), by joel:
@@ -33,15 +33,20 @@
 ;; Files added by populate at Sun, 20 May 2001 09:29:01 -0700,
 ;; to version 0.2(w), by joel:
 
-  (formula.rb (redshift/8_formula.rb 1.2 644))
-  (event.rb (redshift/9_event.rb 1.2 644))
-  (README (redshift/10_README 1.3 644))
+  
+  (event.rb (redshift/9_event.rb 1.3 644))
+  (README (redshift/10_README 1.4 644))
 
 ;; Files added by populate at Sat, 26 May 2001 21:45:52 -0700,
 ;; to version 0.3(w), by joel:
 
   (redshift.sdd (redshift/11_redshift.s 1.1 644) :no-keywords)
   (rk4.txt (redshift/12_rk4.txt 1.1 644))
+
+;; Files deleted by depopulate at Tue, 29 May 2001 09:13:49 -0700,
+;; from version 0.5(w), by joel:
+
+  ; (formula.rb ())
 )
 (Merge-Parents)
 (New-Merge-Parents)

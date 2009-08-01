@@ -2,13 +2,13 @@ module RedShift
 
 class Flow
 
-	attr_reader :var_name, :formula_str
+	attr_reader :var, :formula_str
 	
 	def initialize v, f
-		@var_name, @formula_str = v, f
+		@var, @formula_str = v, f
 
-    @getter = @var_name.intern
-    @setter = (@var_name + '=').intern
+    @getter = @var
+    @setter = (@var.to_s + '=').intern
 	end
   
   def update c
@@ -28,11 +28,11 @@ class AlgebraicFlow < Flow
     
     cl.module_eval <<-END
 
-      def #{@var_name}
+      def #{@getter}
         #{@formula_str}
       end
 
-      def #{@var_name}= value
+      def #{@setter} value
       end
 
     END
@@ -48,13 +48,13 @@ class CachedAlgebraicFlow < Flow
     
     cl.module_eval <<-END
 
-      def #{@var_name}
-        @#{@var_name} ||
-          @#{@var_name} = (#{@formula_str})
+      def #{@getter}
+        @#{@var} ||
+          @#{@var} = (#{@formula_str})
       end
 
-      def #{@var_name}= value
-        @#{@var_name} = value
+      def #{@setter} value
+        @#{@var} = value
       end
 
     END
@@ -70,18 +70,18 @@ class EulerDifferentialFlow < Flow
     
     cl.module_eval <<-END
 
-      def #{@var_name}
+      def #{@getter}
         if $RK_level and $RK_level < 2
-          @#{@var_name}_prev
+          @#{@var}_prev
         else
-          @#{@var_name} ||
-            @#{@var_name} = @#{@var_name}_prev + (#{@formula_str}) * @dt
+          @#{@var} ||
+            @#{@var} = @#{@var}_prev + (#{@formula_str}) * @dt
         end
       end
 
-      def #{@var_name}= value
-        @#{@var_name}_prev = @#{@var_name}
-        @#{@var_name} = value
+      def #{@setter} value
+        @#{@var}_prev = @#{@var}
+        @#{@var} = value
       end
 
     END
@@ -97,71 +97,71 @@ class RK4DifferentialFlow < Flow
     
     cl.module_eval <<-END
     
-      def #{@var_name}
+      def #{@getter}
       
         case $RK_level
 
         when nil
-          @#{@var_name}
+          @#{@var}
 
         when 0
-          @#{@var_name}_prev
+          @#{@var}_prev
 
         when 1
-          if not @#{@var_name}_F1
+          if not @#{@var}_F1
             save_RK_level = $RK_level
             $RK_level = 0
-            @#{@var_name}_F1 = (#{@formula_str}) * @dt
+            @#{@var}_F1 = (#{@formula_str}) * @dt
             $RK_level = save_RK_level
           end
-          @#{@var_name}_prev + @#{@var_name}_F1 / 2
+          @#{@var}_prev + @#{@var}_F1 / 2
 
         when 2
-          if not @#{@var_name}_F2
+          if not @#{@var}_F2
             save_RK_level = $RK_level
             $RK_level = 1
-            #{@var_name} if not @#{@var_name}_F1
-            @#{@var_name}_F2 = (#{@formula_str}) * @dt
+            #{@getter} if not @#{@var}_F1
+            @#{@var}_F2 = (#{@formula_str}) * @dt
             $RK_level = save_RK_level
           end
-          @#{@var_name}_prev + @#{@var_name}_F2 / 2
+          @#{@var}_prev + @#{@var}_F2 / 2
 
         when 3
-          if not @#{@var_name}_F3
+          if not @#{@var}_F3
             save_RK_level = $RK_level
             $RK_level = 2
-            #{@var_name} if not @#{@var_name}_F2
-            @#{@var_name}_F3 = (#{@formula_str}) * @dt
+            #{@getter} if not @#{@var}_F2
+            @#{@var}_F3 = (#{@formula_str}) * @dt
             $RK_level = save_RK_level
           end
-          @#{@var_name}_prev + @#{@var_name}_F3
+          @#{@var}_prev + @#{@var}_F3
 
         when 4
-          if not @#{@var_name}_F4   # always true
+          if not @#{@var}_F4   # always true
             save_RK_level = $RK_level
             $RK_level = 3
-            #{@var_name} if not @#{@var_name}_F3
-            @#{@var_name}_F4 = (#{@formula_str}) * @dt
+            #{@getter} if not @#{@var}_F3
+            @#{@var}_F4 = (#{@formula_str}) * @dt
             $RK_level = save_RK_level
           end
-          @#{@var_name} =
-            @#{@var_name}_prev +
-            (@#{@var_name}_F1     +
-             @#{@var_name}_F2 * 2 +
-             @#{@var_name}_F3 * 2 +
-             @#{@var_name}_F4      ) / 6
+          @#{@var} =
+            @#{@var}_prev +
+            (@#{@var}_F1     +
+             @#{@var}_F2 * 2 +
+             @#{@var}_F3 * 2 +
+             @#{@var}_F4      ) / 6
           
         end            
 
       end
       
-      def #{@var_name}= value
-        @#{@var_name}_prev = @#{@var_name}
-        @#{@var_name} = value
-        @#{@var_name}_F1 = value
-        @#{@var_name}_F2 = value
-        @#{@var_name}_F3 = value
-        @#{@var_name}_F4 = value
+      def #{@setter} value
+        @#{@var}_prev = @#{@var}
+        @#{@var} = value
+        @#{@var}_F1 = value
+        @#{@var}_F2 = value
+        @#{@var}_F3 = value
+        @#{@var}_F4 = value
       end
       
     END

@@ -2,14 +2,15 @@ module RedShift
 
 class Transition
 
-	attr_reader :from, :to, :guard, :events, :action
+	attr_reader :name, :guard, :events, :action
 
-	def initialize f, t, g, e, a
-		@from, @to, @guard, @events, @action = f, t, g, e, a
+	def initialize n, g, e, a
+		@name, @guard, @events, @action = n, g, e, a
+    @name ||= "[transition #{id}]".intern
 	end
 	
 	def enabled? c
-		@guard && c.instance_eval(&@guard)
+		@guard == nil || c.instance_eval(&@guard)
 	end
 	
   def start c
@@ -23,7 +24,6 @@ class Transition
     for e in @events
       e.unexport c
     end 
-    return @to
 	end
 
 end # class Transition

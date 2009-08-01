@@ -7,13 +7,15 @@ class Observer < Component
 
   attr_accessor :b
   
-  Done = State.new "Done", [], []
-
-  Normal =
-    State.new "Normal", [],
-      [Transition.new nil, Done, proc {@save_dent = b.dent}, [],
-       proc {
-         print "Time #{world.clock_now}. Dent is #{@save_dent}\n"}]
+  Normal = State.new :Normal
+  
+  attach({Normal => Normal}, Transition.new :observed_crash,
+    proc {@save_dent = b.dent}, [],
+    proc {print "Time #{world.clock_now}. Dent is #{@save_dent}\n"})
+  
+  attach({Normal => Exit}, Transition.new :exit,
+    proc {world.clock_now == 10.5}, [],
+    proc {print "\n\n ***** Observer departing.\n\n"})
   
   def set_defaults
     @state = Normal
@@ -25,22 +27,30 @@ class Ball < Component
 
   attr_accessor :a
   
-  Stopped =
-    State.new "Stopped", [], []
+ 	Falling = State.new :Falling
+ 	Rising = State.new :Rising
   
- 	Falling =
-    State.new "Falling",
-      [(AlgebraicFlow.new "y_err",
-          "t = world.clock_now
-           (@y0 + @v0 * t + 0.5 * @a * t ** 2 - y).abs"),
-       (RK4DifferentialFlow.new "y", "v"),
-       (EulerDifferentialFlow.new "v", "a")],
-      [Transition.new nil, Stopped,
-        proc {y <= 0},
-        [Event.new(:dent)], proc {self.v = -v}]
+  attach [Falling, Rising], 
+    [(AlgebraicFlow.new :y_err,
+       "t = world.clock_now - @t_last
+       (@y0 + @v0 * t + 0.5 * @a * t ** 2 - y).abs"),
+     (RK4DifferentialFlow.new :y, "v"),
+     (EulerDifferentialFlow.new :v, "a")]
+  
+  attach({Falling => Rising}, Transition.new :crash,
+    proc {y <= 0},
+    [Event.new(:dent)],
+    proc {self.v = -v; @y0 = y; @v0 = v;
+          @t_last = world.clock_now; @bounce_count += 1})
 	
-  Falling.attach Ball
+  attach({Rising => Falling}, Transition.new :peak,
+    proc {v <= 0},
+    [], nil)
   
+  attach({Rising => Exit, Falling => Exit}, Transition.new :exit,
+    proc {@bounce_count == 3},
+    [], nil)
+	
   def set_defaults
     @state = Falling
     @y0 = 100.0
@@ -48,10 +58,8 @@ class Ball < Component
     @y = @y0
     @v = @v0
     @a = -9.8
-    @y_err
-    def self.dent
-      nil
-    end
+    @t_last = 0
+    @bounce_count = 0
   end
   
   def setup
@@ -62,8 +70,8 @@ class Ball < Component
   end
   
   def inspect
-    printf "y = %8.4f, v = %8.4f, y_err = %8.6f%16s",
-           @y, @v, y_err, @state.name
+    sprintf "y = %8.4f, v = %8.4f, y_err = %8.6f%16s",
+            @y, @v, y_err, @state.name
   end
 
 end # class Ball
@@ -74,20 +82,16 @@ w = World.new {
   time_step 0.01
 }
 
-$b = w.create(Ball) {}
-$obs = w.create(Observer) {@b = $b}
+b = w.create(Ball) {}
+obs = w.create(Observer) {@b = b}
 
-#print "\nWorld:\n\n" + w.inspect.gsub!(',', "\n") + "\n"
-
-600.times do
+while w.components.size > 0 do
   t = w.clock_now
   if t == t.floor
     print "\nTime #{t}\n"
   end
-  p $b
+  p b
   w.run
 end
-
-#print "\nBall:\n\n" + $b.inspect.gsub!(',', "\n") + "\n"
 
 end

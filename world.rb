@@ -43,6 +43,10 @@ class World
     c = component_class.new(self, &block)
     @components[c.id] = c
   end
+  
+  def remove c
+    @components.delete c.id
+  end
 
   def run(steps = 1)
     

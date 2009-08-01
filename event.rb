@@ -5,7 +5,7 @@ class Event
 	attr_reader :name
 
 	def initialize n
-		@name = n
+		@name = n || "[Event #{id}]".intern
         
     eval <<-END
     

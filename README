@@ -4,14 +4,15 @@ To do
 Syntax
 
   defining and creating components
-  input, output, connect
+? input, output, connect
 
 Semantics
 
-  inheritance
-    explicit, calculated before run, cached
-    implicit, based on ruby inheritance
-    Exit transition
+/  inheritance
+/   explicit, calculated before run, cached
+/   implicit, based on ruby inheritance
+/   Exit transition
+/   trans.name = nil to prevent hiding
 
   math
     complex numbers
@@ -25,6 +26,7 @@ Semantics
       (before/after)
     transitions like in statechart
     parametric transitions?
+    'all' in Transition#from
 
   
 Implementation
@@ -42,7 +44,8 @@ Implementation
     do this periodically if user sets flag
 
   math
-    mixing runge-kutta 4 with euler
+/   runge-kutta 4
+/?  mixing runge-kutta 4 with euler
       justify '$RK_level < 2'
     var step
     symbolic integration
@@ -55,9 +58,16 @@ Implementation
     syntax errors, esp. in flows, guards
   
   unit tests
+    integrator (start with solution involving diff'able fns)
+    inheritance
+    transitions and events
   
   system tests
-    compare with other integrators
+    compare with other integrators (accuracy)
+  
+  persistence
+  
+  distrubuted processing
 
 User interface
 
@@ -66,22 +76,34 @@ User interface
   
   run command
     should add dt, zeno, time (in sec) in optBlock
+    pass block to run before/after each timestep
     
   gui debugger
   output to gnuplot
 
 Documentation
 
+  translate cshift examples (ball, springs, etc.)
   differences from cshift
-    event semantics like lambda-shift
+    simulation semantics
+      event semantics like lambda-shift
+    programming language semantics
+      inheritance
+        ruby inheritance of attrs, methods
+        transitions, flows, states, events
+        advanced topics: include modules for mixins
+        occlusion of inherited trans./flows by name
+          using nil to prevent occlusion
     no mixing scopes in create, as in "create(Foo, x := x)"
-    'self.x = ...'
+    warning about 'self.x = ...'
     during discrete phase, cached algebraic flows do not change
       they do not have function semantics
       evaluated only once per timestep
       this is consistent with diff flows
       semantics is the same during continuous phase (and faster)
         except for no extra side effects
+    world.clock_now shouldn't be used during rk
+      use a timer based on an EulerFlow
    
    restrictions
      singleton methods cannot be exported (see Event)

@@ -21,6 +21,7 @@ Semantics
 /   implicit, based on ruby inheritance
 /   Exit transition
 /   trans.name = nil to prevent hiding
+  inheritance from mixins
 
   math
     fixed point, rationals
@@ -63,7 +64,7 @@ Implementation
     symbolic integration
 
   debugging, logging
-    use AspectR
+    use AspectR, alias
   
   run time error checking
     catch infinite loops in alg. flows
@@ -79,8 +80,10 @@ Implementation
   
   system tests
     compare with other integrators (accuracy)
+    
+  test windows version
   
-  persistence
+/ persistence
   
   distributed processing
 
@@ -99,12 +102,14 @@ User interface
   nedit syntax coloring
     
   gui debugger
-  output to gnuplot
+
+/ output to gnuplot
 
 Examples
   http server for simulation, html interface
   matrices
   distributed
+  persistence
 
 Documentation
 
@@ -127,6 +132,8 @@ Documentation
       truth values
       names w/ capitals etc.
       fixnums vs. floats
+        fix / fix ==> fix
+      end of line-- finish with op to continue
     during discrete phase, cached algebraic flows do not change
       they do not have function semantics
       evaluated only once per timestep

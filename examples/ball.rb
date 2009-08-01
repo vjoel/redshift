@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
-require 'redshift/redshift.rb'
-require 'plot/plot.rb'
+require 'redshift/redshift'
+require 'plot/plot'
 
 include RedShift
 
@@ -10,14 +10,14 @@ class Observer < Component
   
   state :Observing
   
-  transition(Enter => Observing)
+  transition (Enter => Observing)
 
-  transition(Observing => Observing) {
+  transition (Observing => Observing) {
     guard {ball.impact}
     action {print "\n\t ***** Time of impact #{world.clock}.\n\n"}
   }
   
-  transition(Observing => Exit) {
+  transition (Observing => Exit) {
     guard {world.clock >= 20.0}
     action {print "\n\n ***** Observer leaving.\n\n"}
   }
@@ -30,7 +30,7 @@ class Ball < Component
   
  	state :Falling,:Rising
   
-  flow(Falling, Rising) {
+  flow (Falling, Rising) {
   
     differential  " y' = v "
     euler         " v' = a "
@@ -42,7 +42,7 @@ class Ball < Component
     
   }
   
-  transition(Falling => Rising) {
+  transition (Falling => Rising) {
     guard {y <= 0}
     event :impact
     action {
@@ -53,11 +53,11 @@ class Ball < Component
     }
 	}
   
-  transition(Rising => Falling) {
+  transition (Rising => Falling) {
     guard {v <= 0}
   }
   
-  transition(Rising => Exit, Falling => Exit) {
+  transition (Rising => Exit, Falling => Exit) {
     guard {@bounce_count == 3}
   }
 	
@@ -106,5 +106,5 @@ end
 Plot.new ('gnuplot') {
   add y, 'title "height" w l'
   show
-  command 'pause 60'
+  command 'pause 5'
 }

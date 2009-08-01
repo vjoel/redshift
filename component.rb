@@ -7,8 +7,8 @@ require 'redshift/meta.rb'
 
 module RedShift
 
-Enter = State.new :Enter
-Exit = State.new :Exit
+Enter = State.new :Enter, "RedShift"
+Exit = State.new :Exit, "RedShift"
 Always = Transition.new :Always, nil, [], nil
   
 class Component
@@ -32,15 +32,25 @@ class Component
     @state = Enter
 
     defaults
-    
+
     if block
       instance_eval(&block)
     end
-    
-    setup
 
+    setup
+    
     arrive
 
+  end
+
+
+  def restore
+    for s in states
+      for e in events s
+        e.unexport self
+      end
+    end
+    arrive
   end
   
   
@@ -106,7 +116,17 @@ class Component
     for f in flows
       f.depart self, @state
     end
-  end 
+  end
+    
+  def discard_singleton_methods
+    for m in singleton_methods
+      eval <<-END
+        class <<self
+          remove_method :#{m}
+        end
+      END
+    end
+  end
   
   attach({Exit => Exit}, Transition.new :exit, nil, [],
     proc {world.remove self})

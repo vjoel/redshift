@@ -1,10 +1,12 @@
 require 'option-block/option-block.rb'
+require 'pstore'
 
 module RedShift
 
 class World
 
   include OptionBlock
+  include Enumerable
   
   Infinity = 1.0/0.0
   
@@ -20,6 +22,8 @@ class World
   @@count = 0
 
   attr_reader :components
+  private :components
+  
   attr_reader :step_count #, :clock_start
 #  attr_accessor :name, :time_step, :zeno_limit, :clock_finish
 
@@ -49,7 +53,8 @@ class World
   def remove c
     @components.delete c.id
   end
-
+  
+  
   def run(steps = 1)
     
     step_discrete
@@ -66,9 +71,7 @@ class World
   def step_continuous
   
     $RK_level = 4   # need SEMAPHORE
-    @components.each_value do |c|
-      c.step_continuous @time_step
-    end
+    each { |c| c.step_continuous @time_step }
     $RK_level = nil
    
   end
@@ -84,9 +87,7 @@ class World
     while !done
     
       done = true
-      @components.each_value do |c|
-        done &= c.step_discrete
-      end
+      each { |c| done &= c.step_discrete }
             
       zeno_counter += 1
       if zeno_counter > @zeno_limit
@@ -96,11 +97,13 @@ class World
     end
   end
   
+  
   def clock
     @step_count * @time_step
   end
   
-  def collect
+  
+  def garbage_collect
     @components = {}
     GC.start
     ObjectSpace.each_object(Component) do |c|
@@ -109,7 +112,37 @@ class World
       end
     end
   end
-      
+  
+  
+  def each
+    @components.each_value
+  end
+  
+  
+  def save filename = @name
+    store = PStore.new filename
+    each { |c| c.discard_singleton_methods }
+    store.transaction do
+      store['world'] = self
+    end
+    each { |c| c.restore }
+  end
+  
+  
+  def World.open filename
+    world = nil
+    store = PStore.new filename
+    store.transaction do
+      if store.roots.include? 'world'
+        world = store['world']
+      end
+    end
+    if world
+      world.each { |c| c.restore }
+    end
+    world
+  end
+  
 end # class World
 
 end # module RedShift

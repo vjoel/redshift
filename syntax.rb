@@ -43,13 +43,13 @@ end
 def Component.state(*state_names)
 
   for name in state_names do
-  
+    
     if name.to_s =~ /^[A-Z]/
     
       if const_defined?(name)
         RedShift.warn "state :#{name} already exists. Not redefined."
       else
-        const_set name, State.new name
+        const_set name, State.new(name, self.name)
       end
       
     else
@@ -58,7 +58,7 @@ def Component.state(*state_names)
         RedShift.warn "state :#{name} already exists. Not redefined."
       else
         eval <<-END
-          @@#{name}_state = State.new :#{name}
+          @@#{name}_state = State.new :#{name}, #{self.name}
           def #{name}
             @@#{name}_state
           end

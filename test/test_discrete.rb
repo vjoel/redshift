@@ -375,6 +375,18 @@ class Discrete_15b < DiscreteTestComponent
   end
 end
 
+# priority of transitions is based on program text
+
+class Discrete_16 < DiscreteTestComponent
+  state :S
+  transition(Enter => S) {action {@pass=true}}
+  transition(Enter => S) {action {@pass=false}}
+  transition(Enter => S) {action {@pass=false}}
+  def assert_consistent test
+    test.flunk("transitions are not in priority order") unless @pass
+  end
+end
+
 =begin
 
 test timing of other combinations of

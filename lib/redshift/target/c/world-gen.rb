@@ -350,6 +350,7 @@ class World
         comp_shdw->trans  = Qnil;
         comp_shdw->dest   = Qnil;
         comp_shdw->phases = Qnil;
+        comp_shdw->checked = 0;
       }
       inline static void check_strict(ComponentShadow  *comp_shdw,
                                #{World.shadow_struct.name} *shadow)

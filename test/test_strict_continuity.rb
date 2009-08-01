@@ -277,6 +277,17 @@ class StrictLinkToNonStrictVar < TestComponent
   end
 end
 
+# test that, if evaluation of a strict guard is deferred due to a transition
+# then it is still evaluated. (Focus on orig==dest, because that's more likely
+# to fail.)
+class StrictGuardsEvaled < TestComponent
+  strictly_constant :k
+  transition do
+    guard "k<1"
+    action {@k = true}
+  end
+end
+
 #-----#
 
 require 'test/unit'
@@ -325,6 +336,13 @@ class TestStrictContinuity < Test::Unit::TestCase
   def test_algebraic_inconsistency2
     d = @world.create(D2)
     assert_raises(RedShift::StrictnessError) do
+      @world.run 10
+    end
+  end
+  
+  def test_StrictGuardsEvaled
+    c = @world.create(StrictGuardsEvaled)
+    assert_raises(RedShift::ZenoError) do
       @world.run 10
     end
   end

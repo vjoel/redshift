@@ -1,3 +1,9 @@
+redshift 1.1.54
+
+- Fixed bug with transition S=>S and strict guards.
+
+- Fixed bug with order in which guards are checked.
+
 redshift 1.1.53
 
 - Fixed bug with both link.contvar and link.constant in one gaurd expr.

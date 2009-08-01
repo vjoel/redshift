@@ -116,6 +116,24 @@ class Trans_3a < TransTestComponent
   end
 end
 
+# priority of transitions is based on program text (as tested in test_discrete)
+# with subclasses first (tested here)
+class Trans_4a < TransTestComponent
+  state :A, :B
+  transition Enter => A do name "A" end
+    # Note: assign a name or else B's transition will simply replace A's,
+    # since they will both be named "Always", and that won't be a useful test.
+  def assert_consistent test
+    test.flunk unless state == A or state == Enter
+  end
+end
+class Trans_4b < Trans_4a
+  transition Enter => B do name "B" end
+  def assert_consistent test
+    test.flunk("state was #{state}") unless state == B or state == Enter
+  end
+end
+
 #-----#
 
 require 'test/unit'

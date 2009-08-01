@@ -258,6 +258,8 @@ Semantics
 
 Implementation
 
+  make sure that sizeof(shadow) is as expected (even bitfields!)
+
   possible to use only 1 tmp value for rk4?
 
   optimization: transitive closure of strict sleep, based on declaration
@@ -277,9 +279,6 @@ Implementation
         ...
       }
     END
-
-  Store the evaluated state for each component/strict-guard pair, so that
-  it only has to be evaluated once. (Like strict sleep, but partial.)
 
   Debug mode that uses hooks to add extra checking:
   

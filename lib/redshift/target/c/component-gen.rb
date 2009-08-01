@@ -806,7 +806,6 @@ module RedShift
 
         strict = rb_funcall(shadow->outgoing, #{declare_symbol :last}, 0);
         shadow->strict = RTEST(strict);
-        shadow->checked = 0;
 
         //# Cache flows.
         flow_table = rb_funcall(rb_obj_class(shadow->self),

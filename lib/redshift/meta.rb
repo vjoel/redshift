@@ -92,7 +92,7 @@ class Component
           raise TypeError, "Destination must be a state: #{dest.inspect}"
         end
 
-        @cached_transitions = nil
+        @cached_transitions = @cached_outgoing_transitions = nil
         tr = transitions(src)
 
         for t in new_transitions
@@ -112,7 +112,7 @@ class Component
         begin
           ary = []
           all_strict = true
-          cached_transitions(s).each do |t, d|
+          cached_transitions(s).reverse_each do |t, d|
             ary << t << d << t.phases << t.guard
 
             t_strict = true

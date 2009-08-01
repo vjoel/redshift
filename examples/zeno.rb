@@ -4,8 +4,8 @@ include RedShift
 
 class Z < Component
   transition Enter => Enter do
-    guard {puts "\nin guard clause"; true}
-    action {puts "\nin action clause"}
+    guard {puts "in guard clause"; true}
+    action {puts "in action clause"}
   end
 end
 

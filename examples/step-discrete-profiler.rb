@@ -61,20 +61,29 @@ class ProfilingWorld < World
     @guard_time += t - @guard_start
   end
   
-  def hook_enter_proc_phase
+  def hook_enter_action_phase
     @proc_start = cpu_time
   end
   
-  def hook_leave_proc_phase
+  def hook_leave_action_phase
     t = cpu_time
     @proc_time += t - @proc_start
   end
   
-  def hook_enter_reset_phase
+  def hook_begin_eval_resets(comp)
     @reset_start = cpu_time
   end
   
-  def hook_leave_reset_phase
+  def hook_end_eval_resets(comp)
+    t = cpu_time
+    @reset_time += cpu_time - @reset_start
+  end
+  
+  def hook_begin_parallel_assign
+    @reset_start = cpu_time
+  end
+  
+  def hook_end_parallel_assign
     t = cpu_time
     @reset_time += cpu_time - @reset_start
   end

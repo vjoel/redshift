@@ -59,15 +59,8 @@ class Component
       end
     end
     
-    def must_be_state state
-      unless state.is_a? State
-        raise TypeError, "Must be a state: #{state.inspect}"
-      end
-    end
-
     def attach_flows states, new_flows
       states.each do |state|
-        must_be_state(state)
         fl = flows(state)
         for f in new_flows
           fl[f.var] = f
@@ -78,8 +71,6 @@ class Component
     def attach_transitions state_pairs, new_transitions
       new_transitions.delete_if {|t| t.guard && t.guard.any?{|g| g==false}}
       state_pairs.each do |src, dst|
-        must_be_state(src); must_be_state(dst)
-
         a = own_transitions(src)
         new_transitions.each do |t|
           name = t.name

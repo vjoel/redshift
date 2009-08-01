@@ -387,6 +387,10 @@ class Component
       check_connectable
       component.source_variable_for(variable)
     end
+    
+    def value
+      component.send variable
+    end
   end
   
 end # class Component

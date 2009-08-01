@@ -1,3 +1,11 @@
+redshift 1.2.34
+
+- Added examples/ports.rb.
+
+- Brought hooks in world-gen.rb up to date.
+
+- Fixed bug in euler flow introduced in 1.2.26.
+
 redshift 1.2.33
 
 - Refactored input variable evaluation into rs_eval_input_var().

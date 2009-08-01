@@ -24,7 +24,8 @@ module RedShift; class EulerDifferentialFlow
           double    time_step;
         }
         setup :first => %{
-          if (shadow->world->rk_level == 2 || shadow->world->rk_level == 3)
+          if (comp_shdw->world->rk_level == 2 ||
+              comp_shdw->world->rk_level == 3)
             return;
         } ## optimization: in rk_level==4 case, don't need to calc deps
         setup :shadow => %{

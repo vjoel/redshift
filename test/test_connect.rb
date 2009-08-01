@@ -110,6 +110,7 @@ class TestConnect < Test::Unit::TestCase
     @a.x = 7.89
     
     assert_equal(@a.x, @b.y)
+    assert_equal(@a.x, @b.port(:y).value)
     assert_equal(@b.y+1, @b.z)
     @world.evolve 1 do
       assert_equal(@a.x, @b.y)

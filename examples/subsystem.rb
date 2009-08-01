@@ -106,6 +106,4 @@ gnuplot do |plot|
   plot.add error2, %{title "error2 in f(t)" with lines}
 end
 
-if RUBY_PLATFORM =~ /win32/
-  puts "Press enter to continue"
-end
+sleep 1 if /mswin32|mingw32/ =~ RUBY_PLATFORM

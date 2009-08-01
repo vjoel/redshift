@@ -74,6 +74,4 @@ gnuplot do |plot|
   plot.add e_nind, %{title "e_nind" with lines}
 end
 
-if RUBY_PLATFORM =~ /win32/
-  puts "Press enter to continue"
-end
+sleep 1 if /mswin32|mingw32/ =~ RUBY_PLATFORM

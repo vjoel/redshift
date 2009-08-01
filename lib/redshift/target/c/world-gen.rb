@@ -377,7 +377,8 @@ class World
         return 1;
       }
       
-      inline static int eval_events(ComponentShadow *comp_shdw)
+      inline static int eval_events(ComponentShadow *comp_shdw,
+               #{World.shadow_struct.name} *shadow)
       {
         VALUE events = cur_events(comp_shdw);
         int has_events = RTEST(events);
@@ -511,7 +512,8 @@ class World
         return did_reset;
       }
       
-      inline static int eval_continuous_resets(ComponentShadow *comp_shdw)
+      inline static int eval_continuous_resets(ComponentShadow *comp_shdw,
+                              #{World.shadow_struct.name} *shadow)
       {
         VALUE   resets          = cur_resets(comp_shdw);
         VALUE   cont_resets;
@@ -684,7 +686,8 @@ class World
         return did_reset;
       }
 
-      inline static void do_actions(ComponentShadow *comp_shdw, int type)
+      inline static void do_actions(ComponentShadow *comp_shdw, int type,
+                              #{World.shadow_struct.name} *shadow)
       {
         long  i;
         VALUE actions = type == 0 ?
@@ -694,8 +697,8 @@ class World
         assert(RTEST(actions));
 
         for (i = 0; i < RARRAY(actions)->len; i++) {
-          //%% hook_call_action(comp, RARRAY(actions)->ptr[i]);
           VALUE val = RARRAY(actions)->ptr[i];
+          //%% hook_call_action(comp, val);
 
           if (SYMBOL_P(val))
             rb_funcall(comp, SYM2ID(val), 0);
@@ -848,13 +851,21 @@ class World
               start_trans(comp_shdw, shadow, trans, dest);
               move_comp(comp, shadow->prev_awake, shadow->curr_T);
               
-              if (eval_events(comp_shdw))
+              //%% hook_begin_eval_events(comp, shadow);
+
+              if (eval_events(comp_shdw, shadow))
                 rb_ary_push(shadow->active_E, comp);
+
+              //%% hook_end_eval_events(comp);
               
-              if (eval_continuous_resets(comp_shdw))
+              //%% hook_begin_eval_resets(comp);
+              
+              if (eval_continuous_resets(comp_shdw, shadow))
                 rb_ary_push(shadow->curr_CR, comp);
               
               eval_constant_resets(comp_shdw, shadow);
+
+              //%% hook_end_eval_resets(comp);
               
               if (RTEST(cur_actions(comp_shdw)))
                 rb_ary_push(shadow->curr_A, comp);
@@ -881,7 +892,7 @@ class World
 
         //%% hook_enter_action_phase();
         EACH_COMP_DO(shadow->curr_A) {
-          do_actions(comp_shdw, 0);
+          do_actions(comp_shdw, 0, shadow);
         }
         RARRAY(shadow->curr_A)->len = 0;
         //%% hook_leave_action_phase();
@@ -918,7 +929,7 @@ class World
 
         //%% hook_enter_post_phase();
         EACH_COMP_DO(shadow->curr_P) {
-          do_actions(comp_shdw, 1);
+          do_actions(comp_shdw, 1, shadow);
         }
         RARRAY(shadow->curr_P)->len = 0;
         //%% hook_leave_post_phase();
@@ -1008,7 +1019,7 @@ class World
           args.each {|arg| arg.gsub(/\/\/.*$/, "")}
             # crude parser--no ", " within args, but may be multiline
             # and may have "//" comments, which can be used to extend an arg
-            # across lines (see hook_do_reset).
+            # across lines.
           args.unshift(args.size)
           ## enclose the following in if(shadow->hook) {...}
           %{rb_funcall(shadow->self, #{meth.declare_symbol hook},

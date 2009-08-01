@@ -3,6 +3,7 @@ Publishing RedShift
 
   core for 1.2 release
 
+    fix zeno debugger and example
     queues and sleep
     unambiguous sync
     transition local vars
@@ -294,6 +295,7 @@ Implementation
   possible to use only 1 tmp value for rk4?
   
   optimization: no ContState object, just a pointer in the comp. shadow struct
+    could point to area at end of component's shadow struct
   
   revert to on-demand var evaluation during continuous update?
 

@@ -39,9 +39,13 @@ Semantics
   how to set a local var during a transition (which can be accessed by
   events, actions, resets):
     
-    set :local => proc {long complex calculation}
-    event :e => proc {local}
-    reset :v => proc {local}
+    transition do
+      transient :x
+      action do
+        transient.x = y
+      end
+      reset :z => proc { transient.x }
+    end
 
   a transition that can happen only once per discrete step, to easily
   prevent zeno pb (useful for utility transitions, such as output)

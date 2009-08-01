@@ -112,7 +112,7 @@ class Component
   def to_s
     "<#{self.class} #{name || comp_id}>"
   end
-  
+
   def inspect data = nil
     items = []
     items << state if state
@@ -123,7 +123,7 @@ class Component
       unless var_list.empty?
         strs = var_list.map {|name,info| name.to_s}.sort.map do |name|
           begin
-            "#{name} = #{send(name).inspect}"
+            "#{name} = #{send(name) || "nil"}"
           rescue RedShift::CircularDefinitionError
             "#{name}: CIRCULAR"
           rescue => ex

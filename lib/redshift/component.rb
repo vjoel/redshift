@@ -28,14 +28,16 @@ class Transition < XArray ## put this in meta?
   attr_reader :name
 
   extend AccessibleIndex
-  G_IDX = 0; A_IDX = 1; R_IDX = 2; E_IDX = 3
+  G_IDX = 0; A_IDX = 1; R_IDX = 2; E_IDX = 3; P_IDX = 4
   index_accessor \
-    :guard => G_IDX, :action => A_IDX, :reset => R_IDX, :event => E_IDX
+    :guard => G_IDX, :action => A_IDX, :reset => R_IDX, :event => E_IDX,
+    :post => P_IDX
 
   def initialize n, h
     @name = n || "transition_#{object_id}".intern
     self.guard = h[:guard]; self.action = h[:action]
     self.event = h[:event]; self.reset = h[:reset]
+    self.post = h[:post]
   end
 end
 
@@ -72,6 +74,7 @@ class Component
 
   class GuardPhase  < XArray; end
   class ActionPhase < XArray; end
+  class PostPhase < XArray; end
   class EventPhase  < XArray; end
   class ResetPhase  < XArray
     attr_accessor :value_map

@@ -286,11 +286,19 @@ module TransitionSyntax
     end
     
     def action(meth = nil, &bl)
-      proc_phase = Component::ActionPhase.new
-      proc_phase << meth if meth
-      proc_phase << bl if bl
-      @parts << proc_phase
+      action_phase = Component::ActionPhase.new
+      action_phase << meth if meth
+      action_phase << bl if bl
+      @parts << action_phase
     end
+    
+    def post(meth = nil, &bl)
+      post_phase = Component::PostPhase.new
+      post_phase << meth if meth
+      post_phase << bl if bl
+      @parts << post_phase
+    end
+    alias after post
     
     # +h+ is a hash of :var => proc {value_expr_ruby} or "value_expr_c".
     def reset(h)
@@ -421,7 +429,8 @@ def Component.transition(edges = {}, &block)
       :guard  => combine_transition_parts(parts.grep(Component::GuardPhase)),
       :action => combine_transition_parts(parts.grep(Component::ActionPhase)),
       :event  => combine_transition_parts(parts.grep(Component::EventPhase)),
-      :reset  => combine_transition_parts(parts.grep(Component::ResetPhase))
+      :reset  => combine_transition_parts(parts.grep(Component::ResetPhase)),
+      :post   => combine_transition_parts(parts.grep(Component::PostPhase))
     )
     
   else

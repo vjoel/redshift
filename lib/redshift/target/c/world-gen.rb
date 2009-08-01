@@ -32,6 +32,7 @@ class World
   end
 
   shadow_attr_accessor :curr_A => Array
+  shadow_attr_accessor :curr_P => Array
   shadow_attr_accessor :curr_CR => Array
   shadow_attr_accessor :curr_T => Array
   shadow_attr_accessor :active_E => Array
@@ -42,7 +43,7 @@ class World
   shadow_attr_accessor :inert => Array
   shadow_attr_accessor :diff_list => Array
   protected \
-    :curr_A, :curr_CR, :curr_T,
+    :curr_A, :curr_P, :curr_CR, :curr_T,
     :active_E=, :prev_active_E=, :awake=,
     :strict_sleep=, :inert=, :diff_list=
   
@@ -201,7 +202,7 @@ class World
     parent.declare :static_locals => %{
       static VALUE      ExitState, GuardWrapperClass, ExprWrapperClass;
       static VALUE      ActionClass, EventClass, ResetClass, GuardClass;
-      static VALUE      DynamicEventClass;
+      static VALUE      PostClass, DynamicEventClass;
     }.tabto(0)
     
     declare :locals => %{
@@ -226,6 +227,12 @@ class World
         VALUE actions = RARRAY(comp_shdw->trans)->ptr[#{Transition::A_IDX}];
         assert(actions == Qnil || RBASIC(actions)->klass == ActionClass);
         return actions;
+      }
+      inline static VALUE cur_posts(ComponentShadow *comp_shdw)
+      {
+        VALUE posts = RARRAY(comp_shdw->trans)->ptr[#{Transition::P_IDX}];
+        assert(posts == Qnil || RBASIC(posts)->klass == PostClass);
+        return posts;
       }
       inline static VALUE cur_events(ComponentShadow *comp_shdw)
       {
@@ -638,10 +645,11 @@ class World
         return did_reset;
       }
 
-      inline static void do_actions(ComponentShadow *comp_shdw)
+      inline static void do_actions(ComponentShadow *comp_shdw, int type)
       {
         long  i;
-        VALUE actions = cur_actions(comp_shdw);
+        VALUE actions = type == 0 ?
+          cur_actions(comp_shdw) : cur_posts(comp_shdw);
         VALUE comp    = comp_shdw->self;
         
         assert(RTEST(actions));
@@ -693,9 +701,10 @@ class World
           update_all_alg_vars(comp_shdw);
           comp_shdw->state = comp_shdw->dest;
           __update_cache(comp_shdw);
+          comp_shdw->checked  = 0;
         }
-        comp_shdw->trans  = Qnil;
-        comp_shdw->dest   = Qnil;
+        comp_shdw->trans    = Qnil;
+        comp_shdw->dest     = Qnil;
       }
       
       inline static void check_strict(ComponentShadow *comp_shdw)
@@ -743,6 +752,7 @@ class World
     init %{
       ExitState     = #{get_const[:Exit]};
       ActionClass   = #{get_const[:ActionPhase]};
+      PostClass     = #{get_const[:PostPhase]};
       EventClass    = #{get_const[:EventPhase]};
       ResetClass    = #{get_const[:ResetPhase]};
       GuardClass    = #{get_const[:GuardPhase]};
@@ -808,6 +818,9 @@ class World
               if (RTEST(cur_actions(comp_shdw)))
                 rb_ary_push(shadow->curr_A, comp);
               
+              if (RTEST(cur_posts(comp_shdw)))
+                rb_ary_push(shadow->curr_P, comp);
+              
               break;
             }
             else
@@ -824,10 +837,10 @@ class World
         }
         assert(RARRAY(shadow->prev_awake)->len == 0);
         //%% hook_leave_guard_phase();
-        
+
         //%% hook_enter_action_phase();
         EACH_COMP_DO(shadow->curr_A) {
-          do_actions(comp_shdw);
+          do_actions(comp_shdw, 0);
         }
         RARRAY(shadow->curr_A)->len = 0;
         //%% hook_leave_action_phase();
@@ -840,6 +853,11 @@ class World
         }
         RARRAY(shadow->prev_active_E)->len = 0;
         
+        if (!RARRAY(shadow->curr_T)->len) {
+          //%% hook_end_step();
+          break; //# out of main loop
+        }
+
         //# Export new event values.
         EACH_COMP_DO(shadow->active_E) {
           SWAP_VALUE(comp_shdw->event_values, comp_shdw->next_event_values);
@@ -857,37 +875,41 @@ class World
         did_reset = assign_new_links(shadow) || did_reset;
         //%% hook_end_parallel_assign();
 
-        if (RARRAY(shadow->curr_T)->len) {
-          EACH_COMP_DO(shadow->curr_T) {
-            finish_trans(comp_shdw, shadow);
-          }
-          EACH_COMP_DO(shadow->curr_T) {
-            check_strict(comp_shdw);
-            //## optimize: only keep comps with var->ck_strict on this list
-            //## option to skip this check
-          }
-          EACH_COMP_DO(shadow->curr_T) {
-            if (comp_shdw->state == ExitState)
-              remove_comp(comp, shadow->curr_T, shadow);
-            else
-              move_comp(comp, shadow->curr_T, shadow->awake);
-          }
-          assert(RARRAY(shadow->curr_T)->len == 0);
-          assert(RARRAY(shadow->prev_awake)->len == 0);
-          
-          if (did_reset || 1)
-            d_tick++;
-            //## replace "1" with "some comp entered new
-            //## state with new alg. eqs"
+        //%% hook_enter_post_phase();
+        EACH_COMP_DO(shadow->curr_P) {
+          do_actions(comp_shdw, 1);
         }
-        else
-          break; //# out of main loop
+        RARRAY(shadow->curr_P)->len = 0;
+        //%% hook_leave_post_phase();
         
+        EACH_COMP_DO(shadow->curr_T) {
+          finish_trans(comp_shdw, shadow);
+        }
+
+        if (did_reset || 1)
+          d_tick++;
+          //## replace "1" with "some comp entered new
+          //## state with new alg. eqs"
+        
+        EACH_COMP_DO(shadow->curr_T) {
+          check_strict(comp_shdw);
+          //## optimize: only keep comps with var->ck_strict on this list
+          //## option to skip this check
+        }
+        EACH_COMP_DO(shadow->curr_T) {
+          if (comp_shdw->state == ExitState)
+            remove_comp(comp, shadow->curr_T, shadow);
+          else
+            move_comp(comp, shadow->curr_T, shadow->awake);
+        }
+        assert(RARRAY(shadow->curr_T)->len == 0);
+        assert(RARRAY(shadow->prev_awake)->len == 0);
+
         //%% hook_end_step();
         
         //# Check for zeno problem.
         if (shadow->zeno_limit >= 0) {
-          shadow->zeno_counter++; //### just use discrete_step ?
+          shadow->zeno_counter++;
           if (shadow->zeno_counter > shadow->zeno_limit)
             rb_funcall(shadow->self, #{declare_symbol :step_zeno}, 0);
         }

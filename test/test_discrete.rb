@@ -455,6 +455,19 @@ class Discrete_18 < DiscreteTestComponent
   end
 end
 
+# Check that post actions work.
+class Discrete_19 < DiscreteTestComponent
+  state :A
+  constant :x
+  transition Enter => A do
+    reset :x => 1
+    post {@x = x}
+  end
+  def assert_consistent test
+    test.assert_equal(1, @x)
+  end
+end
+
 =begin
 
 test timing of other combinations of

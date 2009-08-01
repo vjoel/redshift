@@ -75,12 +75,12 @@ class A < TestComponent
       t2_count = num_checks["t2"]
       
       step_count = world.step_count
-      step_count = (step_count == 0 ? step_count : step_count + 1)
-      # This accounts for the fact that step_discrete is called an "extra"
-      # time at the start of one call to World#step or #evolve.
       
-      test.assert_equal(step_count, t1_count)
-      test.assert_equal(step_count, t2_count)
+      test.assert(t1_count <= step_count+2)
+      test.assert(t2_count <= step_count+2)
+      # This accounts for the fact that step_discrete is called an "extra"
+      # time at the start of one call to World#step or #evolve, plus an
+      # extra time by "run(0)" below.
       
     when Exit
       ## we really only need to do these tests once...
@@ -284,7 +284,46 @@ class StrictGuardsEvaled < TestComponent
   strictly_constant :k
   transition do
     guard "k<1"
-    action {@k = true}
+  end
+end
+
+# Test that there is no memory of which strict guards have been "checked"
+# after moving to a new state.
+class StrictGuardsEvaled2 < TestComponent
+  state :S1, :S2
+  link :checker => :Checker
+  constant :i => 0
+  transition Enter => S1 do
+    reset :checker => proc {create(Checker) {|c| c.emitter = self}}
+  end
+  transition S1 => S2 do
+    guard "i > 5"
+    event :e
+  end
+  transition S1 => S1 do # give other comp time to check guards
+    reset :i => "i+1"
+  end
+  
+  class Checker < Component
+    strictly_constant :x => 0, :y => 1
+    state :S1
+    link :emitter => StrictGuardsEvaled2
+    transition Enter => Exit do
+      guard "x > 0"
+      post {raise}
+    end
+    transition Enter => S1 do
+      guard :emitter => :e
+    end
+    transition S1 => Exit do
+      guard "y > 0"
+    end
+  end
+  
+  def assert_consistent(test)
+    if self.state == S2
+      test.assert_equal(Exit, checker.state)
+    end
   end
 end
 
@@ -312,6 +351,10 @@ class TestStrictContinuity < Test::Unit::TestCase
       end
     end
     
+    testers.each { |t| t.assert_consistent self }
+    @world.run 0
+      # now we can check what happened after one discrete step, which
+      # is needed for StrictGuardsEvaled2.
     testers.each { |t| t.assert_consistent self }
     @world.run 10 do
       testers.each { |t| t.assert_consistent self }

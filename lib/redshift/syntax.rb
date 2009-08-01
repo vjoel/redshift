@@ -1,10 +1,19 @@
 require 'redshift/world'
 require 'redshift/component'
 
-# None of the defs in this file are strictly necessary to
-# use RedShift, but they make your code prettier.
-
 module RedShift
+
+# Register the given block to be called for instances of this class of World as
+# they are instantiated (before the block passed to #new is called). The
+# registered code is inherited by subclasses of this World class. The block is
+# called with the world as +self+. Any number of blocks can be registered.
+# (There are no per-world defaults. Use the #new block instead.)
+def World.defaults(&block)
+  (@defaults_procs ||= []) << block if block
+end
+class << World
+  alias default defaults
+end
 
 # Register the given block to be called for instances of this class of World
 # just before they are first run. The registered code is inherited by

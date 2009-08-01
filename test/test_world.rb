@@ -4,24 +4,26 @@ require 'redshift'
 
 include RedShift
 
-# test setup clauses in world class and in world instance
+# test setup and default clauses in world class and in world instance
 # test World#started?
 
 class World_1 < World
+  default { @d = 6 }
   setup { @x = 1 }; setup { @y = 2 }
   def initialize
     super {
+      @e = @d + 1
       @z = 3
     }
     setup { @t = 4 }; setup { @u = 5 }
   end
   def assert_consistent_before test
     test.assert(!started?)
-    test.assert_equal([nil,nil,3,nil,nil], [@x,@y,@z,@t,@u])
+    test.assert_equal([nil,nil,3,nil,nil,6,7], [@x,@y,@z,@t,@u,@d,@e])
   end
   def assert_consistent_after test
     test.assert(started?)
-    test.assert_equal([1,2,3,4,5], [@x,@y,@z,@t,@u])
+    test.assert_equal([1,2,3,4,5,6,7], [@x,@y,@z,@t,@u,@d,@e])
   end
 end
 

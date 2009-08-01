@@ -42,11 +42,6 @@ Syntax
 
 Semantics
 
-  should world have default as well as setup
-    sequence: default, initialize block, setup
-
-    -- this might be better than the default_options system
-  
   Should actions be allowed to occur on the same discrete step as R/E/G ?
     
     action {}

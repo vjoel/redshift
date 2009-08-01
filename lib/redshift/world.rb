@@ -91,14 +91,28 @@ class World
     
     @@count += 1
 
+    do_defaults
     yield self if block_given?
   end
   
-  # Registers code blocks to be run just before first step of world.
+  def do_defaults
+    self.class.do_defaults self
+  end
+  private :do_defaults
+  
+  def self.do_defaults instance
+    superclass.do_defaults instance if superclass.respond_to? :do_defaults
+    if @defaults_procs
+      @defaults_procs.each do |pr|
+        instance.instance_eval(&pr)
+      end
+    end
+  end
+  
   def do_setup
     self.class.do_setup self
     if @setup_procs
-      for pr in @setup_procs
+      @setup_procs.each do |pr|
         instance_eval(&pr)
       end
       @setup_procs = nil # so we can serialize
@@ -109,7 +123,7 @@ class World
   def self.do_setup instance
     superclass.do_setup instance if superclass.respond_to? :do_setup
     if @setup_procs
-      for pr in @setup_procs
+      @setup_procs.each do |pr|
         instance.instance_eval(&pr)
       end
     end

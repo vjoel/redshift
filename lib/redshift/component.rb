@@ -7,7 +7,6 @@ require 'redshift/meta'
 module RedShift
 
 class AlgebraicAssignmentError < StandardError; end
-class ContinuousAssignmentError < StandardError; end
 class NilLinkError < StandardError; end
 class CircularDefinitionError < StandardError; end
 class StrictnessError < StandardError; end
@@ -196,7 +195,7 @@ class Component
   def self.do_defaults instance
     superclass.do_defaults instance if superclass.respond_to? :do_defaults
     if @defaults_procs
-      for pr in @defaults_procs
+      @defaults_procs.each do |pr|
         instance.instance_eval(&pr)
       end
     end
@@ -207,7 +206,7 @@ class Component
     ## it can be overridden. 'nosupersetup'? explicit 'super'?
     superclass.do_setup instance if superclass.respond_to? :do_setup
     if @setup_procs
-      for pr in @setup_procs
+      @setup_procs.each do |pr|
         instance.instance_eval(&pr) ## should be pr.call(instance) ?
       end
     end

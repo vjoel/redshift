@@ -6,6 +6,8 @@ include RedShift
 
 require 'test/unit'
 
+# See also test_strict_continuity.rb.
+
 class TestStrictnessError < Test::Unit::TestCase
 
   class T < Component
@@ -20,6 +22,7 @@ class TestStrictnessError < Test::Unit::TestCase
 
   end
   
+  # This is the only test that can appear in this file.
   def test_strictness_error
     assert_raises(RedShift::StrictnessError) do
       World.new

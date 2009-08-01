@@ -1,3 +1,11 @@
+redshift 1.1.40
+
+- Strictness violations of writers can be rescued, and the value remains set.
+
+- World#age removed; use #evolve instead.
+
+- Improved test_strict_continuity.rb.
+
 redshift 1.1.39
 
 - Added World.defaults.

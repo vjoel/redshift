@@ -5,7 +5,7 @@ Bugs
 
   Make sure the arrays used internally are not shared:
   call rb_ary_modify() before setting len or etc.
-
+  
 Syntax
 
   replace strictly_* with strict_* and alias back for compat
@@ -41,6 +41,8 @@ Syntax
    Enter=>Enter ?
 
 Semantics
+
+  Does permissive make sense?
 
   Should actions be allowed to occur on the same discrete step as R/E/G ?
     
@@ -221,6 +223,17 @@ Semantics
   world class, which the class could override as needed
 
 Implementation
+
+  Debug mode that uses hooks to add extra checking:
+  
+    - d_tick rollover
+
+    - check for violation of stricness by a transition to
+      a state with different algebraic eqns (so this check
+      would become optional)
+  
+  Instead of caching flow function in each cont var, maybe just have pointer
+  to a single (per state?) object?
 
   share mark and free funcs where possible (e.g., guards)
   

@@ -74,4 +74,4 @@ w.create(Thing) do |th|
   th.start Thing::B
 end
 
-w.age 100
+w.evolve 100

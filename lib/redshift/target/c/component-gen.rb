@@ -298,7 +298,7 @@ module RedShift
           cont_state_class.add_var var_name, kind do
             ssn = cont_state_class.shadow_struct.name
             exc = shadow_library.declare_class(AlgebraicAssignmentError)
-            msg = "\\\\nCannot set #{var_name}; it is defined algebraically."
+            msg = "Cannot set #{var_name}; it is defined algebraically."
 
             class_eval %{
               define_c_method :#{var_name} do
@@ -314,7 +314,7 @@ module RedShift
             }
 
             if kind == :strict
-              exc2 = shadow_library.declare_class ContinuousAssignmentError
+              exc2 = shadow_library.declare_class StrictnessError
               msg2 = "Cannot reset strictly continuous #{var_name} in #{self}."
               class_eval %{
                 define_c_method :#{var_name}= do
@@ -324,10 +324,10 @@ module RedShift
                     cont_state = (#{ssn} *)shadow->cont_state;
                     if (cont_state->#{var_name}.algebraic)
                       rb_raise(#{exc}, #{msg.inspect});
-                    if (!NIL_P(shadow->state))
-                      rb_raise(#{exc2}, #{msg2.inspect});
                     cont_state->#{var_name}.value_0 = NUM2DBL(value);
                     d_tick++;
+                    if (!NIL_P(shadow->state))
+                      rb_raise(#{exc2}, #{msg2.inspect});
                   }
                   returns "value"
                 end
@@ -361,9 +361,9 @@ module RedShift
           w.body "d_tick++"
 
           if kind == :strict
-            exc = shadow_library.declare_class ContinuousAssignmentError
+            exc = shadow_library.declare_class StrictnessError
             msg = "Cannot reset strictly constant #{var_name} in #{self}."
-            w.setup %{
+            w.body %{
               if (!NIL_P(shadow->state))
                 rb_raise(#{exc}, #{msg.inspect});
             }
@@ -429,9 +429,9 @@ module RedShift
           w.body "d_tick++"
 
           if strictness == :strict
-            exc = shadow_library.declare_class ContinuousAssignmentError
+            exc = shadow_library.declare_class StrictnessError
             msg = "Cannot reset strict link #{var_name} in #{self}."
-            w.setup %{
+            w.body %{
               if (!NIL_P(shadow->state))
                 rb_raise(#{exc}, #{msg.inspect});
             }
@@ -445,11 +445,9 @@ module RedShift
               offset = (char *)&(((struct #{ssn} *)0)->#{var_name}) - (char *)0;
               return INT2FIX(offset);
             }
-          } ### can we just use offsetof() ?
+          } ## can we just use offsetof() ?
         end
       end
-      ### shadow_attr won't accept redefinition, and anyway there is
-      ###   the contra/co variance problem.
       
       def check_variables
         bad = constant_variables.keys & continuous_variables.keys
@@ -575,34 +573,60 @@ module RedShift
         h = phase.value_map
         h.keys.sort_by{|k|k.to_s}.each do |var|
           expr = h[var]
-          cont_var = cont_state_class.vars[var]
-          ### what about reseting link vars and constants?
-          ### don't forget to check for strict link!
-          unless cont_var
-            raise "No such variable, #{var}"
-          end
           
-          if cont_var.strict?
-            raise ContinuousAssignmentError,
-              "Cannot reset strictly continuous #{var} in #{self}.", []
-          end
-          
-          case expr
-          when String
-            reset = define_reset(expr)
-
-            after_commit do
-              phase[cont_var.index] = reset.instance
-            end
-
+          case
+          when (cont_var = cont_state_class.vars[var])
+            define_reset_continuous(cont_var, expr, phase)
+          when constant_variables[var]
+            define_reset_constant(var, expr, phase)
+          when link_variables[var]
+            define_reset_link(var, expr, phase)
           else
-            after_commit do
-              phase[cont_var.index] = expr
-            end
+            raise "No such variable, #{var}"
           end
         end
       end
       
+      def define_reset_continuous cont_var, expr, phase
+        if cont_var.strict?
+          raise StrictnessError,
+            "Cannot reset strictly continuous #{var} in #{self}.", []
+        end
+
+        case expr
+        when String
+          reset = define_reset(expr)
+
+          after_commit do
+            phase[cont_var.index] = reset.instance
+          end
+
+        else
+          after_commit do
+            phase[cont_var.index] = expr
+          end
+        end
+      end
+      
+      def define_reset_constant var, expr, phase
+        if constant_variables[var] == :strict
+          raise StrictnessError,
+            "Cannot reset strictly constant #{var} in #{self}.", []
+        end
+        
+        raise ### TODO
+      end
+
+      def define_reset_link var, expr, phase
+        type, strictness = link_variables[var]
+        if strictness == :strict
+          raise StrictnessError,
+            "Cannot reset strict link #{var} in #{self}.", []
+        end
+        
+        raise ### TODO
+      end
+
       def define_transitions(state)
         own_trans = transitions(state).own
 
@@ -644,7 +668,7 @@ module RedShift
       }.tabto(0)
 
       body %{
-        //# Cache outgoing transitions as [t, g, [phase0, phase1, ...], dest, ...]
+        //# Cache outgoing transitions.
         shadow->outgoing = rb_funcall(shadow->self,
                            #{declare_symbol :outgoing_transitions}, 0);
 

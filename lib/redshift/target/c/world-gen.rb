@@ -396,7 +396,6 @@ class World
         EACH_COMP_ADVANCE(shadow->curr_G) {
           len = RARRAY(comp_shdw->outgoing)->len;
           ptr = RARRAY(comp_shdw->outgoing)->ptr;
-          //# outgoing = [ trans, guard, [proc, reset, event, ...], dest, ...]
           
           while (len) {
             VALUE trans, guard, phases, dest;

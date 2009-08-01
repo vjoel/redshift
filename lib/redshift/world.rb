@@ -190,17 +190,13 @@ class World
   end
   
   def run(*args, &block)
-    ## warn "World#run is deprecated -- use #step or #age"
+    ## warn "World#run is deprecated -- use #step or #evolve"
     step(*args, &block)
   end
   
-  ### this needs a better name--a verb that applies to time (not steps)
-  ### advance, go, 
-  ## maybe this should be called "evolve", to make it unambiguously a verb
-  def age(time = 1.0, &block)
+  def evolve(time = 1.0, &block)
     run((time.to_f/time_step).round, &block)
   end
-  alias evolve age
 
   # Default implementation is to raise RedShift::ZenoError.
   def step_zeno

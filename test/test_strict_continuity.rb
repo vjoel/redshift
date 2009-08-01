@@ -4,22 +4,46 @@ require 'redshift'
 
 include RedShift
 
-# Tests strictly continuous vars.
+# Tests strictly continuous and strictly constant variables. Tests strict
+# link variables.
+#
+# - tests that guard optimization works: guards are eval-ed once per step
+#
+# - tests exceptions raised by assigning to strict vars
+#
+# - tests exception raised by a transition to a state that algebraically
+#   defines a variable in an inconsistent way
+#
+# [Note: exceptions caused by algebraically defining a strict var
+#  in terms of a non-strict var are caught at compile time. See
+#  test_strictness_error.rb.]
 
-### does this test the right thing?
+class SCWorld < World
+  def num_checks
+    @num_checks ||= Hash.new do |h,comp|
+      h[comp] = Hash.new do |h1,trans|
+        h1[trans] = 0
+      end
+    end
+  end
+  
+  def hook_eval_guard(comp, guard, enabled, trans, dest)
+    num_checks[comp][trans.name] += 1
+  end
+end
 
-class StrictContinuityComponent < Component
+class TestComponent < Component
   def finish(test); end
 end
 
 class C < Component
-  strictly_continuous :y
+  strictly_constant :y
   setup do
     self.y = 1
   end
 end
 
-class A < StrictContinuityComponent
+class A < TestComponent
   strictly_continuous :x
   strict_link :c => C
   
@@ -29,56 +53,77 @@ class A < StrictContinuityComponent
   
   setup do
     self.c = create C
-    @guard1_count = 0
-    @guard2_count = 0
-    @x_event_time = nil
   end
   
   transition Enter => Exit do
-    guard {@guard1_count += 1; x > 0.95} ## use hook for this?
-    ### why proc guards, not cexpr guards?
-    #### why doesn't it fail?
-    action do
-      @x_event_time = world.clock
-    end
+    name "t1"
+    guard " x > 0.50 "
   end
 
   transition Enter => Exit do
-    guard {@guard2_count += 1; x > 0.95} ## use hook for this?
-    action do
-      @x_event_time = world.clock
-    end
+    name "t2"
+    guard " x > 0.73 "
   end
 
   def assert_consistent(test)
     case state
     when Enter
       # Should not check the guard more than once per step, or so.
-      test.assert(@guard1_count <= world.step_count + 1)
-      test.assert(@guard1_count >= world.step_count)
+      num_checks = world.num_checks[self]
+      t1_count = num_checks["t1"]
+      t2_count = num_checks["t2"]
       
-      test.assert(@guard2_count <= world.step_count + 1)
-      test.assert(@guard2_count >= world.step_count)
-    when Exit
-      test.assert_equal(1.0, @x_event_time)
+      test.assert(world.step_count, t1_count)
+      test.assert(world.step_count, t2_count)
     
-      test.assert_raises(RedShift::ContinuousAssignmentError) do
-        self.x = 3
+    when Exit
+      ## we really only need to do these tests once...
+      old_x = x
+      old_c = c
+      old_c_y = c.y
+      
+      test.assert_raises(RedShift::StrictnessError) do
+        self.x = x
       end
+    
+      test.assert_raises(RedShift::StrictnessError) do
+        self.c = c
+      end
+    
+      test.assert_raises(RedShift::StrictnessError) do
+        c.y = c.y
+      end
+      
+      # strictness has a backdoor...
+      begin
+        self.x = 123
+      rescue RedShift::StrictnessError
+      end
+      test.assert_equal(123, x)
+      
+      begin
+        self.c = nil
+      rescue RedShift::StrictnessError
+      end
+      test.assert_equal(nil, c)
+      
+      (self.x = old_x) rescue nil
+      (self.c = old_c) rescue nil
+      (c.y = old_c_y) rescue nil
     end
   end
 end
 
 # This component exists to give the A instance a chance to make too many
 # guard checks.
-class B < StrictContinuityComponent
-  flow do
-    diff "time' = 1"
-  end
-  
+class B < TestComponent
   state :S, :T, :U
   setup do
     start S
+  end
+  
+  flow S do
+    diff "time' = 1"
   end
   
   transition S => T do
@@ -90,15 +135,30 @@ class B < StrictContinuityComponent
   
   transition U => S do
     action do
-      @sleepers = world.strict_sleep.size
+      @awake = world.size - world.strict_sleep.size
     end
   end
 
   def assert_consistent(test)
-    if @sleepers
-      test.assert_equal(2, @sleepers)
+    if @awake
+      test.assert_equal(1, @awake) # just the B
     end
   end
+end
+
+class D < Component
+  strictly_continuous :x
+  setup do
+    self.x = 1
+  end
+  
+  state :Inconsistent
+  
+  flow Inconsistent do
+    algebraic " x = 2 "
+  end
+  
+  transition Enter => Inconsistent
 end
 
 
@@ -109,7 +169,7 @@ require 'test/unit'
 class TestStrictContinuity < Test::Unit::TestCase
   
   def setup
-    @world = World.new
+    @world = SCWorld.new
     @world.time_step = 0.1
   end
   
@@ -120,7 +180,7 @@ class TestStrictContinuity < Test::Unit::TestCase
   def test_strict_continuity
     testers = []
     ObjectSpace.each_object(Class) do |cl|
-      if cl <= StrictContinuityComponent and
+      if cl <= TestComponent and
          cl.instance_methods.include? "assert_consistent"
         testers << @world.create(cl)
       end
@@ -133,9 +193,17 @@ class TestStrictContinuity < Test::Unit::TestCase
     testers.each { |t| t.finish self }
     
     a = testers.find {|t| t.class == A}
-    assert_equal(StrictContinuityComponent::Exit, a.state)
+    assert(a)
+    assert_equal(TestComponent::Exit, a.state)
 
     b = testers.find {|t| t.class == B}
     assert(b)
+  end
+  
+  def test_algebraic_inconsistency
+    d = @world.create(D)
+    assert_raises(RedShift::StrictnessError) do
+      @world.run 1
+    end
   end
 end

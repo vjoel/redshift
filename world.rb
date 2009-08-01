@@ -85,6 +85,7 @@ class World
       for pr in @setup_procs
         instance_eval(&pr)
       end
+      @setup_procs = nil # so we can serialize
     end
   end
   private :do_setup
@@ -122,7 +123,11 @@ class World
       @step_count += 1
       step_continuous
       step_discrete
-      yield self if block_given?
+      @running = false
+      yield self if block_given?  
+        ## it is client's responsibility to step_discrete at this point
+        ## if vars have been changed
+      @running = true
     end ### put this whole loop in C
     
     self
@@ -190,6 +195,7 @@ class World
   end
   
   def World.open filename
+    RedShift.library.commit # defines World.alloc methods
     world = nil
     store = PStore.new filename
     store.transaction do

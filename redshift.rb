@@ -19,6 +19,10 @@ if $REDSHIFT_DEBUG
   puts "  ----------------------------------------------------------------- "
 end
 
+if $REDSHIFT_VERBOSE
+  $CGEN_VERBOSE = true
+end
+
 class Object
   def pp arg  # for debugging :)
     p arg; arg
@@ -34,7 +38,13 @@ class Object
       end
     end
   end
+end
+
+module RedShift
+  include Math
   
+  Infinity = 1.0/0.0
+
   def debug setting = true, &block
     if block
       begin
@@ -48,12 +58,6 @@ class Object
       $REDSHIFT_DEBUG = setting
     end
   end
-end
-
-module RedShift
-  include Math
-  
-  Infinity = 1.0/0.0
 
 #  def run(*args)
 #    if @@world

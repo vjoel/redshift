@@ -41,9 +41,8 @@ module RedShift
           Dir.mkdir dir_name rescue SystemCallError
           Dir.chdir dir_name
           yield
-        rescue
+        ensure
           Dir.chdir oldpwd
-          raise
         end
       end
     end
@@ -58,6 +57,8 @@ module RedShift
           super
         end
       end
+      ## freeze some stuff, e.g. TypeData?
+      ## can cgen/cshadow freeze some stuff?
     end
   end
   

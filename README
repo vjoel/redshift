@@ -235,6 +235,10 @@ Implementation
   abstract hash-inheritance and use it in meta.rb and option-block.rb
 
   optimization
+    compiler flags
+      -O{1-4}
+      -ffast-math
+      If these matter much, there should be a switch, like REDSHIFT_OPTIMIZE=n
     in ruby 1.7, convert proc to methods (e.g., the guard method of a trans)
     don't use Data_Get_Struct in flow fns, use simple casts like in
       step_discrete inlines, with asserts

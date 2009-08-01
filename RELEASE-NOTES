@@ -1,3 +1,9 @@
+redshift 1.2.20
+
+- Fixed bug in delay of algebraic flows.
+
+- Improved interaction between euler flow and derive and rk4 flows.
+
 redshift 1.2.19
 
 - Fixed roundoff problem with variable delay (new fix).

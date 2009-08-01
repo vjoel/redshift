@@ -41,10 +41,6 @@ module RedShift; class DelayFlow
           long      i, len, offset, steps;
           double    delay, fill;
         }
-        setup :first => %{
-          if (rk_level == 2 || rk_level == 3)
-            return;
-        }
         setup :shadow => %{
           shadow = (#{ssn} *)comp_shdw;
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;
@@ -63,7 +59,12 @@ module RedShift; class DelayFlow
         
         include World.shadow_library_include_file
 
+        # Note: the 'return' in cases 2,3 must be *after* alg deps are computed
+        # since their values are used later.
         body %{
+          if (rk_level == 1 || rk_level == 2)
+            return;
+
           switch (rk_level) {
           case 0:
             ptr = shadow->#{bufname}.ptr;

@@ -22,29 +22,38 @@ module RedShift; class EulerDifferentialFlow
           ContVar  *var;
           double    ddt_#{var_name};
         }
-        setup :shadow => %{
-          if (rk_level == 1) {
-            shadow = (#{ssn} *)comp_shdw;
-            cont_state = (#{cont_state_ssn} *)shadow->cont_state;
-            var = &cont_state->#{var_name};
-          }
-          else
+        setup :first => %{
+          if (rk_level == 2 || rk_level == 3)
             return;
+        } ## optimization: in rk_level==4 case, don't need to calc deps
+        setup :shadow => %{
+          shadow = (#{ssn} *)comp_shdw;
+          cont_state = (#{cont_state_ssn} *)shadow->cont_state;
+          var = &cont_state->#{var_name};
         } # return is necessary--else shadow, cont_state, var are uninitialized
         setup :rk_level => %{
-          rk_level -= 1;
+          rk_level--;
         } # has to happen before referenced alg flows are called in other setups
         body %{
-          if (rk_level == 0) {
+          switch (rk_level) {
+          case 0:
             #{flow.translate(self, "ddt_#{var_name}", 0, cl).join("
             ")};
 
-            var->value_0 = var->value_3 = var->value_2 =
-              var->value_0 + time_step * ddt_#{var_name};
-            
+            var->value_1 = var->value_2 =
+              var->value_0 + ddt_#{var_name} * time_step/2;
+            var->value_3 =
+              var->value_0 + ddt_#{var_name} * time_step;
+            var->rk_level = 3;
+            break;
+          
+          case 3:
+            var->value_0 = var->value_3;
             var->rk_level = 4;
+            break;
           }
-          rk_level += 1;
+
+          rk_level++;
         }
       end
       define_c_method :calc_function_pointer do

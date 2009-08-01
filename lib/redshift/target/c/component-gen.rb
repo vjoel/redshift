@@ -543,7 +543,9 @@ module RedShift
       end
 
       def define_guard(expr)
-        CexprGuard.new(expr).guard_wrapper(self)
+        @guard_wrapper_hash ||= {} ## could be a superhash?
+        @guard_wrapper_hash[expr] ||=
+          CexprGuard.new(expr).guard_wrapper(self)
       end
 
       def make_guard_method_name
@@ -611,9 +613,9 @@ module RedShift
       end
       
       def define_reset(expr)
-        ## optimization: if the same fmla is used in two places with the
-        ## same context, use the same wrapper
-        Expr.new(expr).wrapper(self)
+        @expr_wrapper_hash ||= {} ## could be a superhash?
+        @expr_wrapper_hash[expr] ||=
+          Expr.new(expr).wrapper(self)
       end
       
       def define_resets(phase)

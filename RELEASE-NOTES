@@ -1,3 +1,10 @@
+redshift 1.2.5
+
+- Fixed MSVC6 compiler snags.
+
+- Optimization to reuse guard expr wrappers when exprs are the same. Same
+  for reset expr wrappers.
+
 redshift 1.2.4
 
 - Fixed World.open when it is called before World.new has been called.

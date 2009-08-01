@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 1.2 4)
-(Parent-Version redshift 1.2 3)
+(Project-Version redshift 1.2 5)
+(Parent-Version redshift 1.2 4)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Mon, 25 Feb 2008 19:05:48 -0800")
+(Checkin-Time "Mon, 25 Feb 2008 23:43:47 -0800")
 (Checkin-Login vjoel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -304,7 +304,7 @@
 ;; Files added by populate at Thu, 16 May 2002 00:16:02 -0700,
 ;; to version 1.0.7(w), by tercel:
 
-  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.27 644))
+  (RELEASE-NOTES (redshift/b/11_RELEASE-NO 1.28 644))
 
 ;; Files added by populate at Thu, 16 May 2002 00:16:26 -0700,
 ;; to version 1.0.7(w), by tercel:
@@ -386,11 +386,11 @@
 
   (lib/redshift/world.rb (redshift/b/30_world.rb 1.20 644))
   (lib/redshift/target/spec.rb (redshift/b/31_spec.rb 1.1 644))
-  (lib/redshift/target/c/world-gen.rb (redshift/b/32_world-gen. 1.33 644))
+  (lib/redshift/target/c/world-gen.rb (redshift/b/32_world-gen. 1.34 644))
   (lib/redshift/target/c.rb (redshift/b/33_c.rb 1.3 644))
   (lib/redshift/target/c/library.rb (redshift/b/34_library.rb 1.4 644))
   (lib/redshift/target/c/flow-gen.rb (redshift/b/35_flow-gen.r 1.12 644))
-  (lib/redshift/target/c/component-gen.rb (redshift/b/36_component- 1.33 644))
+  (lib/redshift/target/c/component-gen.rb (redshift/b/36_component- 1.34 644))
   (lib/redshift/syntax.rb (redshift/b/37_syntax.rb 1.20 644))
   (lib/redshift/state.rb (redshift/b/38_state.rb 1.1 644))
   (lib/redshift/redshift.rb (redshift/b/39_redshift.r 1.9 644))

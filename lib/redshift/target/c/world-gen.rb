@@ -501,12 +501,15 @@ class World
       inline static int eval_continuous_resets(ComponentShadow *comp_shdw)
       {
         VALUE   resets          = cur_resets(comp_shdw);
+        VALUE   cont_resets;
+        int     has_cont_resets;
+
         if (!RTEST(resets))
-          return;
-        
-        VALUE   cont_resets     = RARRAY(resets)->ptr[0];
-        int     has_cont_resets = RTEST(cont_resets);
-        
+          return 0;
+
+        cont_resets     = RARRAY(resets)->ptr[0];
+        has_cont_resets = RTEST(cont_resets);
+
         if (has_cont_resets) {
           VALUE   *ptr = RARRAY(cont_resets)->ptr;
           long    len  = RARRAY(cont_resets)->len;
@@ -556,16 +559,22 @@ class World
                #{World.shadow_struct.name} *shadow)
       {
         VALUE     resets            = cur_resets(comp_shdw);
-        if (!RTEST(resets))
-          return;
-        
-        VALUE     const_resets      = RARRAY(resets)->ptr[1];
-        VALUE     link_resets       = RARRAY(resets)->ptr[2];
-        int       has_const_resets  = RTEST(const_resets);
-        int       has_link_resets   = RTEST(link_resets);
+        VALUE     const_resets;
+        VALUE     link_resets;
+        int       has_const_resets;
+        int       has_link_resets;
         int       i;
-        VALUE     comp              = comp_shdw->self;
-        
+        VALUE     comp;
+
+        if (!RTEST(resets))
+          return 0;
+
+        const_resets      = RARRAY(resets)->ptr[1];
+        link_resets       = RARRAY(resets)->ptr[2];
+        has_const_resets  = RTEST(const_resets);
+        has_link_resets   = RTEST(link_resets);
+        comp              = comp_shdw->self;
+
         if (has_const_resets) {
           VALUE   *ptr = RARRAY(const_resets)->ptr;
           long    len  = RARRAY(const_resets)->len;
@@ -637,15 +646,19 @@ class World
       
       inline static int assign_new_cont_values(ComponentShadow *comp_shdw)
       {
-        VALUE     resets  = cur_resets(comp_shdw);
-        if (!RTEST(resets))
-          return;
-        
-        VALUE     cont_resets   = RARRAY(resets)->ptr[0];
-        ContVar  *var     = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
-        int       did_reset     = 0;
+        VALUE     resets        = cur_resets(comp_shdw);
+        VALUE     cont_resets;
+        ContVar  *var;
+        int       did_reset;
         long      len;
         long      i;
+
+        if (!RTEST(resets))
+          return 0;
+
+        cont_resets   = RARRAY(resets)->ptr[0];
+        var           = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
+        did_reset     = 0;
 
         len = RARRAY(cont_resets)->len;
         for (i = len; i > 0; i--, var++) {

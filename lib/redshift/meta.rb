@@ -54,6 +54,10 @@ class Component
     def attach_flows states, new_flows
       for state in states.sort_by {|s| s.to_s}
         unless state.is_a? State
+          state = const_get(state.to_s)
+        end
+        
+        unless state.is_a? State
           raise TypeError, "Must be a state: #{state.inspect}"
         end
 
@@ -68,9 +72,15 @@ class Component
     def attach_transitions states, new_transitions
       for src, dest in states.sort_by {|s| s.to_s}
         unless src.is_a? State
+          src = const_get(src.to_s)
+        end
+        unless src.is_a? State
           raise TypeError, "Source must be a state: #{src.inspect}"
         end
 
+        unless dest.is_a? State
+          dest = const_get(dest.to_s)
+        end
         unless dest.is_a? State
           raise TypeError, "Destination must be a state: #{dest.inspect}"
         end

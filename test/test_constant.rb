@@ -11,16 +11,18 @@ class ConstantTestComponent < Component
   constant :k
   strictly_constant :ks
   
+  link :other => ConstantTestComponent
+  
   state :HasOther, :Stop
   
   transition Enter => HasOther do
-    guard {other}
+    guard "other"
   end
   
   flow HasOther do
     diff "x' = other.k + k + other.ks + ks"
     diff "t' = 1"
-###    diff "k' = 1" -- should error gracefully
+    ###diff "k' = 1" # should error gracefully
   end
   
   transition HasOther => Stop do
@@ -28,9 +30,8 @@ class ConstantTestComponent < Component
     action do
       @y = other.k + k + other.ks + ks
     end
+    ### reset :k => proc {k+1} # should this work?
   end
-  
-  link :other => ConstantTestComponent
   
   def assert_consistent test
     if t >= 1

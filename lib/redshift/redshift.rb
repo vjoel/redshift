@@ -1,4 +1,4 @@
-# Copyright (C) 2001-2004, Joel VanderWerf
+# Copyright (C) 2001-2006, Joel VanderWerf
 # Distributed under the Ruby license. See www.ruby-lang.org.
 
 ##require 'mathn' ## maybe this should be left to the client code to decide
@@ -100,8 +100,10 @@ end # module RedShift
 case $REDSHIFT_TARGET
 when nil, /^c$/i
   $REDSHIFT_TARGET = 'redshift/target/c'
-when /spec/i
+when /^spec$/i
   $REDSHIFT_TARGET = 'redshift/target/spec'
+when /^dot$/i
+  $REDSHIFT_TARGET = 'redshift/target/dot'
 end
 
 # There could be other things here... YAML, HSIF, Teja, pure ruby reference

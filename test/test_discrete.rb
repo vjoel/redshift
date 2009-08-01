@@ -121,7 +121,7 @@ end
 class Discrete_6a < DiscreteTestComponent
   EventValue = [[3.75], {1 => :foo}]
   transition Enter => Exit do
-    event :e => Discrete_6a::EventValue ## note scope is not Discrete_6a
+    event :e => EventValue
   end
 end
 
@@ -274,6 +274,48 @@ class Discrete_11b < DiscreteTestComponent
   setup { self.x = create Discrete_11a }
   def assert_consistent test
     test.assert_equal(Enter, state)
+  end
+end
+
+# testing for an event in link which is nil is false
+
+class Discrete_12a < DiscreteTestComponent
+  transition do
+    event :e
+  end
+end
+
+class Discrete_12b < DiscreteTestComponent
+  link :comp => Discrete_12a
+  transition Enter => Exit do
+    guard :comp => :e
+  end
+  def assert_consistent test
+    test.assert_equal(Enter, state)
+  end
+end
+
+# test when the state actually changes during a transition
+# (to wit, after the last clause)
+
+class Discrete_13 < DiscreteTestComponent
+  state :A1, :A2
+  start A1
+  flow A1 do alg "var = 1" end
+  flow A2 do alg "var = 2" end
+  transition A1 => A2 do
+    action {@x = var}
+    action {@xx = var}
+  end
+  transition A2 => Exit do
+    action {@y = var}
+    action {@yy = var}
+  end
+  def assert_consistent test
+    test.assert_equal(1, @x)
+    test.assert_equal(1, @xx)
+    test.assert_equal(2, @y)
+    test.assert_equal(2, @yy)
   end
 end
 

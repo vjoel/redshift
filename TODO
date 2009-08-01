@@ -3,6 +3,8 @@ To do
 
 Syntax
 
+  replace strictly_* with strict_* and alias back for compat
+
   express flows, guards, etc, in ruby syntax and use something to parse:
   
     nodedump/nodewrap
@@ -23,8 +25,28 @@ Syntax
     can we 'hook' method def and attr def to check for conflict? 
     or just use a consistent naming scheme to keep internals separate?
 
+  transition do ... end with no states should apply to all S=>S not just to
+   Enter=>Enter ?
+
 Semantics
 
+  inheritance among states:
+  
+    "state Foo has everything that Bar has, plus ...."
+
+  how to set a local var during a transition (which can be accessed by
+  events, actions, resets):
+    
+    set :local => proc {long complex calculation}
+    event :e => proc {local}
+    reset :v => proc {local}
+
+  a transition that can happen only once per discrete step, to easily
+  prevent zeno pb (useful for utility transitions, such as output)
+
+  need a strict_link (NOT constant_link) type so that strictly_continuous is
+  preserved when equation involves a link that doesn't change.
+  
   allow outside code to tell component to change state? send event to comp?
 
   "finalizers" for components -- called when component exits, world
@@ -39,6 +61,9 @@ Semantics
     as opposed to normal events, which are output (pull vs. push)
     
     but does this mean arriving events are queued?
+    
+    this would be useful for timers so that client component doesn't
+    have to manage a ref to the timer
   
   "together {}" clause in transitions
   
@@ -121,6 +146,38 @@ Semantics
 
 Implementation
 
+  Add a #connect method:
+  
+    link :comp => [C, :x, :y, :z]
+    ...
+    action do
+      self.comp = C.new
+      connect :comp, :x => :x_in_c, ...
+    end
+    
+  or:
+    
+    link :comp => Connector(:x)
+    action/setup do
+      other = create(SomeComp)
+      connect [:comp, :x] => [other, :y]
+    end
+    flow do
+      "  u'  =  comp.x  "
+    end
+    
+    creates a new connector component so that neither self nor SomeComp
+    nor other need to know statically the offset of the other guy's var
+    
+    (do we need to specify :x ??)
+
+  bug: constants can't be reset (see test_constant)
+
+  share mark and free funcs where possible (e.g., guards)
+  
+  guards should not be written in numerical order (".._0", "..._1"), but
+  in a more meaningful way so that changing order doesn't force recompile
+  
   unified internal rep. or phases
   
   insert a mnemonic for quick detection of phase type in discrete update
@@ -145,6 +202,14 @@ Implementation
     Current file/line position must be saved by many constructs, e.g. reset,
       so that it can be shown later if there is an error message
 
+  check against ruby 1.9
+  
+    replace RARRAY(x)->len with RARRAY_LEN(x)
+
+  libtcc backend
+  
+  dot backend (see file in lib dir)
+  
 User interface
 
   yaml and pp outputs

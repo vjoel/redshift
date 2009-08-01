@@ -223,7 +223,8 @@ class World
         ComponentShadow *comp_shdw = get_shadow(comp);
         ComponentShadow **link_shdw =
           (ComponentShadow **)(((char *)comp_shdw) + link_offset);
-        VALUE event_value = RARRAY((*link_shdw)->event_values)->ptr[event_idx];
+        VALUE event_value = *link_shdw ? 
+          RARRAY((*link_shdw)->event_values)->ptr[event_idx] : Qnil;
 
         return event_value != Qnil; //# Qfalse is a valid event value.
       }

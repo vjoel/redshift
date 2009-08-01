@@ -161,7 +161,6 @@ class Flow
       cont_var = "#{cs_cname}->#{var}"
       sf.declare get_var_cname => %{
         inline static ContVar *#{get_var_cname}(#{CT_STRUCT_NAME} *ct) {
-          struct #{cl.shadow_struct.name} *shadow;
           if (!ct->#{checked_var_cname}) {
             ct->#{checked_var_cname} = 1;
             if (!ct->#{link_cname})
@@ -176,6 +175,7 @@ class Flow
           return &(#{cont_var});
         }
       } ## algebraic test is same as above
+      #    struct #{cl.shadow_struct.name} *shadow;
 
       translation[expr] = "#{get_var_cname}(&ct)->value_#{rk_level}"
     

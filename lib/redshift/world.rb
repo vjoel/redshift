@@ -116,16 +116,16 @@ class World
   end
 
   def create(component_class)
-    unless component_class < Component # Component is abstract
-      raise TypeError, "#{component_class} is not a Component class"
-    end
-    
     component = 
       if block_given?
         component_class.new(self) {|c| yield c}
       else
         component_class.new(self)
       end
+    
+    unless component.is_a? Component # Component is abstract
+      raise TypeError, "#{component.class} is not a Component class"
+    end
     
     if discrete_phase == :guard
       next_G << component
@@ -180,10 +180,13 @@ class World
     step(*args, &block)
   end
   
+  ### this needs a better name--a verb that applies to time (not steps)
+  ### advance, go, 
   ## maybe this should be called "evolve", to make it unambiguously a verb
   def age(time = 1.0, &block)
     run((time.to_f/time_step).round, &block)
   end
+  alias evolve age
 
   # Default implementation is to raise RedShift::ZenoError.
   def step_zeno

@@ -180,19 +180,11 @@ class Flow_NilLink < FlowTestComponent
   continuous :x
   flow {alg "y = x ? nl.z : 0"}
   def assert_consistent test
-    self.x = 1
-    begin
+    return true if x > 0
+    test.assert_raises(Flow::NilLinkError, "Didn't detect nil link.") do
+      self.x = 1
       y
-      test.assert_fail("Didn't detect nil link.")
-    rescue Exception => e
-## why does e seem to change class to CircularityError when asserting?
-#      unless e.class == Flow::NilLinkError
-#        test.assert_fail("Wrong kind of exception: #{e.class}")
-#      end
-#    puts e.class, e.message; exit
-#      test.assert_kind_of(Flow::NilLinkError, e)
     end
-#    test.assert_exception(Flow::NilLinkError) {y}
   end
 end
 

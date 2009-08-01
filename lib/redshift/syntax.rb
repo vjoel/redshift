@@ -40,7 +40,12 @@ class Component
   # setup, or initialization block (block passed to Component#new).
   def start(s)
     raise AlreadyStarted if state
-    @start_state = s
+    case s
+    when State
+      @start_state = s
+    else
+      @start_state = self.class.const_get(s.to_s)
+    end
   end
 end
 

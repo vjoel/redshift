@@ -121,8 +121,14 @@ class Component
       var_list = self.class.send(var_type)
       unless var_list.empty?
         strs = var_list.map {|name,info| name.to_s}.sort.map do |name|
-            "#{name} = #{send(name) || 'nil'}"
+          begin
+            "#{name} = #{send(name).inspect}"
+          rescue RedShift::CircularDefinitionError
+            "#{name}: CIRCULAR"
+          rescue => ex
+            "#{name}: #{ex.inspect}"
           end
+        end
         items << strs.join(", ")
       end
     end
@@ -201,7 +207,7 @@ class Component
     superclass.do_setup instance if superclass.respond_to? :do_setup
     if @setup_procs
       for pr in @setup_procs
-        instance.instance_eval(&pr)
+        instance.instance_eval(&pr) ## should be pr.call(instance) ?
       end
     end
   end

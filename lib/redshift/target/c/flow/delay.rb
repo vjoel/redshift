@@ -7,7 +7,8 @@ module RedShift; class DelayFlow
     
     Component::FlowWrapper.make_subclass flow_name do
       @inspect_str =
-        "#{cl.name}:#{state}: #{var_name} = #{flow.formula} [delay: #{delay_by}]"
+        "#{cl.name}:#{state}: " +
+        "#{var_name} = #{flow.formula} [delay: #{delay_by}]"
 
       ssn = cl.shadow_struct.name
       cont_state_ssn = cl.cont_state_class.shadow_struct.name
@@ -76,8 +77,7 @@ module RedShift; class DelayFlow
               }
             }
             else {
-              steps = ceil((delay - 1.0E-15) / time_step);
-                //# anticipate float err and prevent incorrect round-up
+              steps = floor(delay / time_step + 0.5);
               if (steps <= 0) {
                 rb_raise(#{declare_class RuntimeError},
                 "Delay too small: %f", delay);
@@ -148,13 +148,10 @@ module RedShift; class DelayFlow
             var->value_2 = ptr[offset + 2];
             var->value_3 = ptr[offset + 3];
             
+            #{flow.translate(self, "ptr[offset]", 0, cl).join("
+            ")};
+
             var->rk_level = 3;
-            break;
-            
-          case 1:
-          case 2:
-            rb_raise(#{declare_class RuntimeError},
-              "Bad rk_level, %d!", rk_level);
             break;
             
           case 3:
@@ -162,8 +159,6 @@ module RedShift; class DelayFlow
             len = shadow->#{bufname}.len;
             offset = shadow->#{offsetname};
 
-            #{flow.translate(self, "ptr[offset]", 0, cl).join("
-            ")};
             #{flow.translate(self, "ptr[offset+1]", 1, cl).join("
             ")};
             #{flow.translate(self, "ptr[offset+2]", 2, cl).join("

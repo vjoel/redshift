@@ -1,3 +1,9 @@
+redshift 1.2.19
+
+- Fixed roundoff problem with variable delay (new fix).
+
+- Fixed bug with delay of numerically integrated signal.
+
 redshift 1.2.18
 
 - Fixed bug in Flow#translate with reusing the optional formula string.
@@ -51,7 +57,7 @@ redshift 1.2.10
 
 redshift 1.2.9
 
-- Added examples/exernal-lib.rb and some support code.
+- Added examples/external-lib.rb and some support code.
 
 redshift 1.2.8
 

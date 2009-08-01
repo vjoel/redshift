@@ -116,6 +116,8 @@ Semantics
     
     - output to data (or file) faster than ruby array of double
     
+      (  record  " expr " => file ? )
+    
     - need a language for piping data streams:
     
       src | x | integrate | ... | dst

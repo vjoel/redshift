@@ -13,6 +13,8 @@ class DelayTestComponent < Component
     alg    " shift_u  = sin((t-(d+#{d2}))*pi/2) " # u shifted by d+d2
     delay  " delay_u  = u + 1 ", :by => "d+#{d2}" # u+1 delayed by d+d2
     alg    "     err  = shift_u - (delay_u - 1)"
+    
+    delay  " zdelay_t  = t ", :by => 0.3
   end
 
   constant :new_d => 0.5  # change this to see how varying delay works
@@ -23,9 +25,15 @@ class DelayTestComponent < Component
   end
 
   def assert_consistent test
-    return if t <= d + @@d2
-    return if t >= t_new_d and t <= t_new_d + new_d
-    test.assert_in_delta(0, err, 1.0E-10)
+    if t > d + @@d2 and (t < t_new_d or t > t_new_d + new_d)
+      test.assert_in_delta(0, err, 1.0E-10)
+    end
+    
+    if t >= 0.3
+      test.assert_in_delta(t - 0.3, zdelay_t, 1.0E-10)
+      # zdelay will be evaluated after t (alphabetical), so this assertion
+      # breaks before the fix in 1.2.19
+    end
   end
 end
 

@@ -40,7 +40,8 @@ end
 # could be coded in much simpler way in redshift, by combining the differential
 # and algebraic equations and even the timer. Sometimes, however, input ports
 # are a convenient way to reuse functionality. They have the advantage over link
-# variables of not needing to know the type of the target.
+# variables of not needing to know the class of the source component, so it's
+# possible to have independent libraries of them.
 class MuchSimpler < Component
   flow {
     diff " t' = 1 "
@@ -76,9 +77,9 @@ timer.port(:time) >> subsystem.port(:in)
 # Create the checker and connect to timer:
 checker = world.create(Checker)
 checker.port(:in) << timer.port(:time)
-checker.c = subsystem.out # must agree in initial condition
+checker.c = subsystem.out # must agree on initial condition
 
-# Compare with a signel-component implementation.
+# Compare with a single-component implementation.
 much_simpler = world.create(MuchSimpler)
 much_simpler.x = subsystem.out # must agree in initial condition
 

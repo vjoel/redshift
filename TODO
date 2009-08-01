@@ -7,6 +7,7 @@ Publishing RedShift
     unambiguous sync
     transition local vars
     action %{ pseudo-c-code }
+    record trajectory in vector of doubles (like delay)
 
   doc, tutorial, web site
 
@@ -25,11 +26,12 @@ Publishing RedShift
   - windows w/ several compilers
 
   notify
-  - shift-dev folks, hs researchers (e.g., Joao Hispanha)
+  - shift-dev folks, hs researchers (e.g., Joao Hispanha, Ed Lee)
   - contacts who have expressed interest in redshift or shift
   - others:
     http://www.dis.anl.gov/exp/cas/index.html
     http://www.artcompsci.org
+    Sylvain Joyeux (esp. re: distributed simulation)
 
   publicize
   - http://path.berkeley.edu/shift/
@@ -40,6 +42,9 @@ Publishing RedShift
 
   funding
   - nsf or sbir
+    - need to emphasize research goals:
+      - distributed hybrid simulation
+      - further optimizations like strict
   - approach potential users in industry
     - GM, with wrapping for CarSim dll
 
@@ -49,10 +54,11 @@ Publishing RedShift
   - vector-valued signals
     - need proper C parsing first
   - user-friendly interface and related tools
-  - distributed simulation
+  - distributed simulation (HLA. CERTI?)
   - library of integrators/flows and components
   - jruby/jvm port (and use duby for actions etc)
-  - import models from simulink, HSIF, etc.
+  - import models from simulink, Ptolemy, HSIF, etc.
+  - interface at run time with simulink etc. (HLA?)
   - rt code generation?
 
 

@@ -12,9 +12,12 @@ end
 class B < Component
   input :y
   input :yy # usually unused, so doesn't need to be connected
+  link :other => B
+  
   flow do
     alg " z = y+1 "
     alg " w = y + yy "
+    alg " u = other.y "
   end
   transition Enter => Exit do
     guard "y < 0"
@@ -216,8 +219,18 @@ class TestConnect < Test::Unit::TestCase
   end
   
   def test_linked_input
-    ### lnk.inp will fail
+    @a.x = 99.876
+    
+    @b.other = @world.create(B)
+    @b.other.port(:y) << @a.port(:k)
+
+    assert_equal(@b.other.y, @a.k)
+    assert_equal(@b.other.y, @b.u)
   end
+  
+  ### test guards
+  
+  ### test marshal
   
   def test_ports_change_when_reconnect
     return

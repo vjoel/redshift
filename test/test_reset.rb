@@ -154,6 +154,6 @@ class TestReset < Test::Unit::TestCase
   
   def test_reset_link_to_wrong_type
     rl = @world.create(ResetLinkToWrongType)
-    assert_raises(TypeError) {@world.run 1}
+    assert_raises(LinkTypeError) {@world.run 1}
   end
 end

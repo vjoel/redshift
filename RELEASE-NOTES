@@ -1,3 +1,7 @@
+redshift 1.2.31
+
+- Flows and other expressions can refer to link.input_var.
+
 redshift 1.2.30
 
 - Fixed rs_raise() for non-AugmentedExceptions.

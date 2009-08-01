@@ -514,7 +514,7 @@ module RedShift
               depth = 0;
               tgt = (struct target *)&shadow->#{src_comp};
             
-            recurse:
+            loop:
               if (!tgt->psh || tgt->type == INPUT_NONE) {
                 rs_raise(#{exc}, shadow->self, #{msg.inspect});
               }
@@ -548,7 +548,7 @@ module RedShift
                 if (depth++ > 100) {
                   rs_raise(#{exc_circ}, shadow->self, #{msg_circ.inspect});
                 }
-                goto recurse;
+                goto loop;
               
               default:
                 assert(0);

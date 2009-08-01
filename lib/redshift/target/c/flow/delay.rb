@@ -78,7 +78,7 @@ module RedShift; class DelayFlow
               steps = floor(delay / shadow->world->time_step + 0.5);
               if (steps <= 0) {
                 rs_raise(#{declare_class RedShiftError}, shadow->self,
-                "Delay too small: %f", delay);
+                "Delay too small: %f.", delay);
               }
               len = steps*4;
 

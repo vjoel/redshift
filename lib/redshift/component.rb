@@ -33,6 +33,7 @@ end
 class AlgebraicAssignmentError < RedShiftError; end
 class NilLinkError < RedShiftError; end
 class LinkTypeError < TypeError; include AugmentedException; end
+class VarTypeError < TypeError; include AugmentedException; end
 class CircularDefinitionError < RedShiftError; end
 class StrictnessError < RedShiftError; end
 class ConstnessError < RedShiftError; end
@@ -54,16 +55,16 @@ class Transition < XArray ## put this in meta?
   attr_reader :name
 
   extend AccessibleIndex
-  G_IDX = 0; A_IDX = 1; R_IDX = 2; E_IDX = 3; P_IDX = 4
+  G_IDX, S_IDX, A_IDX, R_IDX, E_IDX, P_IDX = *0..10
   index_accessor \
-    :guard => G_IDX, :action => A_IDX, :reset => R_IDX, :event => E_IDX,
-    :post => P_IDX
+    :guard => G_IDX, :sync => S_IDX, :action => A_IDX,
+    :reset => R_IDX, :event => E_IDX, :post => P_IDX
 
   def initialize n, h
     @name = n || "transition_#{object_id}".intern
-    self.guard = h[:guard]; self.action = h[:action]
-    self.event = h[:event]; self.reset = h[:reset]
-    self.post = h[:post]
+    self.guard = h[:guard]; self.sync = h[:sync]
+    self.action = h[:action]; self.reset = h[:reset]
+    self.event = h[:event]; self.post = h[:post]
   end
 end
 
@@ -119,6 +120,7 @@ class Component
   attach_state(:Exit)
 
   class GuardPhase  < XArray; end
+  class SyncPhase   < XArray; end
   class ActionPhase < XArray; end
   class PostPhase   < XArray; end
   class EventPhase  < XArray; end
@@ -131,6 +133,13 @@ class Component
   class QMatch < XArray; end
   
   class PhaseItem < XArray; extend AccessibleIndex; end
+  
+  class SyncPhaseItem < PhaseItem
+    LINK_NAME_IDX, LINK_OFFSET_IDX, EVENT_IDX = *0..2
+    index_accessor :link_name => LINK_NAME_IDX,
+      :link_offset => LINK_OFFSET_IDX, :event => EVENT_IDX
+    def inspect; "<Sync #{link_name}:#{event}>"; end
+  end
   
   class EventPhaseItem < PhaseItem
     E_IDX = 0; V_IDX = 1; I_IDX = 2

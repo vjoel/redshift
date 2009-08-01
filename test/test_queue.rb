@@ -37,7 +37,7 @@ class TestQueue < Test::Unit::TestCase
   end
 end
 
-class TestQueueAndStrict
+class TestQueueAndStrict < Test::Unit::TestCase
   class Receiver < RedShift::Component
     queue :q
     strictly_continuous :x
@@ -75,8 +75,12 @@ class TestQueueAndStrict
   def test_msg_received
     @world.evolve 0.9
     assert_equal(RedShift::Component::Enter, @r.state)
-    assert(@world.queue_sleep[@r])
-    @world.evolve 0.1
+    assert(!@world.queue_sleep[@r])
+    
+    @world.run 1
+    # in 1 step, @r should *both* receive the message and exit,
+    # which shows that it did not go into strict sleep after the first
+    # pass thru discrete update
     assert_equal(RedShift::Component::Exit, @r.state)
     assert_equal("hello", @r.q.pop)
   end

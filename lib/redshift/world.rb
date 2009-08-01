@@ -68,7 +68,8 @@ class World
 
   # Can override the options using assignments in the block.
   def initialize # :yields: world
-    self.curr_A = []; self.curr_P = []; self.curr_CR = []; self.curr_T = []
+    self.curr_A = []; self.curr_P = []; self.curr_CR = []
+    self.curr_S = []; self.next_S = []; self.curr_T = []
     self.active_E = []; self.prev_active_E = []
     self.awake = []; self.prev_awake = []
     self.strict_sleep = []; self.inert = []

@@ -1,3 +1,15 @@
+redshift 1.2.41
+
+- Added sync clause to transitions, for unambiguous synchronization.
+
+- Improved message for reset type error.
+
+- Link vars can now be declared without a type (defaults to Component).
+ 
+- Fixed Queue behavior when #unpop called with SimultaneousQueueEntries.
+
+- Added examples and tests.
+
 redshift 1.2.40
 
 - Improved test and bench for queues.

@@ -34,7 +34,7 @@ class Receiver < Component
 end
 
 class Sender < Component
-  link :receiver => Receiver
+  link :receiver
   flow {diff "t' = 1"}
   
   transition do

@@ -55,9 +55,22 @@ module RedShift
       obj
     end
     
+    # Correctly handles case when obj is SimultaneousQueueEntries.
     def unpop obj
       was_empty = @q.empty?
-      @q.unshift obj
+      case obj
+      when SimultaneousQueueEntries
+        case obj.size
+        when 0
+          was_empty = false # just to prevent the inc
+        when 1
+          @q.unshift obj.first
+        else
+          @q.unshift obj
+        end
+      else
+        @q.unshift obj
+      end
       @component.inc_queue_ready_count if was_empty
     end
     

@@ -34,6 +34,8 @@ class World
   shadow_attr_accessor :curr_A => Array
   shadow_attr_accessor :curr_P => Array
   shadow_attr_accessor :curr_CR => Array
+  shadow_attr_accessor :curr_S => Array
+  shadow_attr_accessor :next_S => Array
   shadow_attr_accessor :curr_T => Array
   shadow_attr_accessor :active_E => Array
   shadow_attr_accessor :prev_active_E => Array
@@ -231,7 +233,7 @@ class World
       static VALUE      ExitState, GuardWrapperClass, ExprWrapperClass;
       static VALUE      ActionClass, EventClass, ResetClass, GuardClass;
       static VALUE      GuardPhaseItemClass, QMatchClass;
-      static VALUE      PostClass, DynamicEventClass;
+      static VALUE      PostClass, DynamicEventClass, SyncClass;
     }.tabto(0)
     
     declare :locals => %{
@@ -249,8 +251,15 @@ class World
     capa = RUBY_VERSION.to_f >= 1.7 ? "aux.capa" : "capa"
     gpi = Component::GuardPhaseItem
     epi = Component::EventPhaseItem
+    spi = Component::SyncPhaseItem
     
     parent.declare :step_discrete_subs => %{
+      inline static VALUE cur_syncs(ComponentShadow *comp_shdw)
+      {
+        VALUE syncs = RARRAY(comp_shdw->trans)->ptr[#{Transition::S_IDX}];
+        assert(syncs == Qnil || RBASIC(syncs)->klass == SyncClass);
+        return syncs;
+      }
       inline static VALUE cur_actions(ComponentShadow *comp_shdw)
       {
         VALUE actions = RARRAY(comp_shdw->trans)->ptr[#{Transition::A_IDX}];
@@ -403,6 +412,52 @@ class World
           }
         }
         return 1;
+      }
+      
+      inline static int comp_can_sync(ComponentShadow *comp_shdw,
+               #{World.shadow_struct.name} *shadow)
+      {
+        int i, j;
+        int can_sync = 1;
+        VALUE syncs = cur_syncs(comp_shdw);
+        assert(RTEST(syncs));
+        
+        for (i = RARRAY(syncs)->len - 1; i >= 0; i--) {
+          VALUE sync = RARRAY(syncs)->ptr[i];
+          assert(RARRAY(sync)->len == 3);
+          int link_offset = FIX2INT(RARRAY(sync)->ptr[#{spi::LINK_OFFSET_IDX}]);
+          VALUE event = RARRAY(sync)->ptr[#{spi::EVENT_IDX}];
+          ComponentShadow *link_shdw =
+            *(ComponentShadow **)(((char *)comp_shdw) + link_offset);
+          
+          if (!link_shdw || !RTEST(link_shdw->trans)) {
+            can_sync = 0;
+            break;
+          }
+          
+          int found = 0;
+          VALUE link_events = cur_events(link_shdw);
+          if (RTEST(link_events)) {
+            VALUE  *ptr   = RARRAY(link_events)->ptr;
+            long    len   = RARRAY(link_events)->len;
+      
+            for (j = len; j > 0; j--, ptr++) {
+              VALUE link_event = RARRAY(*ptr)->ptr[#{epi::E_IDX}];
+              if (link_event == event) {
+                found = 1;
+                break;
+              }
+            }
+          }
+          
+          if (!found) {
+            can_sync = 0;
+            break;
+          }
+        }
+        
+        //%% hook_can_sync(comp_shdw->self, can_sync ? Qtrue : Qfalse);
+        return can_sync;
       }
       
       inline static int eval_events(ComponentShadow *comp_shdw,
@@ -578,9 +633,19 @@ class World
                   new_value = RFLOAT(reset)->value;
                   break;
                 default:
-                  if (RBASIC(reset)->klass == rb_cProc)
-                    new_value =
-                      NUM2DBL(rb_funcall(comp, #{insteval_proc}, 1, reset));
+                  if (RBASIC(reset)->klass == rb_cProc) {
+                    VALUE val = rb_funcall(comp, #{insteval_proc}, 1, reset);
+                    if (TYPE(val) == T_FLOAT)
+                      new_value = NUM2DBL(val);
+                    else {
+                      VALUE to_s = #{declare_symbol :to_s};
+                      rs_raise(#{declare_class VarTypeError}, comp,
+                        "tried to reset cont var with %s.",
+                        STR2CSTR(rb_funcall(
+                          rb_funcall(val, #{declare_symbol :class}, 0), to_s, 0))
+                      );
+                    }
+                  }
                   else
                     new_value = eval_expr(comp, reset);
               }
@@ -779,6 +844,12 @@ class World
         comp_shdw->dest     = Qnil;
       }
       
+      inline static void abort_trans(ComponentShadow *comp_shdw)
+      {
+        comp_shdw->trans    = Qnil;
+        comp_shdw->dest     = Qnil;
+      }
+      
       inline static void check_strict(ComponentShadow *comp_shdw)
       {
         ContVar    *vars = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
@@ -828,6 +899,7 @@ class World
       EventClass    = #{get_const[:EventPhase]};
       ResetClass    = #{get_const[:ResetPhase]};
       GuardClass    = #{get_const[:GuardPhase]};
+      SyncClass     = #{get_const[:SyncPhase]};
       GuardPhaseItemClass
                     = #{get_const[:GuardPhaseItem]};
       QMatchClass   = #{get_const[:QMatch]};
@@ -880,30 +952,10 @@ class World
               dest    = ptr[--len];
               trans   = ptr[--len];
               start_trans(comp_shdw, shadow, trans, dest);
-              move_comp(comp, shadow->prev_awake, shadow->curr_T);
-              
-              //%% hook_begin_eval_events(comp, shadow);
-
-              if (eval_events(comp_shdw, shadow))
-                rb_ary_push(shadow->active_E, comp);
-
-              //%% hook_end_eval_events(comp);
-              
-              //%% hook_begin_eval_resets(comp);
-              
-              if (eval_continuous_resets(comp_shdw, shadow))
-                rb_ary_push(shadow->curr_CR, comp);
-              
-              eval_constant_resets(comp_shdw, shadow);
-
-              //%% hook_end_eval_resets(comp);
-              
-              if (RTEST(cur_actions(comp_shdw)))
-                rb_ary_push(shadow->curr_A, comp);
-              
-              if (RTEST(cur_posts(comp_shdw)))
-                rb_ary_push(shadow->curr_P, comp);
-              
+              if (RTEST(cur_syncs(comp_shdw)))
+                move_comp(comp, shadow->prev_awake, shadow->curr_S);
+              else
+                move_comp(comp, shadow->prev_awake, shadow->curr_T);
               break;
             }
             else
@@ -915,7 +967,7 @@ class World
             if (comp_shdw->strict)
               move_comp(comp, shadow->prev_awake, shadow->strict_sleep);
             else if (comp_shdw->sleepable &&
-                (qrc = rb_ivar_get(comp_shdw, #{declare_symbol :@queue_ready_count}),
+                (qrc = rb_ivar_get(comp, #{declare_symbol :@queue_ready_count}),
                  qrc == Qnil || qrc == INT2FIX(0))) {
               move_comp_to_hash(comp, shadow->prev_awake, shadow->queue_sleep);
             }
@@ -926,6 +978,52 @@ class World
         }
         assert(RARRAY(shadow->prev_awake)->len == 0);
         //%% hook_leave_guard_phase();
+
+        //%% hook_enter_sync_phase();
+        {
+          int changed;
+          do {
+            changed = 0;
+            EACH_COMP_DO(shadow->curr_S) {
+              if (comp_can_sync(comp_shdw, shadow)) {
+                move_comp(comp, shadow->curr_S, shadow->next_S);
+              }
+              else {
+                changed = 1;
+                abort_trans(comp_shdw);
+                move_comp(comp, shadow->curr_S, shadow->awake);
+              }
+            }
+            
+            assert(RARRAY(shadow->curr_S)->len == 0);
+            SWAP_VALUE(shadow->curr_S, shadow->next_S);
+            //%% hook_sync_step(shadow->curr_S, changed ? Qtrue : Qfalse);
+          } while (changed);
+        
+          move_all_comps(shadow->curr_S, shadow->curr_T);
+        }
+        //%% hook_leave_sync_phase();
+              
+        //%% hook_enter_eval_phase();
+        EACH_COMP_DO(shadow->curr_T) {
+          //%% hook_begin_eval_events(comp);
+          if (eval_events(comp_shdw, shadow))
+            rb_ary_push(shadow->active_E, comp);
+          //%% hook_end_eval_events(comp);
+          
+          //%% hook_begin_eval_resets(comp);
+          if (eval_continuous_resets(comp_shdw, shadow))
+            rb_ary_push(shadow->curr_CR, comp);
+          eval_constant_resets(comp_shdw, shadow);
+          //%% hook_end_eval_resets(comp);
+          
+          if (RTEST(cur_actions(comp_shdw)))
+            rb_ary_push(shadow->curr_A, comp);
+          
+          if (RTEST(cur_posts(comp_shdw)))
+            rb_ary_push(shadow->curr_P, comp);
+        }
+        //%% hook_leave_eval_phase();
 
         //%% hook_enter_action_phase();
         EACH_COMP_DO(shadow->curr_A) {

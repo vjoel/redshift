@@ -7,6 +7,7 @@ Publishing RedShift
     transition local vars
     action %{ pseudo-c-code }
     record trajectory in vector of doubles (like delay)
+    better error messages?
 
   doc, tutorial, web site
 
@@ -60,9 +61,7 @@ Publishing RedShift
   - interface at run time with simulink etc. (HLA?)
   - rt code generation?
 
-
-
-
+  backronym: Ruby-based Efficient Deterministic SHIFT
 
 
 

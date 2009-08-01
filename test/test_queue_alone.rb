@@ -63,6 +63,28 @@ class TestQueueAlone < Test::Unit::TestCase
     assert_equal(a, @q.pop)
   end
   
+  def test_unpop_partial
+    @w.clock = 1.23
+    @w.discrete_step = 42
+    a = [1,2,3]
+    a.each do |x|
+      @q.push x
+    end
+    
+    head = @q.pop
+    head.shift
+    @q.unpop head
+    
+    head = @q.pop
+    assert_equal([2,3], head)
+    assert_equal(RedShift::SimultaneousQueueEntries, head.class)
+    head.shift
+    @q.unpop head
+    
+    head = @q.pop
+    assert_equal(3, head)
+  end
+  
   def test_wake
     @c.awake = false
     @q.push 1

@@ -163,8 +163,17 @@ class << Component
   end
 
   # link :x => MyComponent, :y => :FwdRefComponent
-  def link vars
-    attach_link vars, false
+  def link(*vars)
+    h = {}
+    vars.each do |var|
+      case var
+      when Hash
+        h.update var
+      else
+        h[var] = Component
+      end
+    end
+    attach_link h, false
   end
   
   def input(*var_names)
@@ -287,15 +296,30 @@ module TransitionSyntax
   end
   
   class TransitionParser
-    attr_reader :name, :parts
+    attr_reader :name,
+      :guards, :syncs, :actions,
+      :resets, :events, :posts
     
     def initialize block
       @name = nil
-      @parts = []
+      @guards = []; @syncs = []; @actions = []
+      @resets = []; @events = []; @posts = []
       instance_eval(&block)
     end
     
     def name(*n); n.empty? ? @name : @name = n.first; end
+    
+    def sync(h)
+      items = h.map do |link_name, event|
+        item = Component::SyncPhaseItem.new
+        item.link_name = link_name
+        item.event = event
+        item
+      end
+      @syncs << Component::SyncPhase.new.concat(items)
+      ### simplify and remove the combine step:
+      ### (@syncs ||= Component::SyncPhase.new)....
+    end
     
     def wait(*args)
       guard = Component::GuardPhase.new
@@ -311,7 +335,7 @@ module TransitionSyntax
         else raise SyntaxError
         end
       end
-      @parts << guard
+      @guards << guard
     end
     
     def guard(*args, &block)
@@ -342,21 +366,21 @@ module TransitionSyntax
       end
       
       guard << block if block
-      @parts << guard
+      @guards << guard
     end
     
     def action(meth = nil, &bl)
       action_phase = Component::ActionPhase.new
       action_phase << meth if meth
       action_phase << bl if bl
-      @parts << action_phase
+      @actions << action_phase
     end
     
     def post(meth = nil, &bl)
       post_phase = Component::PostPhase.new
       post_phase << meth if meth
       post_phase << bl if bl
-      @parts << post_phase
+      @posts << post_phase
     end
     alias after post
     
@@ -370,7 +394,7 @@ module TransitionSyntax
       resets = Component::ResetPhase.new
       resets.concat [nil, nil, nil] # continuous, constant, link
       resets.value_map = h
-      @parts << resets
+      @resets << resets
     end
     
     # each arg can be an event name (string or symbol), exported with value 
@@ -407,7 +431,7 @@ module TransitionSyntax
         eb = EventBlockParser.new(bl)
         events.concat(eb.events)
       end
-      @parts << events
+      @events << events
     end
     
     def literal val
@@ -473,24 +497,21 @@ def Component.transition(edges = {}, &block)
   if block
     edges = {Enter => Enter} if edges.empty?
     parser = TransitionSyntax.parse(block)
-    parts = parser.parts
     
-    parts.each do |phase|
-      case phase
-      when Component::EventPhase
-        phase.each do |event_phase_item|
-          event_phase_item.index = export(event_phase_item.event)[0]
-            # cache index
-        end
+    parser.events.each do |phase|
+      phase.each do |event_phase_item|
+        event_phase_item.index = export(event_phase_item.event)[0]
+          # cache index
       end
     end
     
     trans = Transition.new(parser.name,
-      :guard  => combine_transition_parts(parts.grep(Component::GuardPhase)),
-      :action => combine_transition_parts(parts.grep(Component::ActionPhase)),
-      :event  => combine_transition_parts(parts.grep(Component::EventPhase)),
-      :reset  => combine_transition_parts(parts.grep(Component::ResetPhase)),
-      :post   => combine_transition_parts(parts.grep(Component::PostPhase))
+      :guard  => combine_transition_parts(parser.guards),
+      :sync   => combine_transition_parts(parser.syncs),
+      :action => combine_transition_parts(parser.actions),
+      :event  => combine_transition_parts(parser.events),
+      :reset  => combine_transition_parts(parser.resets),
+      :post   => combine_transition_parts(parser.posts)
     )
     
   else

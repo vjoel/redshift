@@ -757,6 +757,14 @@ module RedShift
         end
       end
       
+      def define_syncs syncs
+        after_commit do
+          syncs.each do |sync_phase_item|
+            sync_phase_item.link_offset = offset_of_var(sync_phase_item.link_name)
+          end
+        end
+      end
+      
       def define_reset(expr)
         @expr_wrapper_hash ||= {} ## could be a superhash?
         @expr_wrapper_hash[expr] ||=
@@ -874,6 +882,7 @@ module RedShift
         # order) is better than sorting by name.
         own_transitions(state).each do |trans, dst|
           define_guards(trans.guard) if trans.guard
+          define_syncs(trans.sync) if trans.sync
           define_resets(trans.reset) if trans.reset
           define_event_phase(trans.event) if trans.event
         end

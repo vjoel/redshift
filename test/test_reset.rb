@@ -55,6 +55,14 @@ class C < Component
   end
 end
 
+class ResetVarToNonFloat < Component
+  continuous :var
+  state :S
+  transition Enter => S do
+    reset :var => proc {nil}
+  end
+end
+
 class ResetLink < Component
   link :lnk => C
   state :S
@@ -135,6 +143,11 @@ class TestReset < Test::Unit::TestCase
     cs.each do |c|
       assert_equal(c.kk, c.k)
     end
+  end
+  
+  def test_reset_var_to_wrong_type
+    rl = @world.create(ResetVarToNonFloat)
+    assert_raises(VarTypeError) {@world.run 1}
   end
   
   def test_reset_link

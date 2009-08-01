@@ -98,8 +98,7 @@ module RedShift; class Flow
             flow_fn.setup var_cname => %{
               switch(shadow->#{src_type}) {
               case INPUT_NONE:
-                rb_raise(#{exc}, "%s %s", #{msg.inspect}, 
-                  RSTRING(rb_inspect(shadow->self))->ptr);
+                rs_raise(#{exc}, shadow->self, #{msg.inspect});
 
               case INPUT_CONT_VAR: {
                 ContVar *v;
@@ -236,9 +235,7 @@ module RedShift; class Flow
     sf = flow_fn.parent
 
     exc = flow_fn.declare_class(NilLinkError) ## class var
-    msg = "Link #{link} is nil in component %s"
-    insp = flow_fn.declare_symbol(:inspect) ## class var
-    str = "STR2CSTR(rb_funcall(ct->shadow->self, #{insp}, 0))"
+    msg = "Link #{link} is nil."
 
     case var_type
     when :continuous
@@ -249,7 +246,7 @@ module RedShift; class Flow
           if (!ct->#{checked_var_cname}) {
             ct->#{checked_var_cname} = 1;
             if (!ct->#{link_cname})
-              rb_raise(#{exc}, #{msg.inspect}, #{str});
+              rs_raise(#{exc}, ct->shadow->self, #{msg.inspect});
             #{cs_cname} = (#{link_cs_ssn} *)ct->#{link_cname}->cont_state;
             if (#{cont_var}.algebraic) {
               if (#{cont_var}.rk_level < ct->shadow->world->rk_level ||
@@ -275,7 +272,7 @@ module RedShift; class Flow
       sf.declare get_var_cname => %{
         inline static double #{get_var_cname}(#{CT_STRUCT_NAME} *ct) {
           if (!ct->#{link_cname})
-            rb_raise(#{exc}, #{msg.inspect}, #{str});
+            rs_raise(#{exc}, ct->shadow->self, #{msg.inspect});
           return ct->#{link_cname}->#{var};
         }
       } ## algebraic test is same as above

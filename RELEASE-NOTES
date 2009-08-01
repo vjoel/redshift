@@ -1,3 +1,12 @@
+redshift 1.2.27
+
+- Algebraic circularity checking no longer breaks when other exceptions happen.
+
+- Exceptions during the execution of a simulation carry an object with them
+  which can be inspected later.
+
+- Most exceptions raised from C code use the new rs_raise() function.
+
 redshift 1.2.26
 
 - Moved globals into World for thread safety, reentrancy, etc.

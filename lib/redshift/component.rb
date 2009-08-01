@@ -6,18 +6,39 @@ require 'redshift/meta'
 
 module RedShift
 
-class AlgebraicAssignmentError < StandardError; end
-class NilLinkError < StandardError; end
-class CircularDefinitionError < StandardError; end
-class StrictnessError < StandardError; end
-class ConstnessError < StandardError; end
-class TransitionError < StandardError; end
+# Can be raised with a [msg, object] pair instead of just a msg string.
+# In the former case, the +object+ is accessible.
+module AugmentedException
+  attr_reader :object
+  
+  def initialize(msg)
+    if defined?(msg.first)
+      msg, @object = *msg
+      s = ((@object.inspect rescue
+            @object.to_s) rescue
+            "id ##{@object.object_id} of class #{@object.class}")
+      msg += " Object is: $!.object == #{s}"
+    end
+    super msg
+  end
+end
+
+class RedShiftError < StandardError
+  include AugmentedException
+end
+
+class AlgebraicAssignmentError < RedShiftError; end
+class NilLinkError < RedShiftError; end
+class CircularDefinitionError < RedShiftError; end
+class StrictnessError < RedShiftError; end
+class ConstnessError < RedShiftError; end
+class TransitionError < RedShiftError; end
 class SyntaxError < ::SyntaxError; end
-class UnconnectedInputError < StandardError; end
+class UnconnectedInputError < RedShiftError; end
 
 # Raised when a component tries to perform an action that makes sense only
 # during initialization.
-class AlreadyStarted < StandardError; end
+class AlreadyStarted < RedShiftError; end
 
 # These classes are derived from Array for efficient access to contents
 # from C code.
@@ -186,6 +207,8 @@ class Component
               "#{name}: CIRCULAR"
             rescue UnconnectedInputError
               "#{name}: UNCONNECTED"
+            rescue NilLinkError
+              "#{name}: NIL LINK"
             rescue => ex
               "#{name}: #{ex.inspect}"
             end

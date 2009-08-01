@@ -56,10 +56,12 @@ class World
   shadow_attr_reader   :discrete_step => "long     discrete_step"
   shadow_attr_accessor :rk_level      => "long     rk_level"
   shadow_attr_accessor :d_tick        => "long     d_tick"
+  shadow_attr_accessor :alg_nest      => "long     alg_nest"
 
   new_method.attr_code %{
     shadow->rk_level = 0;
     shadow->d_tick   = 1;
+    shadow->alg_nest = 0;
   } # d_tick=1 means alg flows need to be recalculated
 
   shadow_struct.declare :constant_value_cache => %{
@@ -79,6 +81,7 @@ class World
     int link_cache_size;
     int link_cache_used;
   }
+  ##should non-persist things like these get initialized in the alloc func, too?
   new_method.attr_code %{
     shadow->link_cache = 0;
     shadow->link_cache_size = 0;
@@ -634,7 +637,7 @@ class World
             if (!NIL_P(new_value) &&
                 rb_obj_is_kind_of(new_value, RARRAY(pair)->ptr[3]) != Qtrue) {
               VALUE to_s = #{declare_symbol :to_s};
-              rb_raise(#{declare_class TypeError},
+              rs_raise(#{declare_class TypeError}, comp_shdw->self,
                 "tried to reset %s, which is declared %s, with %s.",
                 STR2CSTR(rb_funcall(RARRAY(pair)->ptr[2], to_s, 0)),
                 STR2CSTR(rb_funcall(RARRAY(pair)->ptr[3], to_s, 0)),

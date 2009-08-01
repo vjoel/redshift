@@ -47,14 +47,10 @@ class TestConnect < Test::Unit::TestCase
 
     assert_raises(UnconnectedInputError) do
       @world.evolve 1
-      ## leaves alg flows in bad state, so end the test here
     end
-  end
 
-  def test_unconnected1
     assert_raises(UnconnectedInputError) do
       @b.z
-      ## leaves alg flows in bad state, so end the test here
     end
   end
     
@@ -91,6 +87,14 @@ class TestConnect < Test::Unit::TestCase
     # disconnect
     @b.disconnect(:y)
     
+    assert_raises(UnconnectedInputError) do
+      @b.z
+    end
+
+    assert_raises(UnconnectedInputError) do
+      @b.y
+    end
+
     # nothing raised:
     @b.disconnect(:y)
     

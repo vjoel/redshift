@@ -35,7 +35,6 @@ module RedShift
         unsigned    d_tick    : 16; // last d_tick at which alg flow computed
         unsigned    rk_level  :  3; // last rk level at which flow was computed
         unsigned    algebraic :  1; // should compute flow when inputs change?
-        unsigned    nested    :  1; // to catch circular evaluation
         unsigned    strict    :  1; // never changes discretely
         unsigned    ck_strict :  1; // should check strict at end of phase
         unsigned    reset     :  1; // var is being reset
@@ -407,9 +406,9 @@ module RedShift
                     if (shadow->world)
                       shadow->world->d_tick++;
                     if (cont_state->#{var_name}.algebraic)
-                      rb_raise(#{exc}, #{msg.inspect});
+                      rs_raise(#{exc}, shadow->self, #{msg.inspect});
                     if (!NIL_P(shadow->state))
-                      rb_raise(#{exc2}, #{msg2.inspect});
+                      rs_raise(#{exc2}, shadow->self, #{msg2.inspect});
                   }
                   returns "value"
                 end
@@ -426,7 +425,7 @@ module RedShift
                     if (shadow->world) 
                       shadow->world->d_tick++;
                     if (cont_state->#{var_name}.algebraic)
-                      rb_raise(#{exc}, #{msg.inspect});
+                      rs_raise(#{exc}, shadow->self, #{msg.inspect});
                   }
                   returns "value"
                 end
@@ -449,7 +448,7 @@ module RedShift
             msg = "Cannot reset strictly constant #{var_name} in #{self}."
             w.body %{
               if (!NIL_P(shadow->state))
-                rb_raise(#{exc}, #{msg.inspect});
+                rs_raise(#{exc}, shadow->self, #{msg.inspect});
             }
           end
         end
@@ -485,7 +484,7 @@ module RedShift
           shadow_attr_accessor src_offset => "short #{src_offset}"
           
           exc = shadow_library.declare_class UnconnectedInputError
-          msg = "Input #{var_name} is not connected in"
+          msg = "Input #{var_name} is not connected."
           
           define_c_method(var_name) do
             declare :var => "ContVar *var"
@@ -493,8 +492,7 @@ module RedShift
             returns "rb_float_new(value)"
             body %{
               if (!shadow->#{src_comp} || shadow->#{src_type} == INPUT_NONE) {
-                rb_raise(#{exc}, "%s %s", #{msg.inspect},
-                  RSTRING(rb_inspect(shadow->self))->ptr);
+                rs_raise(#{exc}, shadow->self, #{msg.inspect});
               }
 
               switch (shadow->#{src_type}) {
@@ -624,7 +622,7 @@ module RedShift
             msg = "Cannot reset strict link #{var_name} in #{self}."
             w.body %{
               if (!NIL_P(shadow->state))
-                rb_raise(#{exc}, #{msg.inspect});
+                rs_raise(#{exc}, shadow->self, #{msg.inspect});
             }
           end
 
@@ -909,7 +907,7 @@ module RedShift
         for (i = 0; i < count; i++) {
           idx = NUM2INT(indexes[i]);
           if (idx > var_count-1)
-            rb_raise(#{declare_class IndexError},
+            rs_raise(#{declare_class IndexError}, shadow->self,
                    "Index into continuous variable list out of range: %d > %d.",
                    idx, var_count-1);
           vars[idx].strict = 1;
@@ -1093,7 +1091,7 @@ module RedShift
           flows = RARRAY(flow_array)->ptr;
 
           if (count > var_count)
-            rb_raise(#{declare_class IndexError},
+            rs_raise(#{declare_class IndexError}, shadow->self,
                    "Index into continuous variable list out of range: %d > %d.",
                    count, var_count);
 
@@ -1154,6 +1152,25 @@ module RedShift
     end
     ## optimization: 
     ## if (var->flow != old_flow && ...)
-  end
 
+    shadow_library_source_file.include "<stdarg.h>"
+    shadow_library_source_file.define(:rs_raise).instance_eval do
+      scope :extern
+      arguments "VALUE exc, VALUE obj, const char *fmt, ..."
+      return_type "void"
+      body %{\
+        va_list args;
+        char buf[BUFSIZ];
+        VALUE ex, ary;
+
+        va_start(args, fmt);
+        vsnprintf(buf, BUFSIZ, fmt, args);
+        va_end(args);
+
+        ary = rb_ary_new3(2, rb_str_new2(buf), obj);
+        ex = rb_funcall(exc, #{declare_symbol :new}, 1, ary);
+        rb_exc_raise(ex);\
+      }
+    end
+  end
 end

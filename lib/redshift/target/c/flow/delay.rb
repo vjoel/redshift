@@ -70,14 +70,14 @@ module RedShift; class DelayFlow
             if (ptr && delay == shadow->#{delayname}) {
               len = shadow->#{bufname}.len;
               if (offset < 0 || offset > len - 4) {
-                rb_raise(#{declare_class RuntimeError},
+                rs_raise(#{declare_class RuntimeError}, shadow->self,
                 "Offset out of bounds: %d not in 0..%d!", offset, len - 4);
               }
             }
             else {
               steps = floor(delay / shadow->world->time_step + 0.5);
               if (steps <= 0) {
-                rb_raise(#{declare_class RuntimeError},
+                rs_raise(#{declare_class RuntimeError}, shadow->self,
                 "Delay too small: %f", delay);
               }
               len = steps*4;

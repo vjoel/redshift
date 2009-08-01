@@ -21,20 +21,22 @@ module RedShift; class AlgebraicFlow
           ContVar  *var;
         }
         exc = declare_class CircularDefinitionError
-        msg = "\nCircularity in algebraic formula for #{var_name} in state " +
-              "#{state} of class #{cl.name}. The component is $rs =="
+        msg = "Circularity in algebraic formula for #{var_name} in state " +
+              "#{state} of class #{cl.name}."
         setup :shadow => %{
           shadow = (#{ssn} *)comp_shdw;
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;
           var = &cont_state->#{var_name};
           assert(var->algebraic);
-          if (var->nested) {
-            rb_gv_set("$rs", shadow->self);
-            rb_raise(#{exc}, "%s %s", #{msg.inspect}, 
-              RSTRING(rb_inspect(shadow->self))->ptr);
+          if (shadow->world->alg_nest > 100) {
+            shadow->world->alg_nest = 0;
+            rs_raise(#{exc}, shadow->self, #{msg.inspect});
           }
-          var->nested = 1;
+          shadow->world->alg_nest++;
         }
+        ## 100 not always enough, so could increase limit exponentially,
+        ## and look in subsequent iterations for repeats of this [var, obj].
+        
         ## optimization: it might be possible to translate once and
         ## use gsub to make each of the four versions, or use a template.
         body %{
@@ -70,7 +72,7 @@ module RedShift; class AlgebraicFlow
               "Bad rk_level, %d!", shadow->world->rk_level);
           }
           
-          var->nested = 0;
+          shadow->world->alg_nest--;
         }
       end # Case 0 applies during discrete update.
           # alg flows are lazy

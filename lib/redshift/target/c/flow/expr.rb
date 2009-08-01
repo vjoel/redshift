@@ -1,4 +1,4 @@
-class RedShift::CexprGuard
+module RedShift; class CexprGuard
 
   def initialize f
     super nil, f
@@ -54,9 +54,9 @@ class RedShift::CexprGuard
       end
     end
   end
-end
+end; end
 
-class RedShift::Expr
+module RedShift; class Expr
   def initialize f
     super nil, f
   end
@@ -105,4 +105,4 @@ class RedShift::Expr
       end
     end
   end
-end
+end; end

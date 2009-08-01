@@ -1,4 +1,4 @@
-class RedShift::AlgebraicFlow
+module RedShift; class AlgebraicFlow
   def flow_wrapper cl, state
     var_name = @var
     flow = self
@@ -78,4 +78,4 @@ class RedShift::AlgebraicFlow
       end
     end
   end
-end
+end; end

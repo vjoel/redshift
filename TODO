@@ -109,6 +109,16 @@ Syntax
     matches on name of states
 
 Semantics
+  
+  "Buffer" could be used for: 
+  
+    - input data (possibly interpolated) from table/file/etc
+    
+    - output to data (or file) faster than ruby array of double
+    
+    - need a language for piping data streams:
+    
+      src | x | integrate | ... | dst
 
   register event observers:
     on comp=>event do ... end

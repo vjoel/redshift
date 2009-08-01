@@ -4,15 +4,22 @@ require 'redshift'
 include RedShift
 
 class C < Component
-  pi = Math::PI
+  constant :pi => Math::PI
   constant :d => 0.3
 
   flow do
     diff   "       t' = 1 "
-    alg    "       u  = sin(t*#{pi/2}) "
-    alg    " shift_u  = sin((t-d)*#{pi/2}) " # u shifted by d
-    delay  " delay_u  = u ", :by => "d" # Note: refers to constant d
+    alg    "       u  = sin(t*pi/2) "
+    alg    " shift_u  = sin((t-d)*pi/2) " # u shifted by d
+    delay  " delay_u  = u ", :by => "d"   # u delayed by d
     alg    "     err  = shift_u - delay_u "
+  end
+
+  constant :new_d => 0.5  # change this to see how varying delay works
+  constant :t_new_d => 5.0
+  transition do
+    guard "t > t_new_d && d != new_d"
+    reset :d => "new_d"
   end
 end
 
@@ -33,6 +40,13 @@ world.evolve 10 do
   shift_u << [time, c.shift_u]
   delay_u << [time, c.delay_u]
   err     << [time, c.err]
+end
+
+# The buffer used to store u's history is available:
+if false
+  p c.delay_u_buffer_data
+  p c.delay_u_buffer_offset
+  p c.delay_u_delay
 end
 
 require 'sci/plot'

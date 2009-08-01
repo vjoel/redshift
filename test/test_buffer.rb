@@ -53,7 +53,6 @@ class TestBuffer < Test::Unit::TestCase
     n1 = ObjectSpace.each_object(T) {}
     GC.start
     n2 = ObjectSpace.each_object(T) {}
-    p [n1, n2]
     assert(n2 < n1)
   end
 end

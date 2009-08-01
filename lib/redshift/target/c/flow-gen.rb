@@ -1,11 +1,13 @@
-require "redshift/target/c/flow/delay"      if DelayFlow.needed
-require "redshift/target/c/flow/derivative" if DerivativeFlow.needed
-require "redshift/target/c/flow/euler"      if EulerDifferentialFlow.needed
-require "redshift/target/c/flow/algebraic"  if AlgebraicFlow.needed
-require "redshift/target/c/flow/rk4"        if RK4DifferentialFlow.needed
-require "redshift/target/c/flow/expr"
+module RedShift
+  require "redshift/target/c/flow/delay"      if DelayFlow.needed
+  require "redshift/target/c/flow/derivative" if DerivativeFlow.needed
+  require "redshift/target/c/flow/euler"      if EulerDifferentialFlow.needed
+  require "redshift/target/c/flow/algebraic"  if AlgebraicFlow.needed
+  require "redshift/target/c/flow/rk4"        if RK4DifferentialFlow.needed
+  require "redshift/target/c/flow/expr"
+end
 
-class RedShift::Flow
+module RedShift; class Flow
   def translate flow_fn, result_var, rk_level, cl, c_formula = nil
     translation = {}
     setup = []    ## should use accumulator
@@ -215,4 +217,4 @@ class RedShift::Flow
 
     return strict
   end    
-end
+end; end

@@ -1,4 +1,4 @@
-class RedShift::DelayFlow
+module RedShift; class DelayFlow
   def flow_wrapper cl, state
     var_name = @var
     flow = self
@@ -19,9 +19,10 @@ class RedShift::DelayFlow
       delayname   = "#{var_name}_delay"
       
       cl.class_eval do
-        shadow_attr_reader bufname    => "Buffer  #{bufname}"
-        shadow_attr_reader offsetname => "long    #{offsetname}"
-        shadow_attr_reader delayname  => "double  #{delayname}"
+        shadow_attr_accessor bufname    => "Buffer  #{bufname}"
+        shadow_attr_accessor offsetname => "long    #{offsetname}"
+        shadow_attr_reader   delayname  => "double  #{delayname}"
+          # delay can be set only using the var designated in :by => "var"
       end
       
       # We need the struct
@@ -29,13 +30,20 @@ class RedShift::DelayFlow
       
       shadow_library_source_file.define(flow_name).instance_eval do
         arguments "ComponentShadow *comp_shdw"
+        world_ssn = World.shadow_struct.name
         declare :shadow => %{
           struct #{ssn} *shadow;
           struct #{cont_state_ssn} *cont_state;
+          #{world_ssn} *world_shadow;
+          
           ContVar   *var, *target_var;
           double    *ptr;
           long      i, len, offset, steps;
           double    delay, fill;
+        }
+        setup :first => %{
+          if (rk_level == 2 || rk_level == 3)
+            return;
         }
         setup :shadow => %{
           shadow = (#{ssn} *)comp_shdw;
@@ -60,45 +68,81 @@ class RedShift::DelayFlow
             end
           end
         
-        include "World.h"
+        include World.shadow_library_include_file
 
-        world_ssn = "RedShift_o_World_Shadow" ## chicken or egg?
         body %{
           switch (rk_level) {
           case 0:
             ptr = shadow->#{bufname}.ptr;
-            len = shadow->#{bufname}.len;
-            if (ptr) {
+            offset = shadow->#{offsetname};
             
-              // ## if (size != shadow->#{bufname}.len)
-              // ## check consistency with delay_by and timestep
-              // ## check if state changed recently--clear old hist
-            
-            }
-            else {
-              #{world_ssn} *world_shadow;
-
-              #{flow.translate(self, "fill", 0, cl, flow.formula.dup).join("
-              ")};
-              
-              Data_Get_Struct(shadow->world, #{world_ssn}, world_shadow);
-              steps = ceil(delay / world_shadow->time_step);
-              len = steps*4;
-              ptr = ALLOC_N(double, len);
-              shadow->#{bufname}.ptr = ptr;
-              shadow->#{bufname}.len = len;
-              shadow->#{offsetname} = 0;
-              shadow->#{delayname} = delay;
-              
-              for (i=0; i<len; i++) {
-                ptr[i] = fill;
+            if (ptr && delay == shadow->#{delayname}) {
+              len = shadow->#{bufname}.len;
+              if (offset < 0 || offset > len - 4) {
+                rb_raise(#{declare_class RuntimeError},
+                "Offset out of bounds: %d not in 0..%d!", offset, len);
               }
             }
+            else {
+              Data_Get_Struct(shadow->world, #{world_ssn}, world_shadow);
+              steps = ceil(delay / world_shadow->time_step);
+              if (steps <= 0) {
+                rb_raise(#{declare_class RuntimeError},
+                "Delay too small: %f", delay);
+              }
+              len = steps*4;
 
-            offset = shadow->#{offsetname};
-            if (offset < 0 || offset > len - 4) {
-              rb_raise(#{declare_class RuntimeError},
-              "Offset out of bounds: %d not in 0..%d!", offset, len);
+              if (!ptr) {
+                #{flow.translate(self, "fill", 0, cl, flow.formula.dup).join("
+                ")};
+
+                ptr = ALLOC_N(double, len);
+                shadow->#{bufname}.ptr = ptr;
+                shadow->#{bufname}.len = len;
+                shadow->#{offsetname} = 0;
+                shadow->#{delayname} = delay;
+
+                for (i=0; i<len; i++) {
+                  ptr[i] = fill;
+                }
+              }
+              else { // # delay != shadow->#{delayname}
+                long old_len = shadow->#{bufname}.len;
+                double *dst, *src;
+
+                if (delay < shadow->#{delayname}) {
+                  if (offset < len) {
+                    dst = ptr + offset;
+                    src = ptr + offset + old_len - len;
+                  }
+                  else {
+                    dst = ptr;
+                    src = ptr + offset - len;
+                    offset = 0;
+                  }
+                  memmove(dst, src, (len - offset) * sizeof(double));
+                  REALLOC_N(ptr, double, len);
+                }
+                else { // # delay > shadow->#{delayname}
+                  REALLOC_N(ptr, double, len);
+
+                  fill = ptr[offset];
+                  dst = ptr + offset + len - old_len;
+                  src = ptr + offset;
+                  memmove(dst, src, (old_len - offset) * sizeof(double));
+
+                  for (i = 0; i < len - old_len; i++) {
+                    ptr[offset + i] = fill;
+                  }
+                }
+                
+                shadow->#{bufname}.ptr = ptr;
+                shadow->#{bufname}.len = len;
+                shadow->#{offsetname} = offset;
+                shadow->#{delayname} = delay;
+              }
+              
+              // ## check if state changed recently--clear old hist
             }
 
             offset = (offset + 4) % len;
@@ -114,6 +158,8 @@ class RedShift::DelayFlow
             
           case 1:
           case 2:
+            rb_raise(#{declare_class RuntimeError},
+              "Bad rk_level, %d!", rk_level);
             break;
             
           case 3:
@@ -147,4 +193,4 @@ class RedShift::DelayFlow
       end
     end
   end
-end
+end; end

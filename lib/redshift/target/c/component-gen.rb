@@ -1,4 +1,9 @@
 module RedShift
+  class World
+    include CShadow
+    # just so we can call shadow_struct_name on it
+  end
+
   HAVE_DEFINE_METHOD = Module.private_instance_methods.include?("define_method")
   
   class Component
@@ -810,9 +815,9 @@ module RedShift
     define_c_method :update_cache do body "__update_cache(shadow)" end
 
     library.define(:__update_cache).instance_eval do
-      flow_wrapper_type = RedShift::Component::FlowWrapper.shadow_struct.name
+      flow_wrapper_type = Component::FlowWrapper.shadow_struct.name
       scope :extern ## might be better to keep static and put in world.c
-      arguments "struct #{RedShift::Component.shadow_struct.name} *shadow"
+      arguments "struct #{Component.shadow_struct.name} *shadow"
       declare :locals => %{
         #{flow_wrapper_type} *flow_wrapper;
 
@@ -829,8 +834,7 @@ module RedShift
         int         has_diff;
       }.tabto(0)
 
-      ##world_ssn = RedShift::World.shadow_struct.name
-      world_ssn = "RedShift_o_World_Shadow" ## chicken or egg?
+      world_ssn = World.shadow_struct_name
       body %{
         var_count = shadow->var_count;
         vars = (ContVar *)&FIRST_CONT_VAR(shadow);

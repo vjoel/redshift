@@ -1,4 +1,4 @@
-class RedShift::EulerDifferentialFlow
+module RedShift; class EulerDifferentialFlow
   def flow_wrapper cl, state
     var_name = @var
     flow = self
@@ -52,4 +52,4 @@ class RedShift::EulerDifferentialFlow
       end
     end
   end
-end
+end; end

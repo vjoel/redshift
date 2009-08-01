@@ -1,3 +1,9 @@
+redshift 1.2.13
+
+- Fixed RedShift module scoping problem.
+
+- Delay flows can dynamically change their delay.
+
 redshift 1.2.12
 
 - Fixed bug with delay defined by a constant attr.

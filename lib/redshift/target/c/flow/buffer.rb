@@ -1,7 +1,6 @@
 class RedShift::Library
   def define_buffer
     include_file, source_file = add_file "buffer"
-    include_file.include self.include_file
 
     include_file.declare :Buffer => %{
       typedef struct {

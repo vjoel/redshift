@@ -1,4 +1,4 @@
-class RedShift::RK4DifferentialFlow
+module RedShift; class RK4DifferentialFlow
   def flow_wrapper cl, state
     var_name = @var
     flow = self
@@ -75,4 +75,4 @@ class RedShift::RK4DifferentialFlow
       end
     end
   end
-end
+end; end

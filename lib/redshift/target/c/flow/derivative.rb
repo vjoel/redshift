@@ -1,4 +1,4 @@
-class RedShift::DerivativeFlow
+module RedShift; class DerivativeFlow
   def flow_wrapper cl, state
     var_name = @var
     flow = self
@@ -73,4 +73,4 @@ class RedShift::DerivativeFlow
     end
   end
 
-end
+end; end

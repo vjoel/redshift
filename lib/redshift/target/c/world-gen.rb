@@ -39,11 +39,21 @@ class World
     } LinkCacheEntry;
   }
   
+  shadow_library_include_file.declare :port_cache_entry => %{
+    typedef struct {
+      VALUE           input_port;
+      VALUE           other_port;
+    } PortCacheEntry;
+  }
+  
   # Initial size for the constant value cache.
   CV_CACHE_SIZE = 64
 
   # Initial size for the link cache.
   LINK_CACHE_SIZE = 64
+  
+  # Initial size for the port cache.
+  PORT_CACHE_SIZE = 64
   
   World.subclasses.each do |sub|
     file_name = CGenerator.make_c_name(sub.name).to_s
@@ -111,6 +121,18 @@ class World
     shadow->link_cache_used = 0;
   }
   free_function.free "free(shadow->link_cache)"
+  
+  shadow_struct.declare :port_cache => %{
+    PortCacheEntry *port_cache;
+    int port_cache_size;
+    int port_cache_used;
+  }
+  new_method.attr_code %{
+    shadow->port_cache = 0;
+    shadow->port_cache_size = 0;
+    shadow->port_cache_used = 0;
+  }
+  free_function.free "free(shadow->port_cache)"
   
   class << self
     # Redefines World#new so that a library commit happens first.
@@ -251,7 +273,7 @@ class World
     parent.declare :static_locals => %{
       static VALUE      ExitState, GuardWrapperClass, ExprWrapperClass;
       static VALUE      ActionClass, EventClass, ResetClass, GuardClass;
-      static VALUE      QMatchClass;
+      static VALUE      QMatchClass, ConnectClass;
       static VALUE      PostClass, DynamicEventClass, SyncClass;
     }.tabto(0)
     
@@ -301,6 +323,12 @@ class World
         VALUE resets = RARRAY(comp_shdw->trans)->ptr[#{Transition::R_IDX}];
         assert(resets == Qnil || RBASIC(resets)->klass == ResetClass);
         return resets;
+      }
+      inline static VALUE cur_connects(ComponentShadow *comp_shdw)
+      {
+        VALUE connects = RARRAY(comp_shdw->trans)->ptr[#{Transition::C_IDX}];
+        assert(connects == Qnil || RBASIC(connects)->klass == ConnectClass);
+        return connects;
       }
       inline static void move_comp(VALUE comp, VALUE list, VALUE next_list)
       {
@@ -605,6 +633,54 @@ class World
         return did_reset;
       }
       
+      inline static void cache_new_port(VALUE input_port, VALUE other_port,
+               #{World.shadow_struct.name} *shadow)
+      {
+        PortCacheEntry *entry;
+        
+        if (!shadow->port_cache) {
+          int n = #{PORT_CACHE_SIZE};
+          shadow->port_cache = malloc(n*sizeof(PortCacheEntry));
+          shadow->port_cache_size = n;
+          shadow->port_cache_used = 0;
+        }
+        if (shadow->port_cache_used == shadow->port_cache_size) {
+          int n_bytes;
+          shadow->port_cache_size *= 2;
+          n_bytes = shadow->port_cache_size*sizeof(PortCacheEntry);
+          shadow->port_cache = realloc(shadow->port_cache, n_bytes);
+          if (!shadow->port_cache) {
+            rb_raise(#{declare_class NoMemoryError},
+                "Out of memory trying to allocate %d bytes for port cache.",
+                n_bytes);
+          }
+        }
+        entry = &shadow->port_cache[shadow->port_cache_used];
+        entry->input_port = input_port;
+        entry->other_port = other_port;
+        shadow->port_cache_used += 1;
+      }
+      
+      inline static int assign_new_ports(
+        #{World.shadow_struct.name} *shadow)
+      {
+        int did_reset = shadow->port_cache_used;
+        
+        if (shadow->port_cache_used) {
+          int i;
+          PortCacheEntry *entry;
+
+          entry = shadow->port_cache;
+          for (i = shadow->port_cache_used; i > 0; i--, entry++) {
+            rb_funcall(entry->input_port, #{declare_symbol :_connect}, 1,
+              entry->other_port);
+          }
+          shadow->port_cache_used = 0;
+        }
+        
+        return did_reset;
+      }
+      
       inline static int eval_continuous_resets(ComponentShadow *comp_shdw,
                               #{World.shadow_struct.name} *shadow)
       {
@@ -739,13 +815,20 @@ class World
             VALUE   reset   = RARRAY(pair)->ptr[1];
             VALUE   new_value;
 
-            if (RBASIC(reset)->klass == rb_cProc) {
-              new_value =
-                (VALUE)(rb_funcall(comp, #{insteval_proc}, 1, reset));
-            } else {
+            if (rb_obj_is_kind_of(reset, ExprWrapperClass)) {
               ComponentShadow *new_sh;
               new_sh = (ComponentShadow *) eval_comp_expr(comp, reset);
               new_value = new_sh ? new_sh->self : Qnil;
+            }
+            else if (reset == Qnil) {
+              new_value = reset;
+            }
+            else if (RBASIC(reset)->klass == rb_cProc) {
+              new_value =
+                (VALUE)(rb_funcall(comp, #{insteval_proc}, 1, reset));
+            }
+            else {
+              new_value = reset; // will raise exception below
             }
 
             if (!NIL_P(new_value) &&
@@ -769,6 +852,42 @@ class World
         }
         
         return has_const_resets || has_link_resets;
+      }
+      
+      inline static int eval_port_connects(ComponentShadow *comp_shdw,
+               #{World.shadow_struct.name} *shadow)
+      {
+        VALUE     connects    = cur_connects(comp_shdw);
+
+        if (!RTEST(connects))
+          return 0;
+        else {
+          int     i;
+          VALUE   comp = comp_shdw->self;
+          VALUE   *ptr = RARRAY(connects)->ptr;
+          long    len  = RARRAY(connects)->len;
+
+          for (i = 0; i < len; i++) {
+            VALUE   pair      = ptr[i];
+            VALUE   input_var = RARRAY(pair)->ptr[0];
+            VALUE   connect_spec = RARRAY(pair)->ptr[1];
+            VALUE   input_port;
+            VALUE   other_port;
+            
+            if (RBASIC(connect_spec)->klass == rb_cProc) {
+              input_port = rb_funcall(comp, #{declare_symbol :port}, 1, input_var);
+              other_port = rb_funcall(comp, #{insteval_proc}, 1, connect_spec);
+            }
+            else {
+              // ## unimpl.
+            }
+
+            //%% hook_eval_port_connect(comp,
+            //%%     input_port, other_port);
+            cache_new_port(input_port, other_port, shadow);
+          }
+          return 1;
+        }
       }
       
       inline static int assign_new_cont_values(ComponentShadow *comp_shdw)
@@ -854,7 +973,7 @@ class World
         if (comp_shdw->state != comp_shdw->dest) {
           update_all_alg_vars(comp_shdw, shadow);
           comp_shdw->state = comp_shdw->dest;
-          __update_cache(comp_shdw);
+          rs_update_cache(comp_shdw);
           comp_shdw->checked  = 0;
         }
         comp_shdw->trans    = Qnil;
@@ -964,6 +1083,35 @@ class World
         assert(RARRAY(shadow->prev_awake)->len == 0);
       }
       
+      inline static void do_sync_phase(#{World.shadow_struct.name} *shadow)
+      {
+        VALUE             comp;
+        ComponentShadow  *comp_shdw;
+        struct RArray    *list;
+        int               list_i;
+        int               changed;
+        
+        do {
+          changed = 0;
+          EACH_COMP_DO(shadow->curr_S) {
+            if (comp_can_sync(comp_shdw, shadow)) {
+              move_comp(comp, shadow->curr_S, shadow->next_S);
+            }
+            else {
+              changed = 1;
+              abort_trans(comp_shdw);
+              move_comp(comp, shadow->curr_S, shadow->prev_awake);
+            }
+          }
+          
+          assert(RARRAY(shadow->curr_S)->len == 0);
+          SWAP_VALUE(shadow->curr_S, shadow->next_S);
+          //%% hook_sync_step(shadow->curr_S, INT2BOOL(changed));
+        } while (changed);
+      
+        move_all_comps(shadow->curr_S, shadow->curr_T);
+      }
+    
     }.tabto(0)
     
     comp_id = declare_class RedShift::Component
@@ -974,6 +1122,7 @@ class World
       PostClass     = #{get_const[:PostPhase]};
       EventClass    = #{get_const[:EventPhase]};
       ResetClass    = #{get_const[:ResetPhase]};
+      ConnectClass  = #{get_const[:ConnectPhase]};
       GuardClass    = #{get_const[:GuardPhase]};
       SyncClass     = #{get_const[:SyncPhase]};
       QMatchClass   = #{get_const[:QMatch]};
@@ -993,32 +1142,12 @@ class World
         SWAP_VALUE(shadow->prev_awake, shadow->awake);
         
         while (RARRAY(shadow->prev_awake)->len) {
-          int changed;
-          
           //%% hook_enter_guard_phase();
           check_guards(shadow, sync_retry);
           //%% hook_leave_guard_phase();
 
           //%% hook_enter_sync_phase();
-          do {
-            changed = 0;
-            EACH_COMP_DO(shadow->curr_S) {
-              if (comp_can_sync(comp_shdw, shadow)) {
-                move_comp(comp, shadow->curr_S, shadow->next_S);
-              }
-              else {
-                changed = 1;
-                abort_trans(comp_shdw);
-                move_comp(comp, shadow->curr_S, shadow->prev_awake);
-              }
-            }
-            
-            assert(RARRAY(shadow->curr_S)->len == 0);
-            SWAP_VALUE(shadow->curr_S, shadow->next_S);
-            //%% hook_sync_step(shadow->curr_S, INT2BOOL(changed));
-          } while (changed);
-        
-          move_all_comps(shadow->curr_S, shadow->curr_T);
+          do_sync_phase(shadow);
           //%% hook_leave_sync_phase();
           sync_retry = 1;
         }
@@ -1049,6 +1178,7 @@ class World
           if (eval_continuous_resets(comp_shdw, shadow))
             rb_ary_push(shadow->curr_CR, comp);
           eval_constant_resets(comp_shdw, shadow);
+          eval_port_connects(comp_shdw, shadow);
           //%% hook_end_eval_resets(comp);
           
           if (RTEST(cur_actions(comp_shdw)))
@@ -1074,6 +1204,7 @@ class World
         RARRAY(shadow->curr_CR)->len = 0;
         did_reset = assign_new_constant_values(shadow) || did_reset;
         did_reset = assign_new_links(shadow) || did_reset;
+        did_reset = assign_new_ports(shadow) || did_reset;
         //%% hook_end_parallel_assign();
 
         //%% hook_enter_post_phase();

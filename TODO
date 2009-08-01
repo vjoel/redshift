@@ -2,7 +2,9 @@ Publishing RedShift
 ===================
 
   core for 1.3 release
-
+    
+    check that varying timestep is ok
+    export event _to_ comp?
     transition local vars
     tracer
 
@@ -380,7 +382,9 @@ Implementation
 
   Debug mode that uses hooks to add extra checking:
   
-    - d_tick rollovercheck
+    - d_tick rollover check
+    
+    - trans.idx overflow check
     
     - check_strict (and make it *not* the default)
 
@@ -401,6 +405,7 @@ Implementation
   
   break flow-gen.rb and world-gen.rb into several files each
     flow-gen files can be loaded on demand as flow types are needed
+    most of world-gen can be a .c file used as a template
   
   optimization
     profiling

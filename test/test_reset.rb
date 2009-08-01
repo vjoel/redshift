@@ -79,6 +79,14 @@ class ResetLinkToNil < Component
   end
 end
 
+class ResetLinkToLiteralNil < Component
+  link :lnk => C
+  state :S
+  transition Enter => S do
+    reset :lnk => nil
+  end
+end
+
 class ResetLinkToWrongType < Component
   link :lnk => C
   state :S
@@ -176,6 +184,13 @@ class TestReset < Test::Unit::TestCase
   
   def test_reset_link_to_nil
     rl = @world.create(ResetLinkToNil)
+    assert_equal(nil, rl.lnk)
+    @world.run 1
+    assert_equal(nil, rl.lnk)
+  end
+  
+  def test_reset_link_to_literal_nil
+    rl = @world.create(ResetLinkToLiteralNil)
     assert_equal(nil, rl.lnk)
     @world.run 1
     assert_equal(nil, rl.lnk)

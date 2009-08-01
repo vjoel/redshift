@@ -3,9 +3,11 @@ require "redshift"
 include RedShift
 
 class Z < Component
-  transition Enter => Enter do
-    guard {puts "in guard clause"; true}
-    action {puts "in action clause"}
+  state :A, :B
+  start A
+  transition A => B, B => A do
+    guard {puts "in guard clause: #{self.inspect}"; true}
+    action {puts "in action clause: #{self.inspect}"}
   end
 end
 
@@ -44,7 +46,7 @@ world.debug_zeno = true
 # After zeno_limit steps, RedShift starts calling world.step_zeno
 
 world.debug_zeno_limit = ZENO_UNLIMITED
-# The user is in control.
+# The user is in control for as long as the user wants to be.
 
 world.create(Z)
 

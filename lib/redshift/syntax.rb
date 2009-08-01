@@ -313,7 +313,8 @@ module TransitionSyntax
   class TransitionParser
     attr_reader :name,
       :guards, :syncs, :actions,
-      :resets, :events, :posts
+      :resets, :events, :posts,
+      :connects
     
     def initialize block
       @name = nil
@@ -410,14 +411,25 @@ module TransitionSyntax
       @resets.value_map.update h
     end
     
+    # +h+ is a hash of :var => proc {port_expr_ruby} or [:link, :var].
+    def connect(h)
+      badkeys = h.keys.reject {|k| k.is_a?(Symbol)}
+      unless badkeys.empty?
+        raise SyntaxError, "Keys #{badkeys.inspect} in connect must be symbols"
+      end
+      
+      @connects ||= Component::ConnectPhase.new
+      @connects.concat h.entries
+    end
+    
     # each arg can be an event name (string or symbol), exported with value 
     # +true+, or a hash of event_name => value. In the latter case, _value_
     # can be either a Proc, string (C expr), or a literal. If you need to
     # treat a Proc or string as a literal, use the notation
     #
-    #  :e => literal "str"
+    #  :e => literal("str")
     #
-    #  :e => literal {...}
+    #  :e => literal(proc {...})
     #
     def event(*args, &bl)
       @events ||= Component::EventPhase.new
@@ -476,7 +488,8 @@ end
 # Specifying two outgoing transitions for the same state is warned, but
 # only when this is done within the same call to this method.
 #
-# The block contains method calls to define guards, resets, procs, and events.
+# The block contains method calls to define guards, events, resets, connects,
+# and action and post procs.
 #
 # The block also can have a call to the name method, which defines the name of
 # the transition--this is necessary for overriding the transition in a subclass.

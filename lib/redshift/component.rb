@@ -61,10 +61,11 @@ class Transition < XArray ## put this in meta?
   attr_reader :name
 
   extend AccessibleIndex
-  G_IDX, S_IDX, A_IDX, R_IDX, E_IDX, P_IDX = *0..10
+  G_IDX, S_IDX, A_IDX, R_IDX, E_IDX, P_IDX, C_IDX = *0..10
   index_accessor \
     :guard => G_IDX, :sync => S_IDX, :action => A_IDX,
-    :reset => R_IDX, :event => E_IDX, :post => P_IDX
+    :reset => R_IDX, :event => E_IDX, :post => P_IDX,
+    :connect => C_IDX
 
   def initialize spec
     if spec.kind_of? Hash
@@ -76,6 +77,7 @@ class Transition < XArray ## put this in meta?
     self.guard = spec.guards; self.sync = spec.syncs
     self.action = spec.actions; self.reset = spec.resets
     self.event = spec.events; self.post = spec.posts
+    self.connect = spec.connects
   end
 end
 
@@ -142,6 +144,7 @@ class Component
     end
   end
   class QMatch < XArray; end
+  class ConnectPhase  < XArray; end
   
   class PhaseItem < XArray; extend AccessibleIndex; end
   
@@ -216,7 +219,9 @@ class Component
       # avoids inf. recursion when send(name) raises exception that
       # calls inspect again.
 
-      items << state if state
+      if state
+        items << (trans ? "#{state} => #{dest}" : state)
+      end
 
       VAR_TYPES.each do |var_type|
         var_list = self.class.send(var_type)
@@ -249,6 +254,14 @@ class Component
         end
       end
 
+      if trans and (ep=trans.grep(EventPhase).first)
+        strs = ep.map do |item|
+          e = item.event
+          "#{e}: #{send(e).inspect}"
+        end
+        items << strs.join(", ")
+      end
+      
       items << data if data
     end
     

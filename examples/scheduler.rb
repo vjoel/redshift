@@ -8,7 +8,7 @@ class Scheduler < RedShift::Component
   constant :next_wakeup_time
   
   default do
-    @schedule = []
+    @schedule = [] ## could use rbtree for efficient sorted list
     self.next_wakeup_time = RedShift::Infinity
   end
   

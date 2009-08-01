@@ -22,6 +22,10 @@ module RedShift; class Component
       component.connect(variable, port && port.component, port && port.variable)
     end
     
+    def _connect port
+      component.connect(variable, port && port.component, port && port.variable, false)
+    end
+    
     def <<(other)
       connect(other)
       return other

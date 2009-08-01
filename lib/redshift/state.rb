@@ -1,15 +1,8 @@
-module RedShift
-
-## This is hacky and needs to be redesigned.
-
-## it would be nice to associate enter and leave actions with states.
-
-class State
-
+class RedShift::State
   attr_reader :name, :persist_name
   
   def initialize n, context
-    @name = n ## || "State_#{id}".intern
+    @name = n
     @persist_name = "#{context}::#{n}".intern
     @context = context
   end
@@ -18,7 +11,7 @@ class State
     @persist_name.to_s
   end
   
-  def State._load str
+  def self._load str
     pn = str.intern
     ## could cache this lookup in a hash
     ObjectSpace.each_object(State) { |st|
@@ -35,7 +28,4 @@ class State
   def inspect
     "<#{@name}>"
   end
-
-end # class State
-
-end # module RedShift
+end

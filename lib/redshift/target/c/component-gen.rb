@@ -750,6 +750,21 @@ module RedShift
         end
       end
       
+      def define_connects connects
+        connects.each do |input_var, connect_spec|
+          unless input_variables.key? input_var
+            raise "Not an input variable: #{input_var}; in class #{self}"
+          end
+          
+          case connect_spec
+          when Proc
+            # nothing to do in this case
+          when Array
+            raise "unimplemented" ##
+          end
+        end
+      end
+      
       def define_reset(expr, type = "double")
         @expr_wrapper_hash ||= {} ## could be a superhash?
         @expr_wrapper_hash[expr] ||=
@@ -842,7 +857,7 @@ module RedShift
             phase << [offset_of_var(var), reset.instance, var, type]
           end
 
-        when Proc
+        when Proc, NilClass
           after_commit do
             phase << [offset_of_var(var), expr, var, type]
           end
@@ -869,6 +884,7 @@ module RedShift
           define_syncs(trans.sync) if trans.sync
           define_resets(trans.reset) if trans.reset
           define_event_phase(trans.event) if trans.event
+          define_connects(trans.connect) if trans.connect
         end
       end
 
@@ -914,7 +930,7 @@ module RedShift
     ##   class-level caching
     ##   define connect in C?
     ##   if need_connect...
-    def connect input_variable, other_component, other_var
+    def connect input_variable, other_component, other_var, bump_d_tick = true
       src_comp    = self.class.src_comp(input_variable)
       src_type    = self.class.src_type(input_variable)
       src_offset  = self.class.src_offset(input_variable)
@@ -992,8 +1008,7 @@ module RedShift
       send("#{src_type}=", type)
       send("#{src_offset}=", offset)
       
-      ## if this was in C, wouldn't need bump_d_tick
-      world.bump_d_tick
+      world.bump_d_tick if bump_d_tick and not strict
     end
 
     def source_component_for(input_variable)
@@ -1071,11 +1086,10 @@ module RedShift
       self.class.cached_outgoing_transition_data state
     end
 
-    define_c_method :update_cache do body "__update_cache(shadow)" end
+    define_c_method :update_cache do body "rs_update_cache(shadow)" end
 
-    ### can this go in shadow_library_source_file instead of library?
-    ### also, name it rs_*
-    library.define(:__update_cache).instance_eval do
+    ## can this go in shadow_library_source_file instead of library?
+    library.define(:rs_update_cache).instance_eval do
       flow_wrapper_type = Component::FlowWrapper.shadow_struct.name
       scope :extern ## might be better to keep static and put in world.c
       arguments "struct #{Component.shadow_struct.name} *shadow"

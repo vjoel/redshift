@@ -1,7 +1,5 @@
 require 'redshift/redshift'
 
-RedShift::CLib.show_build_times
-
 class Thing < RedShift::Component
   flow {
     diff "w' = 1"
@@ -60,8 +58,8 @@ end
 w = nil
 $steps = [
   ["commit", proc { w = RedShift::World.new { time_step 0.05 } }],
-  ["create", proc { 100.times do w.create Tester end }],
-  ["run",    proc { w.run 10000 }]
+  ["create", proc { 10000.times do w.create Tester end }],
+  ["run",    proc { w.run 1000 }]
 ]
 
 END {

@@ -1,6 +1,7 @@
 in general:
   use C code rather than ruby code
   use the profiler!
+  use flows! the continuous step usually takes <1% of the total run time!
 
 flows are probably not the bottleneck
   don't try to optimize in the equations

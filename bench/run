@@ -1,7 +1,9 @@
 #!/usr/bin/env ruby
 
+require 'my-profile.rb'
+
 class Object
-  def profile prof_flag = true
+  def rbprofile prof_flag = true
     if block_given?
       $profiler.instance_eval do
         save = @do_profiling
@@ -32,16 +34,18 @@ when /\Ab(ench)?\z/
 when /\Ap(rofile)?\z/
   require ARGV[1]; steps = $steps
   for step in steps
-    require 'profile' if step[0] == "run"  # don't profile compilation
-    step[1].call
+#    require 'profile' if step[0] == "run"  # don't profile compilation
+    profile (step[0] == "run") do  # only profile run, not compile or create
+      step[1].call
+    end
   end
 
 when /\Arbprof\z/
-  require 'rbprof'; profile false
+  require 'rbprof'; rbprofile false
   require ARGV[1]; steps = $steps
   for step in steps
     if step[0] == "run"  # don't profile compilation
-      profile {step[1].call}
+      rbprofile {step[1].call}
     else
       step[1].call
     end

@@ -121,7 +121,7 @@ class World
       step_continuous
       step_discrete
       yield self if block_given?
-    end
+    end ### put this whole loop in C
     
     self
   end

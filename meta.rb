@@ -11,7 +11,7 @@ class Component
     def export(*events)
       for event in events
         unless exported_events[event]
-          shadow_attr_accessor event => Object
+          shadow_attr_accessor event => Object  ### should be reader only
           protected "#{event}=".intern
           exported_events[event] = true
         end

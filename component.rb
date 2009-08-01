@@ -204,6 +204,7 @@ class Component
   class FunctionWrapper
     include Singleton
     include CShadow; shadow_library Component
+    ## no need for persistence, etc. methods
     def initialize
       calc_function_pointer
     end
@@ -302,8 +303,11 @@ class Component
   class ContState
     include CShadow; shadow_library Component
     
-    shadow_struct.declare :begin_vars => "struct {} begin_vars"
-    
+    shadow_struct.declare :begin_vars =>
+      "struct {} begin_vars __attribute__ ((aligned (8)))"
+      # could conceivably have to be >8, or simply ((aligned)) on some platforms
+      # but this seems to work for x86 and sparc
+      
     class << self
       def make_subclass_for component_class
         if component_class == Component

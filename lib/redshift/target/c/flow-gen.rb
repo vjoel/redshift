@@ -311,11 +311,10 @@ module RedShift; class Flow
       msg_circ = "Circularity in input variable #{var} of class #{link_type}."
 
       result_name = "value_#{link}__#{var}"
-      flow_fn.declare result_name => "double    #{result_name}"
+      ct_struct.declare result_name => "double #{result_name}"
 
       sf.declare get_var_cname => %{
-        inline static double #{get_var_cname}(#{CT_STRUCT_NAME} *ct,
-             double *presult) {
+        inline static double #{get_var_cname}(#{CT_STRUCT_NAME} *ct) {
           if (!ct->#{checked_var_cname}) {
             struct target    *tgt   =
                (struct target *)&ct->#{link_cname}->#{src_comp};
@@ -350,12 +349,12 @@ module RedShift; class Flow
                 var->d_tick = sh->world->d_tick;
               }
 
-              *presult = (&var->value_0)[sh->world->rk_level];
+              ct->#{result_name} = (&var->value_0)[sh->world->rk_level];
               break;
             }
 
             case INPUT_CONST:
-              *presult = *(double *)(tgt->psh + tgt->offset);
+              ct->#{result_name} = *(double *)(tgt->psh + tgt->offset);
               break;
 
             case INPUT_INP_VAR:
@@ -370,11 +369,11 @@ module RedShift; class Flow
             }
           }
           
-          return *presult;
+          return ct->#{result_name};
         }
       }
 
-      translation[expr] = "#{get_var_cname}(&ct, &#{result_name})"
+      translation[expr] = "#{get_var_cname}(&ct)"
       
     else
       raise ArgumentError, "Bad var_type: #{var_type.inspect}"

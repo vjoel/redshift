@@ -228,9 +228,19 @@ class TestConnect < Test::Unit::TestCase
     assert_equal(@b.other.y, @b.u)
   end
   
-  ### test guards
+  ### test guards and interaction with other flows
   
-  ### test marshal
+  def test_marshal
+    @a.x = -3.21
+    @b.port(:y) << @a.port(:x)
+    assert_equal(@a.x, @b.y)
+
+    world2 = Marshal.load(Marshal.dump(@world))
+    a = world2.grep(A).first
+    b = world2.grep(B).first
+    assert_equal(a.x, b.y)
+    p a, b
+  end
   
   def test_ports_change_when_reconnect
     return

@@ -55,11 +55,11 @@ class World_2 < World
   end
 
   def initialize
-    super
-
-    self.time_step     =   1.01
-    self.clock_start   =  90.001
-    self.clock_finish  = 100
+    super do
+      self.time_step     =   1.01
+      self.clock_start   =  90.001
+      self.clock_finish  = 100
+    end
     
     setup do
       @timer = create(Timer) {|timer| timer.t = 90.001}
@@ -304,5 +304,25 @@ class TestWorld < Test::Unit::TestCase
       t.run
       t.assert_consistent_after self if t.respond_to? :assert_consistent_after
     end
+  end
+  
+  def test_var_time_step
+    w = World.new
+    
+    w.time_step = 0.01
+    w.evolve 1.0
+    assert_in_delta(1.0, w.clock, 1.0e-9)
+    
+    w.time_step = 0.1
+    w.evolve 1.0
+    assert_in_delta(2.0, w.clock, 1.0e-9)
+    
+    w.time_step = 0.05
+    w.evolve 1.0
+    assert_in_delta(3.0, w.clock, 1.0e-9)
+    
+    w.time_step = 0.25
+    w.evolve 1.0
+    assert_in_delta(4.0, w.clock, 1.0e-9)
   end
 end

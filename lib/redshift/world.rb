@@ -67,6 +67,7 @@ class World
   def running?; @running; end
 
   # Can override the options using assignments in the block.
+  # Note that clock_start should not be assigned after the block.
   def initialize # :yields: world
     self.curr_A = []; self.curr_P = []; self.curr_CR = []
     self.curr_S = []; self.next_S = []; self.curr_T = []
@@ -92,6 +93,9 @@ class World
 
     do_defaults
     yield self if block_given?
+    
+    self.base_step_count = 0
+    self.base_clock = clock_start
   end
   
   def do_defaults

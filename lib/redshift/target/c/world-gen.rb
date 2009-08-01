@@ -80,7 +80,7 @@ class World
     :strict_sleep=, :inert=, :diff_list=,
     :queue_sleep=
   
-  shadow_attr_accessor :time_step     => "double   time_step"
+  shadow_attr_reader   :time_step     => "double   time_step"
   shadow_attr_accessor :zeno_limit    => "long     zeno_limit"
   shadow_attr_accessor :step_count    => "long     step_count"
   shadow_attr_accessor :clock_start   => "double   clock_start"
@@ -90,6 +90,11 @@ class World
   shadow_attr_accessor :rk_level      => "long     rk_level"
   shadow_attr_accessor :d_tick        => "long     d_tick"
   shadow_attr_accessor :alg_nest      => "long     alg_nest"
+  
+  shadow_attr_accessor :base_clock    => "double   base_clock"
+  shadow_attr_accessor :base_step_count =>
+                                         "long     base_step_count"
+  protected :base_clock=, :base_step_count=
 
   new_method.attr_code %{
     shadow->rk_level = 0;
@@ -142,10 +147,23 @@ class World
     end
   end
   
+  define_c_method :time_step= do
+    arguments :time_step
+    body %{
+      double new_time_step = NUM2DBL(time_step);
+      shadow->base_clock = shadow->base_clock +
+       (shadow->step_count - shadow->base_step_count) * shadow->time_step;
+      shadow->base_step_count = shadow->step_count;
+      shadow->time_step = new_time_step;
+    }
+    returns "shadow->time_step" ## needed?
+  end
+  
   define_c_method :clock do
-    ## This is wrong if time_step changes.
     returns %{
-      rb_float_new(shadow->step_count * shadow->time_step + shadow->clock_start)
+      rb_float_new(
+       shadow->base_clock +
+       (shadow->step_count - shadow->base_step_count) * shadow->time_step)
     }
   end
   

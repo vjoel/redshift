@@ -9,17 +9,17 @@ module RedShift
     
     def initialize component
       @q = []
-      @clock = nil
-      @step = nil
+      @step_count = nil
+      @discrete_step = nil
       @component = component
     end
     
     def push obj
       world = @component.world
-      clock = world.clock
-      step = world.discrete_step
+      step_count = world.step_count
+      discrete_step = world.discrete_step
       
-      if clock == @clock and step == @step
+      if step_count == @step_count and discrete_step == @discrete_step
         last = @q[-1]
         case last
         when SimultaneousQueueEntries
@@ -31,8 +31,8 @@ module RedShift
       
       else
         was_empty = @q.empty?
-        @clock = clock
-        @step = step
+        @step_count = step_count
+        @discrete_step = discrete_step
         @q << obj
         @component.inc_queue_ready_count if was_empty
       end

@@ -5,7 +5,7 @@ require 'test/unit'
 # Component classes.
 class TestQueueAlone < Test::Unit::TestCase
   class World
-    attr_accessor :clock, :discrete_step
+    attr_accessor :step_count, :discrete_step
   end
   class Component
     attr_accessor :world, :awake
@@ -18,7 +18,7 @@ class TestQueueAlone < Test::Unit::TestCase
   
   def setup
     @w = World.new
-    @w.clock = 0.0
+    @w.step_count = 0
     @w.discrete_step = 0
     @c = Component.new
     @c.world = @w
@@ -47,7 +47,7 @@ class TestQueueAlone < Test::Unit::TestCase
   end
   
   def test_simultaneous_entries
-    @w.clock = 1.23
+    @w.step_count = 123
     @w.discrete_step = 42
     a = [1,2,3]
     a.each do |x|
@@ -64,7 +64,7 @@ class TestQueueAlone < Test::Unit::TestCase
   end
   
   def test_unpop_partial
-    @w.clock = 1.23
+    @w.step_count = 123
     @w.discrete_step = 42
     a = [1,2,3]
     a.each do |x|

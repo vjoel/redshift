@@ -23,12 +23,14 @@ module AugmentedException
   end
 end
 
+# For convenience only; not all redshift error classes derive from this.
 class RedShiftError < StandardError
   include AugmentedException
 end
 
 class AlgebraicAssignmentError < RedShiftError; end
 class NilLinkError < RedShiftError; end
+class LinkTypeError < TypeError; include AugmentedException; end
 class CircularDefinitionError < RedShiftError; end
 class StrictnessError < RedShiftError; end
 class ConstnessError < RedShiftError; end

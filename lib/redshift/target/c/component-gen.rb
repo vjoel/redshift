@@ -1213,10 +1213,16 @@ module RedShift
         vsnprintf(buf, BUFSIZ, fmt, args);
         va_end(args);
 
-        ary = rb_ary_new3(2, rb_str_new2(buf), obj);
-        ex = rb_funcall(exc, #{declare_symbol :new}, 1, ary);
-        rb_exc_raise(ex);\
+        if (rb_mod_include_p(exc, #{declare_module(AugmentedException)})) {
+          ary = rb_ary_new3(2, rb_str_new2(buf), obj);
+          ex = rb_funcall(exc, #{declare_symbol :new}, 1, ary);
+          rb_exc_raise(ex);
+        }
+        else {
+          rb_exc_raise(rb_exc_new2(exc, buf));
+        }\
       }
+      ## In the else case, can we put obj somewhere else? Warning?
     end
   end
 end

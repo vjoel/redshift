@@ -637,7 +637,7 @@ class World
             if (!NIL_P(new_value) &&
                 rb_obj_is_kind_of(new_value, RARRAY(pair)->ptr[3]) != Qtrue) {
               VALUE to_s = #{declare_symbol :to_s};
-              rs_raise(#{declare_class TypeError}, comp_shdw->self,
+              rs_raise(#{declare_class LinkTypeError}, comp_shdw->self,
                 "tried to reset %s, which is declared %s, with %s.",
                 STR2CSTR(rb_funcall(RARRAY(pair)->ptr[2], to_s, 0)),
                 STR2CSTR(rb_funcall(RARRAY(pair)->ptr[3], to_s, 0)),

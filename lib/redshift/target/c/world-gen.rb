@@ -126,18 +126,14 @@ class World
 #    returns "rb_funcall(block, #{declare_symbol :call}, 0)"
 #  end
   
-  define_c_method :step_discrete do
-    c_array_args {
-      optional :step_count
-      default :step_count => "INT2FIX(-1)"
-    }
+  discrete_step_definer = proc do
     declare :locals => %{
       VALUE             comp;
       ComponentShadow  *comp_shdw;
       VALUE            *ptr;
       long              len;
       long              i;
-      long              sc;
+      long              dstep;
       long              all_were_g, all_are_g;
       int               started_events;
       static VALUE      ExitState, GuardWrapperClass, ExprWrapperClass;
@@ -318,6 +314,8 @@ class World
       }
     }.tabto(0)
     declare :step_discrete_macros => '
+      #define INT2BOOL(i)  (i ? Qtrue : Qfalse)
+
       #define SWAP_VALUE(v, w) {VALUE ___tmp = v; v = w; w = ___tmp;}
 
       #define EACH_COMP_DO(lc)                          \\
@@ -355,14 +353,22 @@ class World
                = rb_const_get(#{comp_id}, #{declare_symbol :DynamicEventValue});
     }
     body %{
+      //%% hook_begin();
+      
       started_events = 0;
       all_were_g = 1;
       shadow->zeno_counter = 0;
-      sc = NUM2INT(step_count);
+      dstep = 0;
+
+      //%% hook_begin_step(INT2NUM(dstep));
       
-      while (sc-- != 0) {
+      //## use goto rather than convoluted loop?
+
+      while (1) {
         struct RArray *list;
         int            list_i;
+
+        //%% hook_enter_guard_phase(INT2NUM(dstep));
 
         //# GUARD phase. Start on phase 4 of 4, because everything's in G.
         shadow->discrete_phase = #{declare_symbol :guard};
@@ -373,11 +379,16 @@ class World
           
           while (len) {
             VALUE trans, guard, phases, dest;
+            int enabled;
+            
             assert(len >= 4);
             
             guard = ptr[--len];
+            enabled = !RTEST(guard) || guard_enabled(comp, guard);
             
-            if (!RTEST(guard) || guard_enabled(comp, guard)) {
+            //%% hook_eval_guard(comp, guard, INT2BOOL(enabled));
+            
+            if (enabled) {
               phases  = ptr[--len];
               dest    = ptr[--len];
               trans   = ptr[--len];
@@ -390,6 +401,8 @@ class World
           }
         }
 
+        //%% hook_leave_guard_phase(INT2NUM(dstep));
+
         //# Step finished; prepare lists for next 4-phase step.
         SWAP_VALUE(shadow->curr_P, shadow->next_P);
         SWAP_VALUE(shadow->curr_E, shadow->next_E);
@@ -400,6 +413,8 @@ class World
         all_are_g = !RARRAY(shadow->curr_P)->len &&
                     !RARRAY(shadow->curr_E)->len &&
                     !RARRAY(shadow->curr_R)->len;
+        //%% hook_end_step(INT2NUM(dstep), INT2BOOL(all_were_g),
+        //%%               INT2BOOL(all_are_g));
         if (all_were_g && all_are_g)
           break;
         all_were_g = all_are_g;
@@ -411,12 +426,18 @@ class World
             rb_funcall(shadow->self, #{declare_symbol :step_zeno}, 0);
         }
         
-        //# Begin a new step, starting with PROC phase
+        //# Begin a new discrete step.
+        dstep++;
+        //%% hook_begin_step(INT2NUM(dstep));
+        
+        //# PROC phase
+        //%% hook_enter_proc_phase(INT2NUM(dstep));
         shadow->discrete_phase = #{declare_symbol :proc};
         EACH_COMP_ADVANCE(shadow->curr_P) {
           VALUE procs = cur_procs(comp_shdw);
           
           for (i = 0; i < RARRAY(procs)->len; i++) {
+            //%% hook_call_proc(comp, RARRAY(procs)->ptr[i]);
             rb_funcall(comp, #{insteval_proc}, 1, RARRAY(procs)->ptr[i]);
 //#            rb_obj_instance_eval(1, &RARRAY(procs)->ptr[i], comp);
 //# rb_iterate(my_instance_eval, comp, call_block, RARRAY(procs)->ptr[i]);
@@ -424,8 +445,10 @@ class World
             //## should set flag so that alg flows always update during proc
           }
         }
+        //%% hook_leave_proc_phase(INT2NUM(dstep));
 
         //# EVENT phase
+        //%% hook_enter_event_phase(INT2NUM(dstep));
         started_events = 1;
         shadow->discrete_phase = #{declare_symbol :event};
         SWAP_VALUE(shadow->active_E, shadow->prev_active_E);
@@ -434,18 +457,17 @@ class World
 
           ptr = RARRAY(events)->ptr;
           len = RARRAY(events)->len;
-          for (i = len; i > 0; i--) {
-            int   event_idx = FIX2INT(RARRAY(*ptr)->ptr[0]);
+          for (i = len; i > 0; i--, ptr++) {
+            int   event_idx = FIX2INT(RARRAY(*ptr)->ptr[2]);
             VALUE event_val = RARRAY(*ptr)->ptr[1];
             
-            ptr++;
-        
             //## maybe this distinction should be made clear in the array
             //## itself.
             if (TYPE(event_val) == T_DATA &&
                 rb_obj_is_kind_of(event_val, DynamicEventClass))
               event_val = rb_funcall(comp, #{insteval_proc}, 1, event_val);
 
+            //%% hook_export_event(comp, RARRAY(*ptr)->ptr[0], event_val);
             RARRAY(comp_shdw->next_event_values)->ptr[event_idx] = event_val;
           }
 
@@ -473,8 +495,10 @@ class World
 
           SWAP_VALUE(comp_shdw->event_values, comp_shdw->next_event_values);
         }
+        //%% hook_leave_event_phase(INT2NUM(dstep));
         
         //# RESET phase
+        //%% hook_enter_reset_phase(INT2NUM(dstep));
         shadow->discrete_phase = #{declare_symbol :reset};
         EACH_COMP_DO(shadow->curr_R) {
           ContVar  *var     = (ContVar *)(&comp_shdw->cont_state->begin_vars);
@@ -484,12 +508,14 @@ class World
           len = RARRAY(resets)->len;
           assert(len <= comp_shdw->var_count);
 
-          for (i = len; i > 0; i--, var++, ptr++) {
+          for (i = 0; i < len; i++, var++, ptr++) {
             VALUE reset = *ptr;
             if (reset == Qnil) {
               var->value_1 = var->value_0;
             }
             else {
+              double new_value;
+              
               if (var->algebraic)
                 rb_raise(#{declare_class AlgebraicAssignmentError},
                     "variable has algebraic flow");
@@ -498,15 +524,17 @@ class World
                 case T_FIXNUM:
                 case T_BIGNUM:
                 case T_FLOAT:
-                  var->value_1 = NUM2DBL(reset);
+                  new_value = NUM2DBL(reset);
                   break;
                 default:
                   if (RBASIC(reset)->klass == rb_cProc)
-                    var->value_1 =
+                    new_value =
                       NUM2DBL(rb_funcall(comp, #{insteval_proc}, 1, reset));
                   else
-                    var->value_1 = eval_expr(comp, reset);
+                    new_value = eval_expr(comp, reset);
               }
+              //%% hook_do_reset(comp, INT2NUM(i), rb_float_new(new_value));
+              var->value_1 = new_value;
             }
           }
         }
@@ -521,6 +549,7 @@ class World
         }
         d_tick++;   //# resets may invalidate algebraic flows
         //## optimization: don't incr if no resets? Change name of d_tick!
+        //%% hook_leave_reset_phase(INT2NUM(dstep));
       }
       
       move_all_comps(shadow->curr_G, shadow->strict_sleep);
@@ -530,9 +559,56 @@ class World
       assert(RARRAY(shadow->active_E)->len == 0);
       
       shadow->discrete_phase = Qnil;
+
+      //%% hook_end(INT2NUM(dstep));
     }
+    def self.body_str
+      body!.instance_eval do ## yech!
+        @pile[0]
+      end
+    end
   end
-  private :step_discrete
+
+  prefix = /\Ahook_/ ## better name?
+  any_hook = /\bhook_\w+/
+  world_classes = World.subclasses + [World]
+  hooks = Hash.new {|h,cl| h[cl] = cl.instance_methods(true).grep(prefix).sort}
+  hooks[World.superclass] = nil
+  known_hooks = nil
+  world_classes.each do |cl|
+    cl_hooks = hooks[cl]
+    next if hooks[cl.superclass] == hooks[cl]
+    cl.instance_eval do
+      shadow_library_source_file.include(Component.shadow_library_include_file)
+      
+      if (instance_methods(false) + protected_instance_methods(false) +
+          private_instance_methods(false)).include?("step_discrete")
+        warn "Redefining step_discrete in #{self}"
+      end
+      
+      meth = define_c_method(:step_discrete, &discrete_step_definer)
+      private :step_discrete
+      
+      body_str = meth.body_str
+      known_hooks ||= body_str.scan(any_hook)
+      unknown_hooks = cl_hooks - known_hooks
+      
+      unless unknown_hooks.empty?
+        warn "Unknown hooks:\n  #{unknown_hooks.join("\n  ")}"
+      end
+      
+      hook_pat = /\/\/%%\s*(#{cl_hooks.join("|")})\(((?:.|\n\s*\/\/%%)*)\)/
+      body_str.gsub!(hook_pat) do |match|
+        hook = $1
+        argstr = $2.delete("//%%")
+        args = argstr.split(/,\s+/)
+          # crude parser--no ", " within args, but may be multiline
+        args.unshift(args.size)
+        %{rb_funcall(shadow->self, #{meth.declare_symbol hook},
+             #{args.join(", ")})}
+      end
+    end
+  end
 
 end # class World
 

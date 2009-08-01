@@ -2,6 +2,7 @@
 # an acceptable library name.
 begin
   clib_name = ($REDSHIFT_CLIB_NAME || $0).dup
+    ## should think of something better when $0=="irb"
   clib_name =
     if clib_name == "\000PWD"  # irb in ruby 1.6.5 bug
       "irb"
@@ -28,5 +29,5 @@ else
   require 'redshift/target/c/component-gen'
   require 'redshift/target/c/world-gen'
   
-  RedShift.do_library_calls(RedShift.library)
+  RedShift.do_library_calls
 end

@@ -351,7 +351,7 @@ def Component.transition(edges = {}, &block)
       case phase
       when Component::EventPhase
         phase.each do |event|
-          event[0] = export(event[0])[0] # replace name with index
+          event << export(event[0])[0] # cache index
         end
       end
     end

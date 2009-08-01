@@ -93,7 +93,7 @@ module RedShift
     @library_calls << block
   end
 
-  def RedShift.do_library_calls(library)
+  def RedShift.do_library_calls
     @library_calls.each do |block|
       block[library]
     end

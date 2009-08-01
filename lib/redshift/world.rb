@@ -177,7 +177,7 @@ class World
   
   ## maybe this should be called "evolve", to make it unambiguously a verb
   def age(time = 1.0, &block)
-    run(time.to_f/time_step, &block)
+    run((time.to_f/time_step).round, &block)
   end
 
   # Default implementation is to raise RedShift::ZenoError.
@@ -211,7 +211,6 @@ class World
     if @started
       digits = -Math.log10(time_step).floor
       digits = 0 if digits < 0
-      puts "<%s: %d step%s, %.#{digits}f #{@time_unit}%s, %d component%s>"
       sprintf "<%s: %d step%s, %.#{digits}f #{@time_unit}%s, %d component%s>",
         @name,
         step_count, ("s" if step_count != 1),

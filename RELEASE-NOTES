@@ -1,3 +1,8 @@
+redshift 1.2.25
+
+- The world accessor of Component is now stored internally as World shadow
+  instead of World object, to make access to World fields easier.
+
 redshift 1.2.24
 
 - Added input variables, connect, and ports.

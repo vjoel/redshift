@@ -1063,7 +1063,6 @@ module RedShift
         int         has_diff;
       }.tabto(0)
 
-      world_ssn = World.shadow_struct_name
       body %{
         var_count = shadow->var_count;
         vars = (ContVar *)&FIRST_CONT_VAR(shadow);
@@ -1134,11 +1133,8 @@ module RedShift
         
         if (has_diff && !shadow->has_diff) {
           if (!shadow->diff_list) {
-            #{world_ssn} *world_shadow;
-            Data_Get_Struct(shadow->world, #{world_ssn}, world_shadow);
-
-            if (world_shadow->diff_list) { //# 0 if loading
-              rb_ary_push(world_shadow->diff_list, shadow->self);
+            if (shadow->world->diff_list) { //# 0 if loading
+              rb_ary_push(shadow->world->diff_list, shadow->self);
             }
             shadow->diff_list = 1;
           }
@@ -1152,14 +1148,6 @@ module RedShift
     end
     ## optimization: 
     ## if (var->flow != old_flow && ...)
-
-    shadow_attr_reader :world => World
-
-    define_c_method :__set__world do
-      arguments :world
-      body "shadow->world = world"
-    end
-    protected :__set__world
   end
 
 end

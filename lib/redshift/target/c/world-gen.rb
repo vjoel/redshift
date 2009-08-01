@@ -286,8 +286,8 @@ class World
       {
         ComponentShadow *comp_shdw = get_shadow(comp);
         assert(RARRAY(list)->ptr[RARRAY(list)->len-1] == comp);
-        assert(comp_shdw->world == shadow->self);
-        comp_shdw->world = Qnil;
+        assert(comp_shdw->world == shadow);
+        comp_shdw->world = 0;
         --RARRAY(list)->len;
       }
       inline static double eval_expr(VALUE comp, VALUE expr)
@@ -1010,5 +1010,23 @@ class World
   end
 
 end # class World
+
+
+class Component
+    shadow_library_include_file.include(World.shadow_library_include_file)
+    shadow_attr_reader :world => [World]
+
+    define_c_method :__set__world do
+      arguments :world
+      world_ssn = World.shadow_struct_name
+      body %{
+        if (world != Qnil) {
+          Data_Get_Struct(world, #{world_ssn}, shadow->world);
+        } else
+          shadow->world = 0;
+      }
+    end
+    protected :__set__world
+end
 
 end # module RedShift

@@ -1,3 +1,7 @@
+redshift 1.2.33
+
+- Refactored input variable evaluation into rs_eval_input_var().
+
 redshift 1.2.32
 
 - Minor refactoring and new tests related to previous.

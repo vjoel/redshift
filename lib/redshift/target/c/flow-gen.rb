@@ -86,71 +86,11 @@ module RedShift; class Flow
 
             var_cname = "var_#{var}"
             translation[var] = var_cname
-
             src_comp    = cl.src_comp(varsym)
-            src_type    = cl.src_type(varsym)
-            src_offset  = cl.src_offset(varsym)
-
-            exc_uncn = cl.shadow_library.declare_class UnconnectedInputError
-            msg_uncn = "Input #{var} is not connected."
-
-            exc_circ = cl.shadow_library.declare_class CircularDefinitionError
-            msg_circ = "Circularity in input variable #{var} " +
-                  "of class #{cl.name}."
 
             flow_fn.declare var_cname => "double    #{var_cname}"
-
-            # These are for following a chain of input connections:
-            flow_fn.declare :tgt      => "struct target    *tgt"
-            flow_fn.declare :sh       => "ComponentShadow  *sh"
-            flow_fn.declare :depth    => "int              depth"
-
-            flow_fn.setup var_cname => %{
-              depth = 0;
-              tgt = (struct target *)&shadow->#{src_comp};
-            
-            loop_#{var}:
-              if (!tgt->psh || tgt->type == INPUT_NONE) {
-                rs_raise(#{exc_uncn}, shadow->self, #{msg_uncn.inspect});
-              }
-
-              sh = (ComponentShadow *)tgt->psh;
-
-              switch(tgt->type) {
-              case INPUT_CONT_VAR: {
-                ContVar *var = (ContVar *)&FIRST_CONT_VAR(sh);
-                var += tgt->offset;
-
-                if (var->algebraic) {
-                  if (var->rk_level < sh->world->rk_level ||
-                     (sh->world->rk_level == 0 &&
-                      (var->strict ? !var->d_tick :
-                       var->d_tick != sh->world->d_tick)
-                      ))
-                    (*var->flow)(sh);
-                }
-                else {
-                  var->d_tick = sh->world->d_tick;
-                }
-
-                #{var_cname} = (&var->value_0)[sh->world->rk_level];
-                break;
-              }
-              
-              case INPUT_CONST:
-                #{var_cname} = *(double *)(tgt->psh + tgt->offset);
-                break;
-              
-              case INPUT_INP_VAR:
-                tgt = (struct target *)(tgt->psh + tgt->offset);
-                if (depth++ > 100) {
-                  rs_raise(#{exc_circ}, shadow->self, #{msg_circ.inspect});
-                }
-                goto loop_#{var};
-              
-              default:
-                assert(0);
-              }
+            flow_fn.setup var_cname => %{\
+              #{var_cname} = rs_eval_input_var(shadow, &shadow->#{src_comp});
             }
           
           elsif /\A[eE]\z/ =~ var
@@ -298,81 +238,23 @@ module RedShift; class Flow
       translation[expr] = "#{get_var_cname}(&ct)"
     
     when :input
-      varsym = var.intern
-
-      src_comp    = link_type.src_comp(varsym)
-      src_type    = link_type.src_type(varsym)
-      src_offset  = link_type.src_offset(varsym)
-
-      exc_uncn = cl.shadow_library.declare_class UnconnectedInputError
-      msg_uncn = "Input #{var} is not connected."
-
-      exc_circ = cl.shadow_library.declare_class CircularDefinitionError
-      msg_circ = "Circularity in input variable #{var} of class #{link_type}."
-
+      src_comp    = link_type.src_comp(var.intern)
       result_name = "value_#{link}__#{var}"
       ct_struct.declare result_name => "double #{result_name}"
 
       sf.declare get_var_cname => %{
         inline static double #{get_var_cname}(#{CT_STRUCT_NAME} *ct) {
           if (!ct->#{checked_var_cname}) {
-            struct target    *tgt   =
-               (struct target *)&ct->#{link_cname}->#{src_comp};
-            ComponentShadow  *sh;
-            int              depth  = 0;
-
             ct->#{checked_var_cname} = 1;
             if (!ct->#{link_cname})
               rs_raise(#{exc_nil}, ct->shadow->self, #{msg_nil.inspect});
-            
-          loop:
-            if (!tgt->psh || tgt->type == INPUT_NONE) {
-              rs_raise(#{exc_uncn}, ct->shadow->self, #{msg_uncn.inspect});
-            }
-
-            sh = (ComponentShadow *)tgt->psh;
-
-            switch(tgt->type) {
-            case INPUT_CONT_VAR: {
-              ContVar *var = (ContVar *)&FIRST_CONT_VAR(sh);
-              var += tgt->offset;
-
-              if (var->algebraic) {
-                if (var->rk_level < sh->world->rk_level ||
-                   (sh->world->rk_level == 0 &&
-                    (var->strict ? !var->d_tick :
-                     var->d_tick != sh->world->d_tick)
-                    ))
-                  (*var->flow)(sh);
-              }
-              else {
-                var->d_tick = sh->world->d_tick;
-              }
-
-              ct->#{result_name} = (&var->value_0)[sh->world->rk_level];
-              break;
-            }
-
-            case INPUT_CONST:
-              ct->#{result_name} = *(double *)(tgt->psh + tgt->offset);
-              break;
-
-            case INPUT_INP_VAR:
-              tgt = (struct target *)(tgt->psh + tgt->offset);
-              if (depth++ > 100) {
-                rs_raise(#{exc_circ}, ct->shadow->self, #{msg_circ.inspect});
-              }
-              goto loop;
-
-            default:
-              assert(0);
-            }
+            ct->#{result_name} = rs_eval_input_var(ct->#{link_cname},
+                &ct->#{link_cname}->#{src_comp});
           }
-          
           return ct->#{result_name};
         }
       }
-
+      
       translation[expr] = "#{get_var_cname}(&ct)"
       
     else

@@ -228,8 +228,6 @@ class TestConnect < Test::Unit::TestCase
     assert_equal(@b.other.y, @b.u)
   end
   
-  ### test guards and interaction with other flows
-  
   def test_marshal
     @a.x = -3.21
     @b.port(:y) << @a.port(:x)
@@ -239,28 +237,5 @@ class TestConnect < Test::Unit::TestCase
     a = world2.grep(A).first
     b = world2.grep(B).first
     assert_equal(a.x, b.y)
-    p a, b
-  end
-  
-  def test_ports_change_when_reconnect
-    return
-    b2.port(:y) << @a.port(:x)
-    puts "### #{ b2.z }"
-    b2.port(:y) << @b.port(:y)
-    puts "### #{ b2.z }"
-
-    p b2.port(:y)
-    p b2.y_src_comp
-    puts
-    
-    p b2.port(:y) ### did not update!
-    p b2.y_src_comp # ok!
-    puts
-
-    b2.port(:y) << nil
-    p b2.port(:y)
-    p b2.y_src_comp
-    puts
-    
   end
 end

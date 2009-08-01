@@ -475,6 +475,8 @@ module RedShift
           st.declare :offset => "short   offset"
           ## will this always have the same layout as the struct members
           ## in ComponentShadow?
+          
+          define_rs_eval_input_var
         end
       end
       
@@ -495,64 +497,12 @@ module RedShift
           shadow_attr_accessor src_type   => "short #{src_type}"
           shadow_attr_accessor src_offset => "short #{src_offset}"
           
-          exc = shadow_library.declare_class UnconnectedInputError
-          msg = "Input #{var_name.inspect} is not connected."
-          
-          exc_circ = shadow_library.declare_class CircularDefinitionError
-          msg_circ = "Circularity in input variable #{var_name} " +
-                "of class #{name}."
-
           define_c_method(var_name) do
-            declare :value => "double           value"
-            declare :tgt   => "struct target    *tgt"
-            declare :sh    => "ComponentShadow  *sh"
-            declare :depth => "int              depth"
-            
-            returns "rb_float_new(value)"
+            declare :result => "double result"
+            returns "rb_float_new(result)"
             
             body %{
-              depth = 0;
-              tgt = (struct target *)&shadow->#{src_comp};
-            
-            loop:
-              if (!tgt->psh || tgt->type == INPUT_NONE) {
-                rs_raise(#{exc}, shadow->self, #{msg.inspect});
-              }
-              
-              sh = (ComponentShadow *)tgt->psh;
-
-              switch (tgt->type) {
-              case INPUT_CONT_VAR: {
-                ContVar *var = (ContVar *)&FIRST_CONT_VAR(sh);
-                var += tgt->offset;
-                
-                if (var->algebraic &&
-                    (var->strict ? !var->d_tick :
-                     var->d_tick != sh->world->d_tick)) {
-                  (*var->flow)(sh);
-                }
-                else {
-                  if (sh->world)
-                    var->d_tick = sh->world->d_tick;
-                }
-                value = var->value_0;
-                break;
-              }
-                
-              case INPUT_CONST:
-                value = *(double *)(tgt->psh + tgt->offset);
-                break;
-                
-              case INPUT_INP_VAR:
-                tgt = (struct target *)(tgt->psh + tgt->offset);
-                if (depth++ > 100) {
-                  rs_raise(#{exc_circ}, shadow->self, #{msg_circ.inspect});
-                }
-                goto loop;
-              
-              default:
-                assert(0);
-              }
+              result = rs_eval_input_var(shadow, &shadow->#{src_comp});
             }
           end
         end
@@ -1054,8 +1004,16 @@ module RedShift
         nil
       end
     end
-    ## end # if need connect
     
+    def get_varname_by_offset offset
+      src_comp_basename = self.class.src_comp("").to_s
+      varname = self.class.var_at_offset(offset).to_s
+      varname.gsub!(src_comp_basename, "")
+      ":#{varname}"
+        ## hacky? like above...
+    end
+    ## end # if need connect
+
     define_c_method :clear_ck_strict do
       declare :locals => %{
         ContVar    *vars;
@@ -1093,6 +1051,8 @@ module RedShift
 
     define_c_method :update_cache do body "__update_cache(shadow)" end
 
+    ### can this go in shadow_library_source_file instead of library?
+    ### also, name it rs_*
     library.define(:__update_cache).instance_eval do
       flow_wrapper_type = Component::FlowWrapper.shadow_struct.name
       scope :extern ## might be better to keep static and put in world.c
@@ -1223,6 +1183,81 @@ module RedShift
         }\
       }
       ## In the else case, can we put obj somewhere else? Warning?
+    end
+    
+    def self.define_rs_eval_input_var
+      shadow_library_source_file.define(:rs_eval_input_var).instance_eval do
+        scope :extern
+        arguments "ComponentShadow *shadow, char *psrc_comp"
+        return_type "double"
+        returns "result"
+
+        exc_uncn = declare_class(UnconnectedInputError)
+        exc_circ = declare_class(CircularDefinitionError)
+
+        msg_uncn = "Input %s is not connected."
+        msg_circ = "Circularity in input variable %s."
+
+        body %{\
+          double            result;
+          struct target    *tgt     = (struct target *)(psrc_comp);
+          ComponentShadow  *sh;
+          int               depth   = 0;
+
+        loop:
+          if (!tgt->psh || tgt->type == INPUT_NONE) {
+            size_t offset = psrc_comp - (char *)shadow;
+            VALUE str = rb_funcall(shadow->self,
+              #{declare_symbol :get_varname_by_offset}, 1, INT2FIX(offset));
+            char *var_name = StringValuePtr(str);
+            rs_raise(#{exc_uncn}, shadow->self, #{msg_uncn.inspect}, var_name);
+          }
+
+          sh = (ComponentShadow *)tgt->psh;
+
+          switch(tgt->type) {
+          case INPUT_CONT_VAR: {
+            ContVar *var = (ContVar *)&FIRST_CONT_VAR(sh);
+            var += tgt->offset;
+
+            if (var->algebraic) {
+              if (var->rk_level < sh->world->rk_level ||
+                 (sh->world->rk_level == 0 &&
+                  (var->strict ? !var->d_tick :
+                   var->d_tick != sh->world->d_tick) //## !world ?
+                  ))
+                (*var->flow)(sh);
+            }
+            else {
+              if (sh->world)
+                var->d_tick = sh->world->d_tick;
+            }
+
+            result = (&var->value_0)[sh->world->rk_level];
+            break;
+          }
+
+          case INPUT_CONST:
+            result = *(double *)(tgt->psh + tgt->offset);
+            break;
+
+          case INPUT_INP_VAR:
+            tgt = (struct target *)(tgt->psh + tgt->offset);
+            if (depth++ > 100) {
+              size_t offset = psrc_comp - (char *)shadow;
+              VALUE str = rb_funcall(shadow->self,
+                #{declare_symbol :get_varname_by_offset}, 1, INT2FIX(offset));
+              char *var_name = StringValuePtr(str);
+              rs_raise(#{exc_circ}, shadow->self,
+                #{msg_circ.inspect}, var_name);
+            }
+            goto loop;
+
+          default:
+            assert(0);
+          }
+        }
+      end
     end
   end
 end

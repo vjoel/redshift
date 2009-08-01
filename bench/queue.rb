@@ -53,7 +53,8 @@ module Queue
     n_sender.times do |i|
       sender = w.create(Sender) do |s|
         s.clock = clock
-        s.period = ((i % 99)+1) / 10.0
+        s.next_wakeup = ((i % 99)+1) / 10.0
+        s.period = 10
         n_receiver.times do
           w.create(Receiver) do |r|
             s.targets << r.q

@@ -3,7 +3,6 @@ Publishing RedShift
 
   core for 1.2 release
 
-    optimize: queues and sleep
     unambiguous [determinate] sync
     transition local vars
     action %{ pseudo-c-code }

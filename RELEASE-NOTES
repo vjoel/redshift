@@ -1,3 +1,7 @@
+redshift 1.2.40
+
+- Improved test and bench for queues.
+
 redshift 1.2.39
 
 - Queue optimization: sleep when all guards waiting for queues.

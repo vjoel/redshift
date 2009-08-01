@@ -10,6 +10,20 @@ ZENO_UNLIMITED = -1
 
 class World
   include Enumerable
+  
+  class ComponentList < EnumerableOperator::Sum
+    def inspect
+      to_a.inspect # looks better in irb
+    end
+    
+    def [](idx)
+      to_a[idx] ## very inefficient
+    end
+    
+    def clear
+      summands.each {|list| list.clear}
+    end
+  end
 
   @subclasses = []
 
@@ -22,13 +36,12 @@ class World
     end
   end
   
-# see comment in redshift.rb
+  # see comment in redshift.rb
   def self.new(*args, &block)
     RedShift.require_target     # redefines World.new
     new(*args, &block)          # which is what this line calls
   end
   
-  ## for debugging, usually want to call #to_a on this.
   attr_reader :components
   
   def default_options
@@ -55,7 +68,7 @@ class World
     self.next_P = []; self.next_E = []; self.next_R = []; self.next_G = []
     self.active_E = []; self.prev_active_E = []
     self.strict_sleep = []
-    @components = EnumerableOperator.sum  \
+    @components = ComponentList.new  \
       curr_P, curr_E, curr_R, curr_G,
       next_P, next_E, next_R, next_G,
       strict_sleep
@@ -118,9 +131,15 @@ class World
     component
   end
   
-##  def remove c
-##    components.delete c
-##  end
+  ## is this a good idea? tests? #add ?
+  def remove c
+    if components.summands.any? {|list| list.delete(c)}
+      raise unless c.world == self
+      c.__set_world(nil)
+    else
+      raise "Tried to remove #{c} from #{self}, but its world is #{c.world}."
+    end
+  end
   
   # All evolution methods untimately call step, which can be overridden.
   # After each step, yields to block. It is the block's responsibility to
@@ -166,16 +185,14 @@ class World
     raise RedShift::ZenoError, "\nExceeded zeno limit of #{zeno_limit}.\n"
   end
   
-###  def garbage_collect
-###    self.components.clear
-###    GC.start
-###    ObjectSpace.each_object(Component) do |c|
-###      if c.world == self
-###        components << c
-###      end
-###    end
-###  end
-## another thing we can do: compress the various component arrays
+  ## is this a good idea? tests?
+  def garbage_collect
+    self.components.clear
+    GC.start
+    ObjectSpace.each_object(Component) do |c|
+      components << c if c.world == self
+    end
+  end
   
   def each(&b)
     @components.each(&b)

@@ -50,7 +50,8 @@ module RedShift
     end
     
     ## bug: doesn't detect an active component that has no phases (other
-    ## than the guard, if any) in its transition.
+    ## than the guard, if any) in its transition. This could be fixed by
+    ## using fine-grained instrumentation of setp_discrete.
     def report_zeno
       f = zeno_io
 

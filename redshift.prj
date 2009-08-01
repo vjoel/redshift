@@ -1,11 +1,11 @@
 ;; -*- Prcs -*-
 (Created-By-Prcs-Version 1 3 3)
 (Project-Description "")
-(Project-Version redshift 1.1 3)
-(Parent-Version redshift 1.1 2)
+(Project-Version redshift 1.1 4)
+(Parent-Version redshift 1.1 3)
 (Version-Log "")
 (New-Version-Log "")
-(Checkin-Time "Mon, 17 May 2004 09:18:24 -0700")
+(Checkin-Time "Mon, 17 May 2004 22:54:38 -0700")
 (Checkin-Login vjoel)
 (Populate-Ignore ())
 (Project-Keywords)
@@ -384,7 +384,7 @@
 ;; Files added by populate at Sun, 16 May 2004 11:13:45 -0700,
 ;; to version 1.0.23(w), by vjoel:
 
-  (lib/redshift/world.rb (redshift/b/30_world.rb 1.2 644))
+  (lib/redshift/world.rb (redshift/b/30_world.rb 1.3 644))
   (lib/redshift/target/spec.rb (redshift/b/31_spec.rb 1.1 644))
   (lib/redshift/target/c/world-gen.rb (redshift/b/32_world-gen. 1.2 644))
   (lib/redshift/target/c.rb (redshift/b/33_c.rb 1.1 644))
@@ -408,7 +408,7 @@
 ;; to version 1.1.1(w), by vjoel:
 
   
-  (examples/zeno.rb (redshift/b/46_zeno.rb 1.2 644))
+  (examples/zeno.rb (redshift/b/46_zeno.rb 1.3 644))
 
 ;; Files deleted by depopulate at Mon, 17 May 2004 09:15:15 -0700,
 ;; from version 1.1.2(w), by vjoel:
@@ -418,7 +418,7 @@
 ;; Files added by populate at Mon, 17 May 2004 09:15:23 -0700,
 ;; to version 1.1.2(w), by vjoel:
 
-  (lib/redshift/mixins/zeno-debugger.rb (redshift/b/47_zeno-debug 1.1 644))
+  (lib/redshift/mixins/zeno-debugger.rb (redshift/b/47_zeno-debug 1.2 644))
 )
 (Merge-Parents)
 (New-Merge-Parents)

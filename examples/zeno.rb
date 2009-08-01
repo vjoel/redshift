@@ -4,8 +4,8 @@ include RedShift
 
 class Z < Component
   transition Enter => Enter do
-    guard {puts "in guard clause"; true}
-    action {puts "in action clause"}
+    guard {puts "\nin guard clause"; true}
+    action {puts "\nin action clause"}
   end
 end
 
@@ -21,7 +21,9 @@ class ZWorld < World
     unless @zeno_shell_started
       require 'irb-shell'
       puts
-      puts "Irb shell: ^D to continue to next zeno step; 'exit' to exit"
+      puts "Zeno debugger shell"
+      puts "^D to continue to next zeno step (^Z and Return on Windows)"
+      puts "'exit' to exit"
       puts "Variable 'z' has the suspect object."
       puts
       @zeno_shell_started = true

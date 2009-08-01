@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 require 'redshift/redshift.rb'
-require 'redshift/plot.rb'
+require 'plot/plot.rb'
 require 'complex'
 
 include RedShift
@@ -14,7 +14,7 @@ class MyCurve < Component
   }
   
   setup {
-    @z = Complex.new(1, 1)
+    @z = Complex.new(1.0, 1.0)
   }
   
 end
@@ -46,11 +46,10 @@ dataEuler = [[curve.z.real, curve.z.image]]
   dataEuler << [curve.z.real, curve.z.image]
 end
 
-
 Plot.new ('gnuplot') {
 
-  add dataRK4, 'w l'
-  add dataEuler, 'w l'
+  add dataRK4, 'title "Runge-Kutta 4th order" w l'
+  add dataEuler, 'title "Euler" w l'
   show
   command 'pause 5'
 

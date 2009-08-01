@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 require 'redshift/redshift.rb'
+require 'plot/plot.rb'
 
 include RedShift
 
@@ -80,8 +81,6 @@ class Ball < Component
 
 end # class Ball
 
-if __FILE__ == $0
-
 w = World.new {
   time_step 0.01
 }
@@ -89,13 +88,23 @@ w = World.new {
 ball = w.create(Ball) {@a = -9.8}
 obs = w.create(Observer) {@ball = ball}
 
+y = [[w.clock, ball.y]]
+
 while w.components.size > 0 do
+
   t = w.clock
   if t == t.floor
     print "\nTime #{t}\n"
   end
   p ball unless ball.state == Exit
+  
   w.run
+  
+  y << [w.clock, ball.y]
 end
 
-end
+Plot.new ('gnuplot') {
+  add y, 'title "height" w l'
+  show
+  command 'pause 60'
+}

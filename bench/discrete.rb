@@ -96,6 +96,6 @@ end
 if __FILE__ == $0
   require File.join(File.dirname(__FILE__), 'bench')
   puts "discrete:"
-  Discrete.do_bench_one(100, 10_000, 2) {|l| puts l}
+  Discrete.do_bench_one(100, 5_000, 5) {|l| puts l}
 end
 

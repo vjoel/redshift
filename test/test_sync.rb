@@ -81,6 +81,16 @@ class TestSync < Test::Unit::TestCase
     attr_reader :worked
   end
   
+  class SyncRetry < RedShift::Component
+    state :Ok
+    link :next
+    setup {self.next = nil}
+    transition Enter => Exit do
+      sync :next => :no_such_event
+    end
+    transition Enter => Ok
+  end
+  
   def setup
     @w = RedShift::World.new
   end
@@ -164,5 +174,12 @@ class TestSync < Test::Unit::TestCase
     (a + [emitter]).each do |relay|
       assert_equal(RedShift::Component::Exit, relay.state)
     end
+  end
+  
+  # see also examples/sync-retry.rb
+  def test_sync_retry
+    c = @w.create SyncRetry
+    @w.run 1
+    assert_equal(SyncRetry::Ok, c.state)
   end
 end

@@ -19,6 +19,7 @@ Publishing RedShift
   benchmarks
   - compare with stateflow and simulink examples
   - try to scale these examples up
+  - compare with Ptolemy -- ask devs for good benchmarks
 
   packaging and project mgmt
   - windows w/ several compilers

@@ -116,7 +116,7 @@ class Component
         next if seen[t.name] # overridden in subclass
         seen[t.name] = true
 
-        t_strict = true
+        t_strict = !t.sync || t.sync.empty?
         guard_list = t.guard
         guard_list and guard_list.each do |g|
           t_strict &&= g.respond_to?(:strict) && g.strict

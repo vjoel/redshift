@@ -6,6 +6,25 @@ class World
   shadow_library_file "World"
   shadow_library_source_file.include(Component.shadow_library_include_file)
 
+  shadow_library_include_file.declare :step_discrete_macros => '
+    #define INT2BOOL(i)  (i ? Qtrue : Qfalse)
+
+    #define SWAP_VALUE(v, w) {VALUE ___tmp = v; v = w; w = ___tmp;}
+
+    #define EACH_COMP_DO(lc)                          \\
+    for (list = RARRAY(lc), list_i = list->len - 1;   \\
+          list_i >= 0 && (                             \\
+            comp = list->ptr[list_i],                  \\
+            comp_shdw = get_shadow(comp),              \\
+            1);                                        \\
+          list_i--)
+
+    int dummy;
+  '.tabto(0)
+  # Note: EACH_COMP_DO(lc) block may use move_comp and remove_comp
+  # but it should (re)move none or all. Must have declarations for comp
+  # comp_shdw, list, and list_i in scope.
+
   shadow_library_include_file.declare :cv_cache_entry => %{
     typedef struct {
       double *dbl_ptr;
@@ -437,7 +456,7 @@ class World
           }
         }
         
-        //%% hook_can_sync(comp_shdw->self, can_sync ? Qtrue : Qfalse);
+        //%% hook_can_sync(comp_shdw->self, INT2BOOL(can_sync));
         return can_sync;
       }
       
@@ -855,25 +874,84 @@ class World
         }
       }
       
+      inline static void check_guards(#{World.shadow_struct.name} *shadow,
+            int sync_retry)
+      {
+        VALUE             comp;
+        ComponentShadow  *comp_shdw;
+        struct RArray    *list;
+        int               list_i;
+        VALUE            *ptr;
+        long              len, cur;
+        
+        EACH_COMP_DO(shadow->prev_awake) {
+          int enabled = 0;
+          
+          if (shadow->discrete_step == 0)
+            comp_shdw->checked = 0;
+          
+          len = RARRAY(comp_shdw->outgoing)->len - 1; //# last is flags
+          cur = len;
+
+          if (len == 0) {
+            move_comp(comp, shadow->prev_awake, shadow->inert);
+            continue;
+          }
+
+          ptr = RARRAY(comp_shdw->outgoing)->ptr;
+          if (sync_retry)
+            cur -= 4 * comp_shdw->tmp.trans.idx;
+          else
+            comp_shdw->tmp.trans.idx = 0;
+          
+          while (cur >= 4) {
+            VALUE trans, dest, guard, strict;
+            
+            strict = ptr[--cur];
+            guard = ptr[--cur];
+            
+            enabled = !RTEST(guard) ||
+              ((comp_shdw->checked && RTEST(strict)) ? 0 :
+               guard_enabled(comp, guard, shadow->discrete_step));
+            
+            //%% hook_eval_guard(comp, guard, INT2BOOL(enabled),
+            //%%                 ptr[cur-2], ptr[cur-1]);
+            
+            if (enabled) {
+              dest    = ptr[--cur];
+              trans   = ptr[--cur];
+              start_trans(comp_shdw, shadow, trans, dest);
+              if (RTEST(cur_syncs(comp_shdw))) {
+                move_comp(comp, shadow->prev_awake, shadow->curr_S);
+                comp_shdw->tmp.trans.idx = (len - cur)/4;
+                // ### overflow?
+              }
+              else
+                move_comp(comp, shadow->prev_awake, shadow->curr_T);
+              break;
+            }
+            else
+              cur -= 2;
+          }
+          
+          if (!enabled) {
+            VALUE qrc;
+            if (comp_shdw->strict)
+              move_comp(comp, shadow->prev_awake, shadow->strict_sleep);
+            else if (comp_shdw->sleepable &&
+                (qrc = rb_ivar_get(comp, #{declare_symbol :@queue_ready_count}),
+                 qrc == Qnil || qrc == INT2FIX(0))) {
+              move_comp_to_hash(comp, shadow->prev_awake, shadow->queue_sleep);
+            }
+            else
+              move_comp(comp, shadow->prev_awake, shadow->awake);
+            comp_shdw->checked = 1;
+          }
+        }
+        assert(RARRAY(shadow->prev_awake)->len == 0);
+      }
+      
     }.tabto(0)
-    
-    declare :step_discrete_macros => '
-      #define INT2BOOL(i)  (i ? Qtrue : Qfalse)
-
-      #define SWAP_VALUE(v, w) {VALUE ___tmp = v; v = w; w = ___tmp;}
-
-      #define EACH_COMP_DO(lc)                          \\
-      for (list = RARRAY(lc), list_i = list->len - 1;   \\
-           list_i >= 0 && (                             \\
-             comp = list->ptr[list_i],                  \\
-             comp_shdw = get_shadow(comp),              \\
-             1);                                        \\
-           list_i--)
-
-      int dummy;
-    '.tabto(0)
-    # Note: EACH_COMP_DO(lc) block may use move_comp and remove_comp
-    # but it should (re)move none or all
     
     comp_id = declare_class RedShift::Component
     get_const = proc {|k| "rb_const_get(#{comp_id}, #{declare_symbol k})"}
@@ -897,74 +975,18 @@ class World
 
       for (shadow->discrete_step = 0 ;; shadow->discrete_step++) {
         //%% hook_begin_step();
+        int sync_retry = 0;
         
         SWAP_VALUE(shadow->prev_awake, shadow->awake);
-
-        //%% hook_enter_guard_phase();
-        EACH_COMP_DO(shadow->prev_awake) {
-          int enabled = 0;
-          
-          if (shadow->discrete_step == 0)
-            comp_shdw->checked = 0;
-          
-          len = RARRAY(comp_shdw->outgoing)->len - 1; //# last is flags
-
-          if (len == 0) {
-            move_comp(comp, shadow->prev_awake, shadow->inert);
-            continue;
-          }
-
-          ptr = RARRAY(comp_shdw->outgoing)->ptr;
-          
-          while (len) {
-            VALUE trans, dest, guard, strict;
-            
-            assert(len >= 4);
-            
-            strict = ptr[--len];
-            guard = ptr[--len];
-            
-            enabled = !RTEST(guard) ||
-              ((comp_shdw->checked && RTEST(strict)) ? 0 :
-               guard_enabled(comp, guard, shadow->discrete_step));
-            
-            //%% hook_eval_guard(comp, guard, INT2BOOL(enabled),
-            //%%                 ptr[len-2], ptr[len-1]);
-            
-            if (enabled) {
-              dest    = ptr[--len];
-              trans   = ptr[--len];
-              start_trans(comp_shdw, shadow, trans, dest);
-              if (RTEST(cur_syncs(comp_shdw)))
-                move_comp(comp, shadow->prev_awake, shadow->curr_S);
-              else
-                move_comp(comp, shadow->prev_awake, shadow->curr_T);
-              break;
-            }
-            else
-              len -= 2;
-          }
-          
-          if (!enabled) {
-            VALUE qrc;
-            if (comp_shdw->strict)
-              move_comp(comp, shadow->prev_awake, shadow->strict_sleep);
-            else if (comp_shdw->sleepable &&
-                (qrc = rb_ivar_get(comp, #{declare_symbol :@queue_ready_count}),
-                 qrc == Qnil || qrc == INT2FIX(0))) {
-              move_comp_to_hash(comp, shadow->prev_awake, shadow->queue_sleep);
-            }
-            else
-              move_comp(comp, shadow->prev_awake, shadow->awake);
-            comp_shdw->checked = 1;
-          }
-        }
-        assert(RARRAY(shadow->prev_awake)->len == 0);
-        //%% hook_leave_guard_phase();
-
-        //%% hook_enter_sync_phase();
-        {
+        
+        while (RARRAY(shadow->prev_awake)->len) {
           int changed;
+          
+          //%% hook_enter_guard_phase();
+          check_guards(shadow, sync_retry);
+          //%% hook_leave_guard_phase();
+
+          //%% hook_enter_sync_phase();
           do {
             changed = 0;
             EACH_COMP_DO(shadow->curr_S) {
@@ -974,19 +996,20 @@ class World
               else {
                 changed = 1;
                 abort_trans(comp_shdw);
-                move_comp(comp, shadow->curr_S, shadow->awake);
+                move_comp(comp, shadow->curr_S, shadow->prev_awake);
               }
             }
             
             assert(RARRAY(shadow->curr_S)->len == 0);
             SWAP_VALUE(shadow->curr_S, shadow->next_S);
-            //%% hook_sync_step(shadow->curr_S, changed ? Qtrue : Qfalse);
+            //%% hook_sync_step(shadow->curr_S, INT2BOOL(changed));
           } while (changed);
         
           move_all_comps(shadow->curr_S, shadow->curr_T);
+          //%% hook_leave_sync_phase();
+          sync_retry = 1;
         }
-        //%% hook_leave_sync_phase();
-              
+        
         if (!RARRAY(shadow->curr_T)->len) {
           //%% hook_end_step();
           break; //# out of main loop

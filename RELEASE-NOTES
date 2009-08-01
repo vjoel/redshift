@@ -1,3 +1,9 @@
+redshift 1.3.3
+
+- Failed syncs are followed by attempts to continue evaluating further transitions.
+
+- Fixed bug: sync clause did not clear strict flag. Bug was also causing bench/discrete.rb to report incorrect results.
+
 redshift 1.3.2
 
 - Clear discrete_step and zeno_counter at end of discrete_update.

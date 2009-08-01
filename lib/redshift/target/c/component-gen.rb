@@ -322,6 +322,11 @@ module RedShift
       unsigned    has_diff  : 1; //# cur state has diff flows?
       unsigned    diff_list : 1; //# on diff_list of comps with diff flows?
       unsigned    sleepable : 1; //# can sleep in this state waiting for q?
+      union {
+        struct {
+          unsigned idx      : 11; //# index of next transition after sync failure
+        } trans;
+      } tmp;
     }
 
     class << self

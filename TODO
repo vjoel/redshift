@@ -5,6 +5,9 @@ Publishing RedShift
     
     clean up world (save/load etc)
     tracer
+    event value conditions in sync clause?
+      sync :client => check(:accept){|val| val==self}
+      # from sync-queue.rb
 
   doc, tutorial, web site
 
@@ -30,6 +33,7 @@ Publishing RedShift
     http://www.dis.anl.gov/exp/cas/index.html
     http://www.artcompsci.org
     Sylvain Joyeux (esp. re: distributed simulation)
+    Martin Fowler (see http://martinfowler.com/dslwip/)
 
   publicize
   - http://path.berkeley.edu/shift/
@@ -298,6 +302,13 @@ Semantics
     so that setup clauses can be added later
 
 Implementation
+
+  use static functions where possible
+
+  decouple expr code from particular states/transitions so that
+    two state can share code
+    changing state name doesn't cause (much) recompile
+    etc.
 
   option to dump all C code to one file (amalgam), so compiler can optimize more
 

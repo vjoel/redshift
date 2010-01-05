@@ -1,6 +1,5 @@
 $CGEN_VERBOSE = $REDSHIFT_CGEN_VERBOSE ## ugh.
 
-require 'ftools'
 require 'cgen/cshadow'
 
 module RedShift

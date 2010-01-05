@@ -1,5 +1,4 @@
 require 'pstore'
-require 'enum/op'
 
 module RedShift
 
@@ -16,9 +15,26 @@ class World
     :ZenoDebugger   => "zeno-debugger"
   }.each {|m,f| autoload(m, "redshift/mixins/#{f}")}
 
-  class ComponentList < EnumerableOperator::Sum
+  class ComponentList
+    include Enumerable
+
+    attr_reader :summands
+
+    def initialize(*summands)
+      @summands = summands
+    end
+
+    def each(&block)
+      summands.each { |enum| enum.each(&block) }
+      self
+    end
+    
+    def size
+      summands.inject(0) { |sum,enum| sum + enum.size }
+    end
+    
     def inspect
-      to_a.inspect # looks better in irb
+      to_a.inspect # looks better in irb, but slow
     end
     
     def [](idx)
@@ -266,6 +282,18 @@ class World
     end
     world
   end
+
+# This is for when Component#world is nonpersistent  
+#  def __restore__world__refs
+#    ## need this list because @components is not restored yet
+#    [awake, prev_awake, curr_T, strict_sleep, inert].each do |list|
+#      list.each do |c|
+#          c.send :__set__world, self
+#      end
+#    end
+#    ## could be in C
+#  end
+#  private :__restore__world__refs
   
 end # class World
 

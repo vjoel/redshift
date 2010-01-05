@@ -67,6 +67,7 @@ class Server < RedShift::Component
   end
   
   transition Serving => Waiting do
+    guard {client.server == self} # N.b.!
     sync :client => :accept
     event :serve => proc {1.0 + rand()}
     action do
@@ -75,6 +76,8 @@ class Server < RedShift::Component
     end
   end
 end
+
+srand 54321
 
 w = RedShift::World.new
 s = w.create(Server)

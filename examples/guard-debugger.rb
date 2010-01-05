@@ -8,7 +8,7 @@ include RedShift
 #
 # See examples/step-discrete-hook.rb for more examples of hook methods.
 #
-# See mixins/debugger.rn and examples/debugger.rb for a more useful debugger.
+# See mixins/debugger.rb and examples/debugger.rb for a more useful debugger.
 
 class DebuggingWorld < World
   def hook_eval_guard(comp, guard, enabled, trans, dest)

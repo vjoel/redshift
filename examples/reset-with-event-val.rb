@@ -1,3 +1,8 @@
+# Shows how to use events to pass values among synced
+# transitions. Note that event expressions are evaled
+# *before* reset expressions are evaled, so that the
+# the latter may reference the former.
+
 require 'redshift'
 include RedShift
 

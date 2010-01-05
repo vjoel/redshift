@@ -167,6 +167,11 @@ class World
     }
   end
   
+# This is for when Component#world is nonpersistent  
+#  _load_data_method.post_code %{
+#    rb_funcall(shadow->self, #{shadow_library_include_file.declare_symbol "__restore__world__refs"}, 0);
+#  }
+
   define_c_method :bump_d_tick do
     body "shadow->d_tick++"
   end
@@ -1341,12 +1346,15 @@ class World
 
 end # class World
 
-
+### move this to component-gen.rb
 class Component
     shadow_library_include_file.include(World.shadow_library_include_file)
     shadow_attr_reader :world => [World]
+      ## :nonpersistent -- see __restore__world__refs
 
     define_c_method :__set__world do
+      ## possible to do this by shadow_attr_writer, and
+      ## post-commit alias and remove_method and protected?
       arguments :world
       world_ssn = World.shadow_struct_name
       body %{

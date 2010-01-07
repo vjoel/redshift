@@ -1,4 +1,3 @@
-#!/usr/bin/env ruby
 require 'redshift'
 require 'plot/plot'
 require 'nr/random'

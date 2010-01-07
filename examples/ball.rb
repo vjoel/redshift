@@ -1,22 +1,33 @@
-#!/usr/bin/env ruby
 require 'redshift'
 
 include RedShift
 
 class Observer < Component
   link :ball => :Ball
-  state :Observing
-  
-  transition Enter => Observing
+  state :Observing, :Decision
+  attr_reader :counter
 
-  transition Observing => Observing do
-    guard {ball.impact}
-    action {print "\n\t ***** Time of impact #{world.clock}.\n\n"}
+  setup do
+    @counter = 0
   end
   
-  transition Observing => Exit do
-    guard {world.clock >= 20.0}
-    action {print "\n\n ***** Observer leaving.\n\n"}
+  start Observing
+
+  transition Observing => Decision do
+    sync :ball => :impact
+    action do
+      print "\n\n ***** Time of impact #{world.clock}.\n\n"
+      @counter += 1
+    end
+  end
+  
+  transition Decision => Exit do
+    guard {@counter == 2}
+    action {print " ***** Observer leaving after 2 bounces.\n\n"}
+  end
+  
+  transition Decision => Observing do
+    guard {@counter < 2}
   end
 end
 
@@ -35,18 +46,26 @@ class Ball < Component
   end
   
   transition Falling => Rising do
-    guard {y <= 0}
+    guard "y <= 0"
     event :impact
-    action {
-      self.v = -v
-      self.y0 = y; self.v0 = v
-      self.t_elapsed = 0.0
-      self.bounce_count += 1
-    }
+    reset :v  => "-v",
+          :y0 => "y",
+          :v0 => "-v",
+          :t_elapsed => 0,
+          :bounce_count => "bounce_count + 1"
+    # The reset is essentially the same as:
+    # action {
+    #   self.v = -v
+    #   self.y0 = y; self.v0 = v
+    #   self.t_elapsed = 0.0
+    #   self.bounce_count += 1
+    # }
+    # The difference: reset is faster, and has parallel semantics,
+    # which is why ':v0 => "-v"', in place of 'self.v0 = v'.
   end
   
   transition Rising => Falling do
-    guard {v <= 0}
+    guard "v <= 0"
   end
   
   transition Rising => Exit, Falling => Exit do
@@ -76,7 +95,7 @@ w = World.new
 w.time_step = 0.01
 
 ball = w.create(Ball) {|b| b.a = -9.8}
-obs = w.create(Observer) {|o|o.ball = ball}
+w.create(Observer) {|o|o.ball = ball}
 
 y = [[w.clock, ball.y]]
 
@@ -92,9 +111,13 @@ while w.size > 0 do
   y << [w.clock, ball.y]
 end
 
-require 'sci/plot'
-include Plot::PlotUtils
+if ARGV.delete('-p')
+  require 'sci/plot'
+  include Plot::PlotUtils
 
-gnuplot do |plot|
-  plot.add y, 'title "height" with lines'
+  gnuplot do |plot|
+    plot.add y, 'title "height" with lines'
+  end
+else
+  puts "use -p switch to show plot"
 end

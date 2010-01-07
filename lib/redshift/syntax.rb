@@ -503,17 +503,23 @@ def Component.transition(edges = {}, &block)
   end
   
   edges.each do |s, d|
+    must_be_state(d)
+
     case s
     when Array
       s.each do |t|
+        must_be_state(t)
         warn << t if e[t]
         e[t] = d
       end
+
     else
+      must_be_state(s)
       warn << s if e[s]
       e[s] = d
     end
   end
+  
   edges = e
   warn.each do |st|
     warn "Two destinations for state #{st} at #{caller[0]}."
@@ -541,6 +547,12 @@ def Component.transition(edges = {}, &block)
   end
   
   attach edges, trans
+end
+
+def Component.must_be_state s
+  unless s.kind_of? State
+    raise TypeError, "Not a state: #{s}"
+  end
 end
 
 end

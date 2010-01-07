@@ -34,6 +34,7 @@ class A < Component
     # action do
     #   port(:in) << comp.port(:x)
     # end
+    ## actually this would fail as a post, but not as action
   end
 end
 

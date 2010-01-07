@@ -1,7 +1,7 @@
 # Example of using sync and events to exchange data in parallel. This assumes that
 # the two components are already linked, so it doesn't scale well. A scalable
 # solution would separate detection into a cell mechanism or something, and use
-# queues to notify the vehicles. This example is more about collision _handling_
+# queues to notify the components. This example is more about collision _handling_
 # than _detection_.
 
 require 'redshift'

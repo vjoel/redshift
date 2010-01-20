@@ -132,7 +132,7 @@ module RedShift; class Flow
     
     yield strict if block_given?  ## funky way to return another value
     
-    setup << "#{result_var} = #{c_formula}"
+    setup << "#{result_var} = (#{c_formula})"
     
   rescue NameError, ArgumentError => ex
     ex.message << "\nclass: #{cl.name}\nformula:\n#{orig_formula}\n\n"

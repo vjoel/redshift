@@ -82,7 +82,8 @@ module RedShift; class Flow
           elsif (kind = cl.input_variables[varsym])
             # x ==> var_x
             strict &&= (kind == :strict)
-              # note that we check in #connect that the source var is strict
+              # note that we check in Component#connect that the
+              # source var is strict
 
             var_cname = "var_#{var}"
             translation[var] = var_cname

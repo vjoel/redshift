@@ -124,8 +124,10 @@ class TestConnectStrict < Test::Unit::TestCase
     @b.port(:y) << @a.port(:x)
     prev = nil
     @world.evolve 2 do
-      if @b.state == Enter and prev
-        assert_equal(prev + 1, @world.num_checks[@b]["t"])
+      if @b.state == Enter
+        if prev
+          assert_equal(prev + 1, @world.num_checks[@b]["t"])
+        end
         prev = @world.num_checks[@b]["t"]
       end
     end

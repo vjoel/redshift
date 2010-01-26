@@ -31,7 +31,7 @@ class TestQueue < Test::Unit::TestCase
     @world.evolve 0.9
     assert_equal(RedShift::Component::Enter, @r.state)
     assert(@world.queue_sleep[@r])
-    @world.evolve 0.1
+    @world.evolve 0.2
     assert_equal(RedShift::Component::Exit, @r.state)
     assert_equal("hello", @r.q.pop)
   end
@@ -75,9 +75,12 @@ class TestQueueAndStrict < Test::Unit::TestCase
   def test_msg_received
     @world.evolve 0.9
     assert_equal(RedShift::Component::Enter, @r.state)
-    assert(!@world.queue_sleep[@r])
+    while @r.state == RedShift::Component::Enter do
+      # Can't be in queue sleep because of the x>0 guard.
+      assert(!@world.queue_sleep[@r])
+      @world.run 1
+    end
     
-    @world.run 1
     # in 1 step, @r should *both* receive the message and exit,
     # which shows that it did not go into strict sleep after the first
     # pass thru discrete update

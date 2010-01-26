@@ -6,7 +6,12 @@
 # with
 #   CFLAGS   = -fPIC -O2 -march=i686 -msse2 -mfpmath=sse
 
-$CFLAGS="-fPIC -O2 -march=i686 -msse2 -mfpmath=sse"
+case RUBY_PLATFORM
+when /x86_64/
+  $CFLAGS="-fPIC -O2 -march=k8 -msse2 -mfpmath=sse"
+else
+  $CFLAGS="-fPIC -O2 -march=i686 -msse2 -mfpmath=sse"
+end
 
 require 'redshift'
 

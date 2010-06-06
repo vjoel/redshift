@@ -34,7 +34,20 @@ thermostat = world.create Thermostat do |t|
   t.temp = 55
 end
 
+temp_history = []
 world.evolve 30 do |w|
-  puts [w.clock, thermostat.temp].join(" ")
+  point = [w.clock, thermostat.temp]
+  #puts point.join(" ")
+  temp_history << point
 end
 
+require 'sci/plot'
+include Plot::PlotUtils
+
+gnuplot do |plot|
+  plot.command %{set title "Thermostat control"}
+  plot.command %{set xlabel "time"}
+  plot.add temp_history, %{title "temperature" with lines}
+end
+
+sleep 1 if /mswin32|mingw32/ =~ RUBY_PLATFORM

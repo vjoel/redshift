@@ -21,6 +21,8 @@ Bones {
 A framework for simulation of networks of hybrid automata, similar to SHIFT and Lambda-SHIFT. Includes ruby-based DSL for defining simulation components, and ruby/C code generation and runtime.
 END
 
+  depend_on       'cgen'
+
   history_file    'RELEASE-NOTES'
   changes         File.read(history_file)[/^\w.*?(?=^\w)/m]
   (rdoc.dir       File.readlink(rdoc.dir)) rescue nil

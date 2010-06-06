@@ -1,0 +1,35 @@
+begin
+  require 'bones'
+rescue LoadError
+  abort '### please install the bones gem ###'
+end
+
+ensure_in_path 'lib'
+require 'redshift'
+
+Bones {
+  name            'redshift'
+  authors         'Joel VanderWerf'
+  email           'vjoel@users.sourceforge.net'
+  url             'http://rubyforge.org/projects/redshift'
+  rubyforge.name  'redshift'
+  version         RedShift::VERSION
+  readme_file     'README'
+  
+  summary         'Simulation of hybrid automata'
+  description <<END
+A framework for simulation of networks of hybrid automata, similar to SHIFT and Lambda-SHIFT. Includes ruby-based DSL for defining simulation components, and ruby/C code generation and runtime.
+END
+
+  history_file    'RELEASE-NOTES'
+  changes         File.read(history_file)[/^\w.*?(?=^\w)/m]
+  (rdoc.dir       File.readlink(rdoc.dir)) rescue nil
+
+  spec.opts << '--color'
+  test.files = Dir["test/test-*.rb"]
+}
+
+task :release => ["rubyforge:release", "rubyforge:doc_release"]
+
+# EOF
+ 

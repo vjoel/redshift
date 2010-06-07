@@ -112,7 +112,7 @@ while w.size > 0 do
 end
 
 if ARGV.delete('-p')
-  require 'sci/plot'
+  require 'redshift/util/plot'
   include Plot::PlotUtils
 
   gnuplot do |plot|

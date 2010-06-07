@@ -64,7 +64,7 @@ if false
   p c.delay_u_delay
 end
 
-require 'sci/plot'
+require 'redshift/util/plot'
 include Plot::PlotUtils
 
 gnuplot do |plot|

@@ -1,4 +1,4 @@
-require 'my-profile'
+require 'ruby-prof'
 
 $strict = ARGV.delete("-s")
 
@@ -76,7 +76,7 @@ end
 times = Process.times
 t0 = Time.now
 pt0 = times.utime #+ times.stime
-profile false do
+RubyProf.profile do
   w.run 1000
 end
 times = Process.times

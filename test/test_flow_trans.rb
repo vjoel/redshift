@@ -1,24 +1,25 @@
 #!/usr/bin/env ruby
 
 require 'redshift'
-require 'sci/random'
-require 'isaac'
+require 'redshift/util/random'
+### TODO: add pure ruby ISAAC to util
+#require 'isaac'
 
-# Adaptor class to use ISAAC with sci/random distributions.
-class ISAACGenerator < ISAAC
-  def initialize(*seeds)
-    super()
-    if seeds.compact.empty?
-      seeds = [Random::Sequence.random_seed]
-    end
-    @seeds = seeds
-    srand(seeds)
-  end
-  
-  attr_reader :seeds
-
-  alias next rand
-end
+# Adaptor class to use ISAAC with redshift/util/random distributions.
+#class ISAACGenerator < ISAAC
+#  def initialize(*seeds)
+#    super()
+#    if seeds.compact.empty?
+#      seeds = [Random::Sequence.random_seed]
+#    end
+#    @seeds = seeds
+#    srand(seeds)
+#  end
+#  
+#  attr_reader :seeds
+#
+#  alias next rand
+#end
 
 include RedShift
 
@@ -69,13 +70,14 @@ class Flow_Transition < FlowTestComponent
   setup do
     self.x = 0
     @alarm_time = 0
-    @alarm_seq = Random::Exponential.new \
-      :generator => ISAACGenerator,
-      :seed => nil, # 614822716,
+    @alarm_seq = Random::Exponential.new(
+      #:generator => ISAACGenerator,
+      :seed => 614822716,
       :mean => 0.5
-    @state_seq = Random::Discrete.new \
-      :generator => ISAACGenerator,
-      :seed => nil, # 3871653669,
+    )
+    @state_seq = Random::Discrete.new(
+      #:generator => ISAACGenerator,
+      :seed => 3871653669, ## doesn't make sense to re-seed the same global gen
       :distrib =>
         {
           Alg   => 100,
@@ -83,9 +85,10 @@ class Flow_Transition < FlowTestComponent
           Euler => 100,
           Empty => 100
         }
+    )
     puts "\n\n  Flow_Transition used the following seeds:"
-    puts "  alarm seed = #{@alarm_seq.generator.seeds}"
-    puts "  state seed = #{@state_seq.generator.seeds}"
+    puts "  alarm seed = #{@alarm_seq.generator.seeds rescue @alarm_seq.generator.seed}"
+    puts "  state seed = #{@state_seq.generator.seeds rescue @state_seq.generator.seed}"
   end
   
   transition Enter => Switch,

@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require 'my-profile.rb'
+require 'my-profile.rb' ### TODO: depend only on ruby-prof
 
 class Object
   def rbprofile prof_flag = true

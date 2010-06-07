@@ -1,4 +1,4 @@
-# Copyright (C) 2001-2006, Joel VanderWerf
+# Copyright (C) 2001-2010, Joel VanderWerf
 # Distributed under the Ruby license. See www.ruby-lang.org.
 
 # Read all environment variables related to RedShift and store in globals
@@ -33,7 +33,7 @@ end
 module RedShift
   include Math
   
-  VERSION = '1.3.15'
+  VERSION = '1.3.16'
 
   Infinity = Math::Infinity
 

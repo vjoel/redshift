@@ -95,7 +95,7 @@ world.evolve 20 do
   gather.call
 end
 
-require 'sci/plot'
+require 'redshift/util/plot'
 include Plot::PlotUtils
 
 gnuplot do |plot|

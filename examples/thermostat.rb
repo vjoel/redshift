@@ -41,7 +41,7 @@ world.evolve 30 do |w|
   temp_history << point
 end
 
-require 'sci/plot'
+require 'redshift/util/plot'
 include Plot::PlotUtils
 
 gnuplot do |plot|

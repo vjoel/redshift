@@ -20,7 +20,7 @@ world.evolve 100 do |w|
   data << [w.clock, pop.foxes, pop.rabbits]
 end
 
-require 'sci/plot'
+require 'redshift/util/plot'
 include Plot::PlotUtils
 
 gnuplot do |plot|

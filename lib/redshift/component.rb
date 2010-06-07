@@ -1,6 +1,6 @@
 require 'singleton'
-require 'superhash'
-require 'accessible-index'
+require 'redshift/util/superhash'
+require 'redshift/util/accessible-index'
 require 'redshift/state'
 require 'redshift/meta'
 require 'redshift/port'

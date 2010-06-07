@@ -25,10 +25,10 @@ END
 
   history_file    'RELEASE-NOTES'
   changes         File.read(history_file)[/^\w.*?(?=^\w)/m]
-  (rdoc.dir       File.readlink(rdoc.dir)) rescue nil
+  rdoc.dir        "rdoc" ## Note: doc dir has original content files
 
   spec.opts << '--color'
-  test.files = Dir["test/test-*.rb"]
+  test.files = Dir["test/test_*.rb"]
 }
 
 task :release => ["rubyforge:release", "rubyforge:doc_release"]

@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 
 require 'yaml'
-require 'argos'
-require 'object-diff'
+require 'redshift/util/argos'
+require 'redshift/util/object-diff'
 
 defaults = {
   "d"   => 0.01

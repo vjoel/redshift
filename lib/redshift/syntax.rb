@@ -211,7 +211,11 @@ module FlowSyntax
     
     def initialize block
       @flows = []
-      instance_eval(&block)
+      val = instance_eval(&block)
+      if val.kind_of? String and val =~ /=/
+        warn "Equation appears to be missing a specifier (alg, diff, etc.):" +
+          val
+      end
     end
     
     def algebraic(*equations)
@@ -224,7 +228,7 @@ module FlowSyntax
     end
     
     def euler(*equations)
-      for equation in equations
+      equations.each do |equation|
         unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.+)/m
           raise SyntaxError, "parse error in\n\t#{equation}."
         end
@@ -233,7 +237,7 @@ module FlowSyntax
     end
     
     def rk4(*equations)
-      for equation in equations
+      equations.each do |equation|
         unless equation =~ /^\s*(\w+)\s*'\s*=\s*(.+)/m
           raise SyntaxError, "parse error in\n\t#{equation}."
         end
@@ -252,7 +256,7 @@ module FlowSyntax
         ## rename 'feedback'?
       end
       feedback = opts[:feedback]
-      for equation in equations
+      equations.each do |equation|
         unless equation =~ /^\s*(\w+)\s*=\s*(.+)'\s*\z/m
           raise SyntaxError, "parse error in\n\t#{equation}."
         end

@@ -38,7 +38,7 @@ class World
     end
     
     def [](idx)
-      warn "World#[] is deprecated"
+      warn "#{self.class}#[] is deprecated"
       to_a[idx] ## very inefficient
     end
     

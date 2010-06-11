@@ -17,13 +17,13 @@ module RedShift; class DelayFlow
       RedShift.library.define_buffer
 
       bufname     = "#{var_name}_buffer_data"
-      offsetname  = "#{var_name}_buffer_offset"
+#      offsetname  = "#{var_name}_buffer_offset"
       delayname   = "#{var_name}_delay"
       tsname      = "#{var_name}_time_step"
       
       cl.class_eval do
         shadow_attr_accessor bufname    => "Buffer  #{bufname}"
-        shadow_attr_accessor offsetname => "long    #{offsetname}"
+#        shadow_attr_accessor offsetname => "long    #{offsetname}"
         shadow_attr_accessor delayname  => "double  #{delayname}"
           # delay should be set only using the expr designated in :by => "expr"
         shadow_attr          tsname     => "double  #{tsname}"
@@ -77,7 +77,7 @@ module RedShift; class DelayFlow
           switch (shadow->world->rk_level) {
           case 0:
             ptr = shadow->#{bufname}.ptr;
-            offset = shadow->#{offsetname};
+            offset = shadow->#{bufname}.offset;
             
             if (shadow->world->time_step != shadow->#{tsname}) {
               if (shadow->#{tsname} == 0.0)
@@ -109,7 +109,7 @@ module RedShift; class DelayFlow
                 ptr = ALLOC_N(double, len);
                 shadow->#{bufname}.ptr = ptr;
                 shadow->#{bufname}.len = len;
-                shadow->#{offsetname} = 0;
+                shadow->#{bufname}.offset = 0;
                 shadow->#{delayname} = delay;
 
                 for (i=0; i<len; i++) {
@@ -149,13 +149,13 @@ module RedShift; class DelayFlow
                 
                 shadow->#{bufname}.ptr = ptr;
                 shadow->#{bufname}.len = len;
-                shadow->#{offsetname} = offset;
+                shadow->#{bufname}.offset = offset;
                 shadow->#{delayname} = delay;
               }
             }
             
             offset = (offset + 4) % len;
-            shadow->#{offsetname} = offset;
+            shadow->#{bufname}.offset = offset;
             
             var->value_0 = ptr[offset];
             var->value_1 = ptr[offset + 1];
@@ -173,7 +173,7 @@ module RedShift; class DelayFlow
           case 3:
             ptr = shadow->#{bufname}.ptr;
             len = shadow->#{bufname}.len;
-            offset = shadow->#{offsetname};
+            offset = shadow->#{bufname}.offset;
 
             #{flow.translate(self, "ptr[offset+1]", 1, cl).join("
             ")};

@@ -8,6 +8,7 @@ class RedShift::Library
     include_file.declare :Buffer => %{
       typedef struct {
         long    len;
+        long    offset;
         double  *ptr;
       } Buffer;
     }.tabto(0)
@@ -28,6 +29,7 @@ class RedShift::Library
           buf->ptr = ALLOC_N(double, size);
         }
         buf->len = size;
+        buf->offset = 0;
 
         for (i = 0; i < size; i++) {
           buf->ptr[i] = NUM2DBL(RARRAY(ary)->ptr[i]);
@@ -42,13 +44,17 @@ class RedShift::Library
       scope :extern
       declare :size => "int size",
               :i => "int i",
+              :j => "int j",
               :ary => "VALUE ary"
       body %{
         size = buf->len;
         ary = rb_ary_new2(size);
         RARRAY(ary)->len = size;
-        for (i = 0; i < size; i++) {
-          RARRAY(ary)->ptr[i] = rb_float_new(buf->ptr[i]);
+        for (i = buf->offset, j=0; i < size; i++, j++) {
+          RARRAY(ary)->ptr[j] = rb_float_new(buf->ptr[i]);
+        }
+        for (i = 0; i < buf->offset; i++, j++) {
+          RARRAY(ary)->ptr[j] = rb_float_new(buf->ptr[i]);
         }
       }
     }

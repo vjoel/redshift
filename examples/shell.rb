@@ -59,7 +59,7 @@ class T < Component
     cl = world.clock - z_delay
     data = []
     z_buffer_data.each_with_index do |xi, i|
-      data << [cl + i*ts, xi]
+      data << [cl + i*ts, xi] if i % 4 == 0
     end
     data
   end

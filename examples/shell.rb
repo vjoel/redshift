@@ -12,8 +12,7 @@ module ShellWorld
 
   def help
     puts <<-END
-      The current object is #{self}. Type 'methods' for a list of commands.
-      Some special commands:
+      The current object is #{self.inspect}. Some commands:
 
         q       -- quit
         sh!     -- enter a system command shell

@@ -17,13 +17,11 @@ module RedShift; class DelayFlow
       RedShift.library.define_buffer
 
       bufname     = "#{var_name}_buffer_data"
-#      offsetname  = "#{var_name}_buffer_offset"
       delayname   = "#{var_name}_delay"
       tsname      = "#{var_name}_time_step"
       
       cl.class_eval do
         shadow_attr_accessor bufname    => "Buffer  #{bufname}"
-#        shadow_attr_accessor offsetname => "long    #{offsetname}"
         shadow_attr_accessor delayname  => "double  #{delayname}"
           # delay should be set only using the expr designated in :by => "expr"
         shadow_attr          tsname     => "double  #{tsname}"
@@ -124,13 +122,14 @@ module RedShift; class DelayFlow
                   if (offset < len) {
                     dst = ptr + offset;
                     src = ptr + offset + old_len - len;
+                    memmove(dst, src, (len - offset) * sizeof(double));
                   }
                   else {
                     dst = ptr;
                     src = ptr + offset - len;
                     offset = 0;
+                    memmove(dst, src, len * sizeof(double));
                   }
-                  memmove(dst, src, (len - offset) * sizeof(double));
                   REALLOC_N(ptr, double, len);
                   // ## maybe better: don't release space, just use less of it
                 }
@@ -153,9 +152,6 @@ module RedShift; class DelayFlow
                 shadow->#{delayname} = delay;
               }
             }
-            
-            offset = (offset + 4) % len;
-            shadow->#{bufname}.offset = offset;
             
             var->value_0 = ptr[offset];
             var->value_1 = ptr[offset + 1];
@@ -182,7 +178,9 @@ module RedShift; class DelayFlow
             #{flow.translate(self, "ptr[offset+3]", 3, cl).join("
             ")};
 
-            var->value_0 = ptr[(offset + 4) % len];
+            offset = (offset + 4) % len;
+            var->value_0 = ptr[offset];
+            shadow->#{bufname}.offset = offset;
             break;
             
           default:

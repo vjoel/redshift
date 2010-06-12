@@ -8,15 +8,15 @@ require 'redshift/util/plot'
 include Plot::PlotUtils
 
 module ShellWorld
-  include IRBShell
-  
+  include RedShift::Shellable
+
   def help
     puts <<-END
       The current object is #{self}. Type 'methods' for a list of commands.
       Some special commands:
 
         q       -- quit
-        sh!     -- enter a command shell
+        sh!     -- enter a system command shell
         t.plot  -- plot recent history of t (try t=components[0])
         plot    -- plot recent history of all T instances
 
@@ -36,63 +36,75 @@ module ShellWorld
   end
   
   def plot
-    pl = gnuplot do |plot|
+    gnuplot do |plot|
+      plot.command 'set title "recent history"'
+      plot.command "set yrange [-1:1]"
       grep(T) do |t|
-        t.plot_cmds(plot)
+        t.add_history_to_plot(plot)
       end
     end
-    pl.command_history
+    nil
   end
 end
 
 class T < Component
+  attr_accessor :name
+  
   flow do
-    diff  " x' = -y "
-    diff  " y' = x "
+    diff " x' = -y "
+    diff " y' =  x "
     
-    # A simple, but crude, way to store history of a var
+    # A simple, but crude, way to store recent history of a var
     delay " z = x ", :by => 10
   end
 
-  def plot_data
+  def history
     ts = world.time_step
-    cl = world.clock - z_delay
+    t0 = world.clock - z_delay
     data = []
     z_buffer_data.each_with_index do |xi, i|
-      data << [cl + i*ts, xi] if i % 4 == 0
+      if i % 4 == 0 # skip the integrator steps
+        time = t0 + (i/4)*ts
+        data << [time, xi] if time >= 0
+      end
     end
+    data << [world.clock, x]
     data
   end
   
-  def plot_cmds(plot)
-    plot.command 'set title "recent history"'
-    plot.command "set xrange [0:#{z_delay}]"
-    plot.add plot_data, "using 1:2 title \"x\" with lines"
+  def add_history_to_plot(plot)
+    plot.add history, "using 1:2 title \"#{name}.x\" with lines"
   end
 
   def plot
-    pl = gnuplot do |plot|
-      plot_cmds(plot)
+    gnuplot do |plot|
+      plot.command 'set title "recent history"'
+      plot.command "set yrange [-1:1]"
+      add_history_to_plot(plot)
     end
-    pl.command_history
+    nil
   end
 end
 
 w = World.new
 w.extend ShellWorld
+
 w.create T do |t|
+  t.name = "a"
   t.x = 1
   t.y = 0
 end
 w.create T do |t|
+  t.name = "b"
   t.x = 0
   t.y = 1
 end
 
-start_in_shell = false
+start_in_shell = ARGV.delete "-s"
 
-w.set_interrupt_handler
-w.shell if start_in_shell
+w.shell.install_interrupt_handler
+w.shell.run if start_in_shell
+
 w.evolve 100000000 do
   puts "clock: #{w.clock}"
   sleep 0.1

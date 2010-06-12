@@ -1,71 +1,67 @@
 require 'irb'
 require 'irb/completion'
-require 'irb/cmd/load'
-
-#===== for recent versions only =====
-###module IRB
-###  class Irb
-###    def initialize(workspace = nil, input_method = nil)
-###      @context = Context.new(self, workspace, input_method)
-###      #@context.main.extend ExtendCommandBundle
-###      @signal_status = :IN_IRB
-###
-###      @scanner = RubyLex.new
-###      @scanner.exception_on_syntax_error = false
-###    end
-###  end
-###end
 
 class Object
-  include IRB::ExtendCommandBundle # so that Marshal.dump works
+  include IRB::ExtendCommandBundle
+  # so that Marshal.dump still works, even when doing ">> irb obj"
 end
-#======================================
 
 def IRB.parse_opts
   # Don't touch ARGV, which belongs to the app which called this module.
 end
 
-# include this into World or a World subclass, or extend a World instance
-module RedShift::IRBShell
-  include IRB::ExtendCommand ## to avoid adding singleton methods
-  $irb_setup = false
+class RedShift::IRBShell
+  @@irb_setup_done = false
+  
+  # +args+ are binding, self (both optional)
+  def initialize(*args)
+    ## maybe set some opts here, as in parse_opts in irb/init.rb?
 
-  def start_irb_shell(*args)
-    unless $irb_setup
+    unless @@irb_setup_done
+      @@irb_setup_done = true
+
+      conf = IRB.conf
+      
+      if File.directory?("tmp")
+        conf[:HISTORY_FILE] = "tmp/.redshift_irb_shell_history"
+      else
+        conf[:HISTORY_FILE] = ".redshift_irb_shell_history"
+      end
+
       IRB.setup nil
-      ## maybe set some opts here, as in parse_opts in irb/init.rb?
-      $irb_setup = true
+      
+      at_exit do
+        IRB.irb_at_exit
+      end
     end
-    
-    workspace = IRB::WorkSpace.new(*args)
-    irb_conf = IRB.instance_variable_get(:@CONF) ## ?
 
-    if irb_conf[:SCRIPT] ## normally, set by parse_opts
-      @irb = IRB::Irb.new(workspace, irb_conf[:SCRIPT])
+    workspace = IRB::WorkSpace.new(*args)
+
+    if conf[:SCRIPT] ## normally, set by parse_opts
+      @irb = IRB::Irb.new(workspace, conf[:SCRIPT])
     else
       @irb = IRB::Irb.new(workspace)
     end
 
-    irb_conf[:IRB_RC].call(@irb.context) if irb_conf[:IRB_RC]
-    irb_conf[:MAIN_CONTEXT] = @irb.context
-    @irb.context.eval_history = IRB.conf[:EVAL_HISTORY] if IRB.conf[:EVAL_HISTORY]
-    ##@irb.context.save_history = IRB.conf[:SAVE_HISTORY] if IRB.conf[:SAVE_HISTORY]
-
+    conf[:IRB_RC].call(@irb.context) if conf[:IRB_RC]
+    conf[:MAIN_CONTEXT] = @irb.context
+  end
+  
+  def run
     trap("INT") do
       @irb.signal_handle
     end
 
-    IRB.custom_configuration if defined?(IRB.custom_configuration)
-
-    catch(:IRB_EXIT) do
-      @irb.eval_input
+    begin
+      catch(:IRB_EXIT) do
+        @irb.eval_input
+      end
+    ensure
+      install_interrupt_handler
     end
-    print "\n"
-    
-    set_interrupt_handler
   end
-
-  def set_interrupt_handler
+    
+  def install_interrupt_handler
     trap("INT") do
       @interrupt_requests ||= 0
       @interrupt_requests += 1
@@ -77,26 +73,24 @@ module RedShift::IRBShell
     end
   end
 
-  def handle_interrupt w
+  def handle_interrupt
     if @interrupt_requests
-      w.shell
+      run
       @interrupt_requests = nil
     end
   end
-  
-  def clean_binding
-    binding
-  end
+end
 
+# extend a World instance with this (or include in a World subclass)
+module RedShift::Shellable
   def shell
-    @binding ||= clean_binding # a blank, but persistent binding
-    start_irb_shell(@binding, self)
+    @shell ||= RedShift::IRBShell.new(binding, self)
   end
 
   def step(*)
     super do
       yield self if block_given?
-      handle_interrupt self if @interrupt_requests
+      shell.handle_interrupt
     end
   end
   
@@ -117,7 +111,7 @@ module RedShift::IRBShell
 
 private
   def q
-    exit!
+    exit
   end
 
   ## commands:
@@ -129,10 +123,6 @@ private
   ##  break [class/component/transition/comp.event/condition]
   ##    until step_until, stops inside step_discrete
   ##  clear
-  ##
-  ##  simple plotting environment, to simplify the stuff below
-  ##
-  ## Store history separately
   ##
   ## customize prompt
 end

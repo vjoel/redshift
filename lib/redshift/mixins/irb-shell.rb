@@ -48,6 +48,8 @@ class RedShift::IRBShell
   end
   
   def run
+    @interrupt_requests = nil
+
     trap("INT") do
       @irb.signal_handle
     end
@@ -62,21 +64,25 @@ class RedShift::IRBShell
   end
     
   def install_interrupt_handler
-    trap("INT") do
-      @interrupt_requests ||= 0
-      @interrupt_requests += 1
-      if @interrupt_requests == 2
-        puts "\nType one more ^C to abort, or wait for RedShift shell."
-      elsif @interrupt_requests >= 3
-        exit!
+    unless @interrupt_requests
+      @interrupt_requests = 0
+      trap("INT") do
+        @interrupt_requests += 1
+        if @interrupt_requests == 2
+          puts "\nType one more ^C to abort, or wait for RedShift shell."
+        elsif @interrupt_requests >= 3
+          exit!
+        end
       end
     end
   end
 
   def handle_interrupt
-    if @interrupt_requests
+    if @interrupt_requests && @interrupt_requests > 0
       run
-      @interrupt_requests = nil
+      true
+    else
+      false
     end
   end
 end
@@ -86,11 +92,16 @@ module RedShift::Shellable
   def shell
     @shell ||= RedShift::IRBShell.new(binding, self)
   end
+  
+  def run(*)
+    shell.install_interrupt_handler
+    super
+  end
 
   def step(*)
     super do
       yield self if block_given?
-      shell.handle_interrupt
+      return if shell.handle_interrupt
     end
   end
   
@@ -104,9 +115,9 @@ module RedShift::Shellable
   #
   def recoverable_error e, msg = "Error", bt = []
     puts "#{msg} at time #{clock}"
-    puts "From " + bt[0..2].join("\n     ")
+    puts "From " + bt[0..2].join("\n     ") unless bt.empty
     puts "     ..." if bt.length > 3
-    shell
+    shell.run
   end
 
 private

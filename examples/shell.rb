@@ -14,13 +14,15 @@ module ShellWorld
     puts <<-END
       The current object is #{self.inspect}. Some commands:
 
-        q       -- quit
-        sh!     -- enter a system command shell
-        t.plot  -- plot recent history of t (try t=components[0])
-        plot    -- plot recent history of all T instances
+        q         -- quit
+        sh!       -- enter a system command shell
+        t.plot    -- plot recent history of t (try t=components[0])
+        plot      -- plot recent history of all T instances
+        run N     -- run quickly for N time steps (integer)
+        evolve T  -- run quickly for T seconds (float)
 
       Local vars persist between interrupts.
-      Continue execution by pressing Ctrl-D (maybe Ctrl-Z on windows).
+      Continue slow execution by pressing Ctrl-D (maybe Ctrl-Z on windows).
       Press Ctrl-C again to break into the shell.
     END
   end
@@ -56,7 +58,7 @@ class T < Component
     # A simple, but crude, way to store recent history of a var
     delay " z = x ", :by => 10
   end
-
+  
   def history
     ts = world.time_step
     t0 = world.clock - z_delay
@@ -99,12 +101,14 @@ w.create T do |t|
   t.y = 1
 end
 
-start_in_shell = ARGV.delete "-s"
+puts "^C to break into shell; 'help' for shell help"
 
-w.shell.install_interrupt_handler
+start_in_shell = ARGV.delete "-s"
 w.shell.run if start_in_shell
 
-w.evolve 100000000 do
-  puts "clock: #{w.clock}"
-  sleep 0.1
+loop do
+  w.evolve 100000000 do
+    puts "clock: #{w.clock}"
+    sleep 0.1
+  end
 end

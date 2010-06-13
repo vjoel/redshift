@@ -142,4 +142,6 @@ class TestDelay < Test::Unit::TestCase
       #puts "%5.3f: %5.3f" % [c.x, c.xd]
     end
   end
+  
+  ## TODO: test variable delay
 end

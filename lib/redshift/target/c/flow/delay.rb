@@ -48,7 +48,7 @@ module RedShift; class DelayFlow
           
           ContVar   *var;
           double    *ptr;
-          long      i, len, offset, steps;
+          long      len, offset, steps;
           double    delay, fill;
         }
         setup :shadow => %{
@@ -105,46 +105,14 @@ module RedShift; class DelayFlow
                 ")};
 
                 buffer_init(&shadow->#{bufname}, len, fill);
-                shadow->#{delayname} = delay;
-                ptr = shadow->#{bufname}.ptr;
               }
               else { // # delay != shadow->#{delayname}
-                long old_len = shadow->#{bufname}.len;
-                double *dst, *src;
-
-                if (delay < shadow->#{delayname}) {
-                  if (offset < len) {
-                    dst = ptr + offset;
-                    src = ptr + offset + old_len - len;
-                    memmove(dst, src, (len - offset) * sizeof(double));
-                  }
-                  else {
-                    dst = ptr;
-                    src = ptr + offset - len;
-                    offset = 0;
-                    memmove(dst, src, len * sizeof(double));
-                  }
-                  REALLOC_N(ptr, double, len);
-                  // ## maybe better: don't release space, just use less of it
-                }
-                else { // # delay > shadow->#{delayname}
-                  REALLOC_N(ptr, double, len);
-
-                  fill = ptr[offset];
-                  dst = ptr + offset + len - old_len;
-                  src = ptr + offset;
-                  memmove(dst, src, (old_len - offset) * sizeof(double));
-
-                  for (i = 0; i < len - old_len; i++) {
-                    ptr[offset + i] = fill;
-                  }
-                }
-                
-                shadow->#{bufname}.ptr = ptr;
-                shadow->#{bufname}.len = len;
-                shadow->#{bufname}.offset = offset;
-                shadow->#{delayname} = delay;
+                buffer_resize(&shadow->#{bufname}, len);
               }
+              
+              shadow->#{delayname} = delay;
+              ptr = shadow->#{bufname}.ptr;
+              offset = shadow->#{bufname}.offset;
             }
             
             var->value_0 = ptr[offset];

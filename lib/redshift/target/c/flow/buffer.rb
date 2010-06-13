@@ -27,6 +27,53 @@ class RedShift::Library
       }
     }
     
+    source_file.define_c_function(:buffer_resize).instance_eval {
+      arguments "Buffer *buf", "long len"
+      scope :extern
+      body %{
+        long    i;
+        long    old_len = buf->len;
+        long    offset  = buf->offset;
+        double *ptr     = buf->ptr;
+        double *dst, *src;
+        double  fill;
+
+        if (len < old_len) {
+          if (offset < len) {
+            dst = ptr + offset;
+            src = ptr + offset + old_len - len;
+            memmove(dst, src, (len - offset) * sizeof(double));
+          }
+          else {
+            dst = ptr;
+            src = ptr + offset - len;
+            offset = 0;
+            memmove(dst, src, len * sizeof(double));
+          }
+          REALLOC_N(ptr, double, len);
+          // ## maybe better: don't release space, just use less of it
+        }
+        else if (len > old_len) {
+          REALLOC_N(ptr, double, len);
+
+          fill = ptr[offset];
+          dst = ptr + offset + len - old_len;
+          src = ptr + offset;
+          memmove(dst, src, (old_len - offset) * sizeof(double));
+
+          for (i = 0; i < len - old_len; i++) {
+            ptr[offset + i] = fill;
+          }
+        }
+        else
+          return;
+
+        buf->len = len;
+        buf->offset = offset;
+        buf->ptr = ptr;
+      }
+    }
+    
     source_file.define_c_function(:buffer_inhale_array).instance_eval {
       arguments "Buffer *buf", "VALUE ary"
       scope :extern

@@ -104,15 +104,9 @@ module RedShift; class DelayFlow
                 #{flow.translate(self, "fill", 0, cl).join("
                 ")};
 
-                ptr = ALLOC_N(double, len);
-                shadow->#{bufname}.ptr = ptr;
-                shadow->#{bufname}.len = len;
-                shadow->#{bufname}.offset = 0;
+                buffer_init(&shadow->#{bufname}, len, fill);
                 shadow->#{delayname} = delay;
-
-                for (i=0; i<len; i++) {
-                  ptr[i] = fill;
-                }
+                ptr = shadow->#{bufname}.ptr;
               }
               else { // # delay != shadow->#{delayname}
                 long old_len = shadow->#{bufname}.len;

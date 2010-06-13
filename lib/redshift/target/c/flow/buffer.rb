@@ -13,6 +13,20 @@ class RedShift::Library
       } Buffer;
     }.tabto(0)
 
+    source_file.define_c_function(:buffer_init).instance_eval {
+      arguments "Buffer *buf", "long len", "double fill"
+      scope :extern
+      body %{
+        int i;
+        buf->ptr = ALLOC_N(double, len);
+        buf->len = len;
+        buf->offset = 0;
+        for (i=0; i<len; i++) {
+          buf->ptr[i] = fill;
+        }
+      }
+    }
+    
     source_file.define_c_function(:buffer_inhale_array).instance_eval {
       arguments "Buffer *buf", "VALUE ary"
       scope :extern

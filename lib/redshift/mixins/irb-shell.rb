@@ -77,8 +77,9 @@ class RedShift::IRBShell
     end
   end
 
-  def handle_interrupt
+  def handle_interrupt after = nil
     if @interrupt_requests && @interrupt_requests > 0
+      yield if block_given?
       run
       true
     else
@@ -101,8 +102,19 @@ module RedShift::Shellable
   def step(*)
     super do
       yield self if block_given?
-      return if shell.handle_interrupt
+      if shell.handle_interrupt {before_shell}
+        after_shell
+        return
+      end
     end
+  end
+  
+  # Override to complete some action before dropping into shell.
+  def before_shell
+  end
+  
+  # Override to complete some action after leaving shell.
+  def after_shell
   end
   
   # Typically, call this in a rescue clause, if you to let the user

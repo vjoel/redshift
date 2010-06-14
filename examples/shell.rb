@@ -73,7 +73,7 @@ module ShellWorld
   end
   
   def tk turn_on = true
-    require 'redshift/lib/util/tkar-driver'
+    require 'redshift/util/tkar-driver'
     if turn_on
       if not @tkar or @tkar.closed?
         @tkar = TkarDriver.new(method :dragger) do |pipe|
@@ -86,7 +86,7 @@ module ShellWorld
             zoom_to 4
 
             shape cone \ arc5,5,10,10,fc:yellow,oc:black,extent:30,start:165,style:pieslice \
-    text2,2,anchor:c,justify:center,width:10,text:*0,fc:blue
+    text2,2,anchor:c,justify:center,width:100,text:*0,fc:blue
 
             shape circle oval*0,*0,*1,*1,oc:red
           END
@@ -194,6 +194,16 @@ w.create T do |t|
   t.name = "b"
   t.x = 0
   t.y = 20
+end
+
+if false
+  (1..10).each do |i|
+    w.create T do |t|
+      t.name = "c#{i}"
+      t.x = i*5
+      t.y = i*5
+    end
+  end
 end
 
 puts "^C to break into shell; 'help' for shell help"

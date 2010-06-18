@@ -1,11 +1,17 @@
 # A way to use a class-method-based DSL, like redshift, from within a module.
 # Extend a module M with Modular. Then, use the DSL freely in M, even though M
 # doesn't have the DSL methods. When you include M in some class, it "replays"
-# the class methods.
+# the class methods. See examples/modular-component-def.rb.
 module Modular
   def method_missing(meth, *args, &block)
     (@_modular_saved ||= []) << [meth, args, block, caller]
   end
+  
+# this would allow unquoted constants, such as state names, but it's a bit
+# too much magic:
+#  def const_missing(c)
+#    c
+#  end
   
   def included(m)
     @_modular_saved && @_modular_saved.each do |meth, args, block, where|

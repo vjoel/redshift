@@ -12,7 +12,8 @@ class World
 
   {
     :Debugger       => "debugger",
-    :ZenoDebugger   => "zeno-debugger"
+    :ZenoDebugger   => "zeno-debugger",
+    :Shell          => "shell"
   }.each {|m,f| autoload(m, "redshift/mixins/#{f}")}
 
   class ComponentList

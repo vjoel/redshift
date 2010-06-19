@@ -1,7 +1,6 @@
 # Shows how to use a customized IRB shell to handle Ctrl-C interrupts
 
 require 'redshift'
-require 'redshift/mixins/irb-shell'
 include RedShift
 
 require 'redshift/util/plot'
@@ -9,7 +8,7 @@ include Plot::PlotUtils
 
 # Adds an interactive ruby shell with plotting and animation commands.
 module ShellWorld
-  include RedShift::Shellable
+  include RedShift::World::Shell
 
   def help
     puts <<-END

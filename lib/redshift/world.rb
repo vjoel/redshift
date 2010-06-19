@@ -39,8 +39,13 @@ class World
     end
     
     def [](idx)
-      warn "#{self.class}#[] is deprecated"
-      to_a[idx] ## very inefficient
+      n = nil
+      summands.each do |enum|
+        n = enum.size
+        return enum[idx] if idx < n
+        idx - n
+      end
+      nil
     end
     
     def clear

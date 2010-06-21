@@ -12,7 +12,7 @@ module RedShift
       super
       
       self.purge_source_dir = :delete
-      self.show_times_flag = $REDSHIFT_BUILD_TIMES
+      self.show_times_flag = ($REDSHIFT_BUILD_TIMES !~ /\A(false|0+)\z/i)
 
       if $REDSHIFT_DEBUG
         include_file.include "<assert.h>"
@@ -47,6 +47,10 @@ module RedShift
           lines << %{$LOCAL_LIBS << "#{libstr}"}
         end
       end
+    end
+    
+    def make arg=nil
+      super [$REDSHIFT_MAKE_ARGS, arg].join(" ")
     end
     
     def commit

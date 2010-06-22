@@ -9,7 +9,7 @@ class ISAACGenerator < ISAAC
       if defined?(Random::Sequence.random_seed)
         seeds = [Random::Sequence.random_seed]
       else
-        seeds = rand
+        seeds = [rand]
       end
     end
     @seeds = seeds
@@ -20,4 +20,3 @@ class ISAACGenerator < ISAAC
 
   alias next rand
 end
-

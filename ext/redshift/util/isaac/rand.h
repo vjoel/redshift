@@ -10,11 +10,14 @@ MODIFIED:
   010626: note this is public domain
 
 ADAPTED Aug2004 for use in Ruby by Joel VanderWerf
+ADAPTED Jan2010 for 64 bit systems (same algorithm and results as 32 bit)
+ADAPTED Jun2010 for use within the redshift project
 ------------------------------------------------------------------------------
 */
-#ifndef STANDARD
-#include "standard.h"
-#endif
+
+#include <stdint.h>
+
+typedef uint32_t ub4;
 
 #ifndef RAND
 #define RAND
@@ -38,7 +41,7 @@ typedef  struct randctx  randctx;
  If (flag==TRUE), then use the contents of randrsl[0..RANDSIZ-1] as the seed.
 ------------------------------------------------------------------------------
 */
-void rs_isaac_init(randctx *r, word flag);
+void rs_isaac_init(randctx *r, int flag);
 
 void rs_isaac_rand(randctx *r);
 

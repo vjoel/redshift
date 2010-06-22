@@ -1,6 +1,10 @@
 #include "ruby.h"
 #include "rand.h"
 
+#ifndef min
+# define min(a,b) (((a)<(b)) ? (a) : (b))
+#endif /* min */
+
 static VALUE
 ISAAC_s_allocate(VALUE klass)
 {

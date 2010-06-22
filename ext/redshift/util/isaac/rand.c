@@ -8,23 +8,22 @@ MODIFIED:
   010626: Note that this is public domain
   
 ADAPTED Aug2004 for use in Ruby by Joel VanderWerf
+ADAPTED Jan2010 for 64 bit systems (same algorithm and results as 32 bit)
+ADAPTED Jun2010 for use within the redshift project
 ------------------------------------------------------------------------------
 */
-#ifndef STANDARD
-#include "standard.h"
-#endif
 #ifndef RAND
 #include "rand.h"
 #endif
 
 
-#define ind(mm,x)  (*(ub4 *)((ub1 *)(mm) + ((x) & ((RANDSIZ-1)<<2))))
+#define ind(mm,x)  ((mm)[(x>>2)&(RANDSIZ-1)])
 #define rngstep(mix,a,b,mm,m,m2,r,x) \
 { \
   x = *m;  \
-  a = (a^(mix)) + *(m2++); \
-  *(m++) = y = ind(mm,x) + a + b; \
-  *(r++) = b = ind(mm,y>>RANDSIZL) + x; \
+  a = ((a^(mix)) + *(m2++)); \
+  *(m++) = y = (ind(mm,x) + a + b); \
+  *(r++) = b = (ind(mm,y>>RANDSIZL) + x); \
 }
 
 void rs_isaac_rand(ctx)
@@ -32,7 +31,7 @@ randctx *ctx;
 {
    register ub4 a,b,x,y,*m,*mm,*m2,*r,*mend;
    mm=ctx->randmem; r=ctx->randrsl;
-   a = ctx->randa; b = ctx->randb + (++ctx->randc);
+   a = ctx->randa; b = (ctx->randb + (++ctx->randc));
    for (m = mm, mend = m2 = m+(RANDSIZ/2); m<mend; )
    {
       rngstep( a<<13, a, b, mm, m, m2, r, x);
@@ -66,9 +65,9 @@ randctx *ctx;
 /* if (flag==TRUE), then use the contents of randrsl[] to initialize mm[]. */
 void rs_isaac_init(ctx, flag)
 randctx *ctx;
-word     flag;
+int     flag;
 {
-   word i;
+   int i;
    ub4 a,b,c,d,e,f,g,h;
    ub4 *m,*r;
    ctx->randa = ctx->randb = ctx->randc = 0;
@@ -113,25 +112,27 @@ word     flag;
      }
    }
 
-   rs_isaac_rand(ctx);    /* fill in the first set of results */
+   rs_isaac_rand(ctx);            /* fill in the first set of results */
    ctx->randcnt=RANDSIZ;  /* prepare to use the first set of results */
 }
 
 
 #ifdef NEVER
+#include <stdio.h>
+
 int main()
 {
   ub4 i,j;
   randctx ctx;
   ctx.randa=ctx.randb=ctx.randc=(ub4)0;
   for (i=0; i<RANDSIZ; ++i) ctx.randrsl[i]=(ub4)0;
-  rs_isaac_init(&ctx, TRUE);
+  rs_isaac_init(&ctx, 1);
   for (i=0; i<2; ++i)
   {
     rs_isaac_rand(&ctx);
     for (j=0; j<RANDSIZ; ++j)
     {
-      printf("%.8lx",ctx.randrsl[j]);
+      printf("%.8lx",(long unsigned int)ctx.randrsl[j]);
       if ((j&7)==7) printf("\n");
     }
   }

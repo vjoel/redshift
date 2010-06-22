@@ -13,7 +13,7 @@ class TestBuffer < Test::Unit::TestCase
 
   class T < Component
     RedShift.with_library do
-      shadow_attr_accessor :b => "Buffer b"
+      shadow_attr_accessor :b => "RSBuffer b"
     end
   end
   

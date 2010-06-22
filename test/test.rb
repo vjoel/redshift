@@ -21,6 +21,12 @@ $REDSHIFT_DEBUG=3 ## what should this be?
 ### have to fix the CLIB_NAME problem before can do this
 ### require 'redshift' ## all the tests will need this anyway
 
+if ARGV.delete("-j2") ## parse better
+  jobs = 2
+else
+  jobs = 1
+end
+
 pat = ARGV.join("|")
 tests = Dir["test_*.rb"].grep(/#{pat}/)
 tests.sort!
@@ -33,16 +39,24 @@ tests.sort!
 require 'rbconfig'
 ruby = Config::CONFIG["RUBY_INSTALL_NAME"]
 
-failed = tests.reject do |file|
-  puts "_"*50 + "\nStarting #{file}...\n"
-  system "#{ruby} #{file}"
-#  pid = fork { ## should use popen3 so we can weed out successful output
-#    $REDSHIFT_CLIB_NAME = file
-#    require 'redshift'
-#    load file
-#  }
-#  Process.waitpid(pid)
+pending = tests.dup
+failed = []
+
+workers = (0...jobs).map do |i|
+  Thread.new do
+    loop do
+      file = pending.shift
+      break unless file
+      puts "_"*50 + "\nStarting #{file}...\n"
+      if not system "#{ruby} #{file}" ## problem with interleaved outputs
+        ## should use popen3 so we can weed out successful output
+        failed << file
+      end
+    end
+  end
 end
+
+workers.each {|w| w.join}
 
 puts "_"*50
 if failed.empty?

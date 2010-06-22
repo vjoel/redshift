@@ -12,7 +12,14 @@ module RedShift
       super
       
       self.purge_source_dir = :delete
-      self.show_times_flag = ($REDSHIFT_BUILD_TIMES !~ /\A(false|0+)\z/i)
+      
+      self.show_times_flag =
+        case $REDSHIFT_BUILD_TIMES
+        when nil, false, /\A(false|0*)\z/i
+          false
+        else
+          true
+        end
 
       if $REDSHIFT_DEBUG
         include_file.include "<assert.h>"

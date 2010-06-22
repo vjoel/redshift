@@ -99,8 +99,4 @@ VALUE rs_buffer_exhale_array(RSBuffer *buf)
 void
 Init_buffer()
 {
-    VALUE Buffer;
-
-    Buffer = rb_define_class("Buffer", rb_cObject);
-    rb_const_set(Buffer, rb_intern("DIR"), rb_str_new2(__DIRECTORY__));
 }

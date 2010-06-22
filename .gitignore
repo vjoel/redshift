@@ -9,3 +9,4 @@ tmp
 *.o
 *.so
 ext/redshift/util/isaac/Makefile
+ext/redshift/buffer/Makefile

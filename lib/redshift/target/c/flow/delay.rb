@@ -21,10 +21,10 @@ module RedShift; class DelayFlow
       tsname      = "#{var_name}_time_step"
       
       cl.class_eval do
-        shadow_attr_accessor bufname    => "Buffer  #{bufname}"
-        shadow_attr_accessor delayname  => "double  #{delayname}"
+        shadow_attr_accessor bufname    => "RSBuffer  #{bufname}"
+        shadow_attr_accessor delayname  => "double    #{delayname}"
           # delay should be set only using the expr designated in :by => "expr"
-        shadow_attr          tsname     => "double  #{tsname}"
+        shadow_attr          tsname     => "double    #{tsname}"
       
         after_commit do
           alias_method "__#{bufname}=", "#{bufname}="
@@ -104,10 +104,10 @@ module RedShift; class DelayFlow
                 #{flow.translate(self, "fill", 0, cl).join("
                 ")};
 
-                buffer_init(&shadow->#{bufname}, len, fill);
+                rs_buffer_init(&shadow->#{bufname}, len, fill);
               }
               else { // # delay != shadow->#{delayname}
-                buffer_resize(&shadow->#{bufname}, len);
+                rs_buffer_resize(&shadow->#{bufname}, len);
               }
               
               shadow->#{delayname} = delay;

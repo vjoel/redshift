@@ -2,24 +2,7 @@
 
 require 'redshift'
 require 'redshift/util/random'
-### TODO: add pure ruby ISAAC to util
-#require 'isaac'
-
-# Adaptor class to use ISAAC with redshift/util/random distributions.
-#class ISAACGenerator < ISAAC
-#  def initialize(*seeds)
-#    super()
-#    if seeds.compact.empty?
-#      seeds = [Random::Sequence.random_seed]
-#    end
-#    @seeds = seeds
-#    srand(seeds)
-#  end
-#  
-#  attr_reader :seeds
-#
-#  alias next rand
-#end
+require 'redshift/util/isaac'
 
 include RedShift
 
@@ -71,12 +54,12 @@ class Flow_Transition < FlowTestComponent
     self.x = 0
     @alarm_time = 0
     @alarm_seq = Random::Exponential.new(
-      #:generator => ISAACGenerator,
+      :generator => ISAACGenerator,
       :seed => 614822716,
       :mean => 0.5
     )
     @state_seq = Random::Discrete.new(
-      #:generator => ISAACGenerator,
+      :generator => ISAACGenerator,
       :seed => 3871653669, ## doesn't make sense to re-seed the same global gen
       :distrib =>
         {

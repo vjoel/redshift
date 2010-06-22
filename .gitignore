@@ -6,3 +6,6 @@ tmp/*
 tmp
 */tmp
 */junk
+*.o
+*.so
+ext/redshift/util/isaac/Makefile

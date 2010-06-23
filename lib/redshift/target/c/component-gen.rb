@@ -594,8 +594,10 @@ module RedShift
       
       def add_var_to_offset_table var_name
         ssn = shadow_struct.name
+        lit = shadow_library.literal_symbol(var_name,
+          shadow_library_source_file)
         offset_table_method.body %{\
-          rb_hash_aset(table, #{shadow_library.literal_symbol(var_name)},
+          rb_hash_aset(table, #{lit},
             INT2FIX((char *)&(((struct #{ssn} *)0)->#{var_name}) - (char *)0));
         } ## can we just use offsetof() ?
       end

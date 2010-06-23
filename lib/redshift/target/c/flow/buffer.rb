@@ -8,7 +8,7 @@ class RedShift::Library
       text = File.read(File.join(REDSHIFT_BUFFER_DIR, "buffer.h"))
       buffer_h = CGenerator::CFile.new("buffer.h", self, nil, true)
       buffer_h.declare :buffer_header_text => text
-      add buffer_h
+      add [buffer_h]
     end
   end
   

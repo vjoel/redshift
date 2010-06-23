@@ -603,12 +603,9 @@ module RedShift
       end
 
       def define_links
-        own_links = link_variables.own
-        return if own_links.empty?
-        
         ssn = shadow_struct.name
         
-        own_links.keys.sort_by{|k|k.to_s}.each do |var_name|
+        link_variables.own.keys.sort_by{|k|k.to_s}.each do |var_name|
           var_type, strictness = link_variables[var_name]
 
           unless var_type.is_a? Class
@@ -634,11 +631,15 @@ module RedShift
                 rs_raise(#{exc}, shadow->self, #{msg.inspect});
             }
           end
-
-          shadow_library_include_file.include(
-            var_type.shadow_library_include_file)
           
           add_var_to_offset_table(var_name)
+        end
+        
+        link_variables.keys.sort_by{|k|k.to_s}.each do |var_name|
+          var_type, strictness = link_variables[var_name]
+        
+          shadow_library_source_file.include(
+            var_type.shadow_library_include_file)
         end
       end
       

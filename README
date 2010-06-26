@@ -1,5 +1,11 @@
-To install:
+= RedShift
 
-  ruby install.rb config
-  ruby install.rb setup
-  ruby install.rb install
+A framework for simulation of networks of hybrid automata, similar to SHIFT and Lambda-SHIFT. Includes ruby-based DSL for defining simulation components, and ruby/C code generation and runtime.
+
+There's no documentation yet. Start with the examples.
+
+----
+
+Copyright (C) 2001-2010, Joel VanderWerf, vjoel@users.sourceforge.net
+Distributed under the Ruby license. See www.ruby-lang.org.
+

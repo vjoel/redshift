@@ -4,6 +4,18 @@ A framework for simulation of networks of hybrid automata, similar to SHIFT and 
 
 There's no documentation yet. Start with the examples.
 
+== Requirements
+
+RedShift needs ruby 1.8.x and a compatible C compiler. If you can build native gems, you're all set.
+
+== Env vars
+
+If you have a multicore system and are using the gnu toolchain, set
+
+REDSHIFT_MAKE_ARGS='-j -l2'
+
+or some variation. You'll find that rebuilds of your simulation code go faster.
+
 ----
 
 Copyright (C) 2001-2010, Joel VanderWerf, vjoel@users.sourceforge.net

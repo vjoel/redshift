@@ -1,11 +1,7 @@
 *.bck
-pkg
-doc
-junk/*
-tmp/*
+/pkg
+junk
 tmp
-*/tmp
-*/junk
 *.o
 *.so
 /ext/*/*/Makefile

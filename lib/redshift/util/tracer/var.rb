@@ -1,4 +1,4 @@
-require 'sci/tracer/trace'
+require 'redshift/util/tracer/trace'
 
 class Tracer
   # Represents the various options and controls associated with a variable

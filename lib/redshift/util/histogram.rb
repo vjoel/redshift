@@ -137,7 +137,7 @@ if __FILE__ == $0
   end
   
   if opts["plot"]
-    require 'sci/plot'
+    require 'redshift/util/plot'
     extend Plot::PlotUtils
     
     gnuplot do |plot|

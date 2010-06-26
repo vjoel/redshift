@@ -26,6 +26,8 @@ END
   history_file    'RELEASE-NOTES'
   changes         File.read(history_file)[/^\w.*?(?=^\w)/m]
   rdoc.dir        "rdoc" ## Note: doc dir has original content files
+  rdoc.include    ["README", "RELEASE-NOTES", "ext", "lib"]
+  rdoc.exclude    ["examples", "test", "bench"]
 
   spec.opts << '--color'
   test.files = Dir["test/test_*.rb"]

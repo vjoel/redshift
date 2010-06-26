@@ -73,6 +73,7 @@ ISAAC_rand(VALUE self)
     return rb_float_new(ctx->randrsl[ctx->randcnt] / 4294967295.0);
 }
 
+/* :nodoc: */
 static VALUE
 ISAAC_marshal_dump(VALUE self)
 {
@@ -91,6 +92,7 @@ ISAAC_marshal_dump(VALUE self)
     return ary;
 }
 
+/* :nodoc: */
 static VALUE
 ISAAC_marshal_load(VALUE self, VALUE ary)
 {

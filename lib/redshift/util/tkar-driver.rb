@@ -51,8 +51,7 @@ class TkarDriver
     end
   end
 
-  # :yields: pipe
-  def update
+  def update # :yields: pipe
     return unless @pipe
 
     yield @pipe if block_given?

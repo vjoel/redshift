@@ -8,5 +8,6 @@ tmp
 */junk
 *.o
 *.so
-ext/redshift/util/isaac/Makefile
-ext/redshift/buffer/Makefile
+/ext/*/*/Makefile
+/ext/*/*/*/Makefile
+/rdoc/*

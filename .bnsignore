@@ -15,8 +15,13 @@ coverage
 doc
 pkg
 *.bck
+*.so
+*.o
+ext/*/*/Makefile
+ext/*/*/*/Makefile
 misc
 junk
 tmp
 */tmp
+*/*/tmp
 */junk

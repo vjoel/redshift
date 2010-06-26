@@ -24,7 +24,7 @@ require 'redshift/util/plot'
 include Plot::PlotUtils
 
 gnuplot do |plot|
-  plot.command %{set title "Lotla-Volterra"}
+  plot.command %{set title "Lotka-Volterra"}
   plot.command %{set xlabel "time"}
   plot.add data, %{using 1:2 title "foxes" with lines}
   plot.add data, %{using 1:3 title "rabbits" with lines}

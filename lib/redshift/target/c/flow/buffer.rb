@@ -19,7 +19,6 @@ class RedShift::Library
     
     def initialize(*args)
       super
-      lib = owner_class.shadow_library
       owner_class.shadow_library_include_file.include "buffer.h"
       
       @reader = "result = rs_buffer_exhale_array(&shadow->#{@cvar})"

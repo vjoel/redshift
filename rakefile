@@ -30,8 +30,14 @@ END
   rdoc.exclude    ["examples", "test", "bench"]
 
   spec.opts << '--color'
-  test.files = Dir["test/test_*.rb"]
+  test.files = [] ## Dir["test/test_*.rb"]
 }
+
+task 'test' do
+  Dir.chdir 'test' do
+    system "./test.rb"
+  end
+end
 
 task 'gem:release' => 'rubyforge:release' # to release to rubyforge as well
 

@@ -39,6 +39,8 @@ task 'test' do
   end
 end
 
+ENV["VERSION"] = RedShift::VERSION ## why isn't this automatic?
+
 task 'gem:release' => 'rubyforge:release' # to release to rubyforge as well
 
 task :release => ["rubyforge:release", "rubyforge:doc_release"]

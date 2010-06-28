@@ -384,6 +384,7 @@ class World
         assert(comp_shdw->world == shadow);
         comp_shdw->world = 0;
         --RARRAY(list)->len;
+        //%% hook_remove_comp(comp_shdw->self);
       }
       inline static double eval_expr(VALUE comp, VALUE expr)
       {

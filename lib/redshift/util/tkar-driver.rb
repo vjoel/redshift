@@ -6,7 +6,7 @@
 class TkarDriver
   # +dragger+ is a callable object that takes (id, x, y) and should
   # move object id to (x,y)
-  def initialize dragger
+  def initialize dragger = nil
     @dragger = dragger
     cmd =
       case RUBY_PLATFORM

@@ -22,6 +22,7 @@ A framework for simulation of networks of hybrid automata, similar to SHIFT and 
 END
 
   depend_on       'cgen'
+  depend_on       'tkar'
 
   history_file    'RELEASE-NOTES'
   changes         File.read(history_file)[/^\w.*?(?=^\w)/m]

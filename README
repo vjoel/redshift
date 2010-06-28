@@ -2,7 +2,7 @@
 
 A framework for simulation of networks of hybrid automata, similar to SHIFT and Lambda-SHIFT. Includes ruby-based DSL for defining simulation components, and ruby/C code generation and runtime.
 
-There's no documentation yet. Start with the examples.
+There's no documentation yet, but it will be at http://redshift.sourceforge.net and http://redshift.rubyforge.org. For now, start with the examples.
 
 == Requirements
 

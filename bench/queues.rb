@@ -2,7 +2,7 @@
 
 require 'redshift'
 
-module Queue
+module Queues
   class Clock < RedShift::Component
     # the only continuous var in the whole system
     strictly_continuous :time
@@ -87,6 +87,6 @@ end
 
 if __FILE__ == $0
   require File.join(File.dirname(__FILE__), 'bench')
-  puts "queue:"
-  Queue.do_bench_one(*ARGV.map{|s|s.to_i}) {|l| puts l}
+  puts "queues:"
+  Queues.do_bench_one(*ARGV.map{|s|s.to_i}) {|l| puts l}
 end

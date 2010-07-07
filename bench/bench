@@ -20,7 +20,7 @@ pat = pat ? Regexp.new(pat) : //
   formula
   half-strict
   inertness
-  queue
+  queues
 }.grep(pat).each do |name|
   bench_one(name)
 end

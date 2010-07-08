@@ -23,6 +23,9 @@ module RedShift; class AlgebraicFlow
         exc = declare_class CircularDefinitionError
         msg = "Circularity in algebraic formula for #{var_name} in state " +
               "#{state} of class #{cl.name}."
+        ## note that state may not be the same as the object's state, due
+        ## to flow wrapper caching
+        
         setup :shadow => %{
           shadow = (#{ssn} *)comp_shdw;
           cont_state = (#{cont_state_ssn} *)shadow->cont_state;

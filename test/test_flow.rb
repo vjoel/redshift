@@ -129,6 +129,40 @@ class Flow_AlgDiff < FlowTestComponent
   end
 end
 
+# Test that shared flow implementations are correct.
+class Flow_MultiState < FlowTestComponent
+  state :S1, :S2, :S3
+  
+  default do
+    self.x = 2
+    @consistent = true
+    start S1
+  end
+  
+  flow S1, S2 do
+    diff "x' = x"
+  end
+  
+  transition S1 => S2 do
+    guard " x > 3 "
+    action do
+      @save_x = x
+    end
+    reset :x => 2
+  end
+  
+  transition S2 => S3 do
+    guard " x > 3 "
+    action do
+      @consistent = (@save_x == x)
+    end
+  end
+
+  def assert_consistent test
+    assert(@consistent)
+  end
+end
+
 ## TO DO ##
 =begin
  

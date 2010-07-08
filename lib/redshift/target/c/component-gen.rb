@@ -681,7 +681,7 @@ module RedShift
             cont_var = define_continuous(:permissive, [var])[0]
           end
           
-          add_flow([state, cont_var] => flow.flow_wrapper(self, state))
+          add_flow([state, cont_var] => flow_wrapper(flow, state))
 
           after_commit do
             ## a pity to use after_commit, when "just_before_commit" would be ok
@@ -693,6 +693,12 @@ module RedShift
             end
           end
         end
+      end
+      
+      def flow_wrapper flow, state
+        @flow_wrapper_hash ||= {}
+        @flow_wrapper_hash[ [flow.var, flow.formula] ] ||=
+          flow.flow_wrapper(self, state)
       end
 
       def define_guard(expr)

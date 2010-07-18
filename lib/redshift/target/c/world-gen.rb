@@ -377,7 +377,7 @@ class World
           move_comp(l->ptr[l->len-1], list, next_list);
       }
       inline static void remove_comp(VALUE comp, VALUE list,
-                                   #{World.shadow_struct.name} *shadow)
+                                   #{World.shadow_struct_name} *shadow)
       {
         ComponentShadow *comp_shdw = get_shadow(comp);
         assert(RARRAY(list)->ptr[RARRAY(list)->len-1] == comp);
@@ -390,7 +390,7 @@ class World
       {
         double (*fn)(ComponentShadow *), rslt;
         assert(rb_obj_is_kind_of(expr, ExprWrapperClass));
-        fn = ((#{RedShift::Component::ExprWrapper.shadow_struct.name} *)
+        fn = ((#{RedShift::Component::ExprWrapper.shadow_struct_name} *)
                get_shadow(expr))->expr;
         rslt = (*fn)(get_shadow(comp));
         return rslt;
@@ -400,7 +400,7 @@ class World
         ComponentShadow *(*fn)(ComponentShadow *);
         ComponentShadow *rslt;
         assert(rb_obj_is_kind_of(expr, ExprWrapperClass));
-        fn = ((#{RedShift::Component::ExprWrapper.shadow_struct.name} *)
+        fn = ((#{RedShift::Component::ExprWrapper.shadow_struct_name} *)
                get_shadow(expr))->expr;
         rslt = (*fn)(get_shadow(comp));
         return rslt;
@@ -409,7 +409,7 @@ class World
       {
         int (*fn)(ComponentShadow *), rslt;
         assert(rb_obj_is_kind_of(guard, GuardWrapperClass));
-        fn = ((#{RedShift::Component::GuardWrapper.shadow_struct.name} *)
+        fn = ((#{RedShift::Component::GuardWrapper.shadow_struct_name} *)
                get_shadow(guard))->guard;
         rslt = (*fn)(get_shadow(comp));
         return rslt;
@@ -477,7 +477,7 @@ class World
       }
       
       inline static int comp_can_sync(ComponentShadow *comp_shdw,
-               #{World.shadow_struct.name} *shadow)
+               #{World.shadow_struct_name} *shadow)
       {
         int i, j;
         int can_sync = 1;
@@ -523,7 +523,7 @@ class World
       }
       
       inline static int eval_events(ComponentShadow *comp_shdw,
-               #{World.shadow_struct.name} *shadow)
+               #{World.shadow_struct_name} *shadow)
       {
         VALUE events = cur_events(comp_shdw);
         int has_events = RTEST(events);
@@ -557,7 +557,7 @@ class World
       
       inline static void cache_new_constant_value(
         double *dbl_ptr, double value,
-               #{World.shadow_struct.name} *shadow)
+               #{World.shadow_struct_name} *shadow)
       {
         CVCacheEntry *entry;
         
@@ -586,7 +586,7 @@ class World
       }
       
       inline static int assign_new_constant_values(
-        #{World.shadow_struct.name} *shadow)
+        #{World.shadow_struct_name} *shadow)
       {
         int did_reset = shadow->cv_cache_used;
 
@@ -606,7 +606,7 @@ class World
       
       inline static void cache_new_link(
         ComponentShadow **link_ptr, VALUE value,
-               #{World.shadow_struct.name} *shadow)
+               #{World.shadow_struct_name} *shadow)
       {
         LinkCacheEntry *entry;
         
@@ -634,7 +634,7 @@ class World
       }
       
       inline static int assign_new_links(
-        #{World.shadow_struct.name} *shadow)
+        #{World.shadow_struct_name} *shadow)
       {
         int did_reset = shadow->link_cache_used;
         
@@ -658,7 +658,7 @@ class World
       }
       
       inline static void cache_new_port(VALUE input_port, VALUE other_port,
-               #{World.shadow_struct.name} *shadow)
+               #{World.shadow_struct_name} *shadow)
       {
         PortCacheEntry *entry;
         
@@ -686,7 +686,7 @@ class World
       }
       
       inline static int assign_new_ports(
-        #{World.shadow_struct.name} *shadow)
+        #{World.shadow_struct_name} *shadow)
       {
         int did_reset = shadow->port_cache_used;
         
@@ -706,7 +706,7 @@ class World
       }
       
       inline static int eval_continuous_resets(ComponentShadow *comp_shdw,
-                              #{World.shadow_struct.name} *shadow)
+                              #{World.shadow_struct_name} *shadow)
       {
         VALUE   resets          = cur_resets(comp_shdw);
         VALUE   cont_resets;
@@ -780,7 +780,7 @@ class World
       }
 
       inline static int eval_constant_resets(ComponentShadow *comp_shdw,
-               #{World.shadow_struct.name} *shadow)
+               #{World.shadow_struct_name} *shadow)
       {
         VALUE     resets            = cur_resets(comp_shdw);
         VALUE     const_resets;
@@ -879,7 +879,7 @@ class World
       }
       
       inline static int eval_port_connects(ComponentShadow *comp_shdw,
-               #{World.shadow_struct.name} *shadow)
+               #{World.shadow_struct_name} *shadow)
       {
         VALUE     connects    = cur_connects(comp_shdw);
 
@@ -945,7 +945,7 @@ class World
       }
 
       inline static void do_actions(ComponentShadow *comp_shdw, VALUE actions,
-                              #{World.shadow_struct.name} *shadow)
+                              #{World.shadow_struct_name} *shadow)
       {
         long  i;
         VALUE comp    = comp_shdw->self;
@@ -969,7 +969,7 @@ class World
       }
 
       inline static void update_all_alg_vars(ComponentShadow *comp_shdw,
-                              #{World.shadow_struct.name} *shadow)
+                              #{World.shadow_struct_name} *shadow)
       {
         ContVar    *vars = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
         long        count = comp_shdw->var_count;
@@ -985,7 +985,7 @@ class World
       }
       
       inline static void start_trans(ComponentShadow *comp_shdw,
-                              #{World.shadow_struct.name} *shadow,
+                              #{World.shadow_struct_name} *shadow,
                               VALUE trans, VALUE dest)
       {
         comp_shdw->trans  = trans;
@@ -994,7 +994,7 @@ class World
       }
       
       inline static void finish_trans(ComponentShadow *comp_shdw,
-                               #{World.shadow_struct.name} *shadow)
+                               #{World.shadow_struct_name} *shadow)
       { //%% hook_finish_transition(comp_shdw->self, comp_shdw->trans,
         //%%                        comp_shdw->dest);
         if (comp_shdw->state != comp_shdw->dest) {
@@ -1033,7 +1033,7 @@ class World
         }
       }
       
-      inline static void check_guards(#{World.shadow_struct.name} *shadow,
+      inline static void check_guards(#{World.shadow_struct_name} *shadow,
             int sync_retry)
       {
         VALUE             comp;
@@ -1109,7 +1109,7 @@ class World
         assert(RARRAY(shadow->prev_awake)->len == 0);
       }
       
-      inline static void do_sync_phase(#{World.shadow_struct.name} *shadow)
+      inline static void do_sync_phase(#{World.shadow_struct_name} *shadow)
       {
         VALUE             comp;
         ComponentShadow  *comp_shdw;

@@ -386,7 +386,7 @@ module RedShift
           var_name = var_name.intern if var_name.is_a? String
           
           cont_state_class.add_var var_name, kind do
-            ssn = cont_state_class.shadow_struct.name
+            ssn = cont_state_class.shadow_struct_name
             exc = shadow_library.declare_class(AlgebraicAssignmentError)
             msg = "Cannot set #{var_name}; it is defined algebraically."
 
@@ -593,7 +593,7 @@ module RedShift
       end
       
       def add_var_to_offset_table var_name
-        ssn = shadow_struct.name
+        ssn = shadow_struct_name
         lit = shadow_library.literal_symbol(var_name,
           shadow_library_source_file)
         offset_table_method.body %{\
@@ -603,7 +603,7 @@ module RedShift
       end
 
       def define_links
-        ssn = shadow_struct.name
+        ssn = shadow_struct_name
         
         link_variables.own.keys.sort_by{|k|k.to_s}.each do |var_name|
           var_type, strictness = link_variables[var_name]
@@ -1100,9 +1100,9 @@ module RedShift
 
     ## can this go in shadow_library_source_file instead of library?
     library.define(:rs_update_cache).instance_eval do
-      flow_wrapper_type = Component::FlowWrapper.shadow_struct.name
+      flow_wrapper_type = Component::FlowWrapper.shadow_struct_name
       scope :extern ## might be better to keep static and put in world.c
-      arguments "struct #{Component.shadow_struct.name} *shadow"
+      arguments "struct #{Component.shadow_struct_name} *shadow"
       declare :locals => %{
         #{flow_wrapper_type} *flow_wrapper;
 

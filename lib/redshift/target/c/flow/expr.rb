@@ -17,8 +17,8 @@ module RedShift; class CexprGuard
     Component::GuardWrapper.make_subclass guard_name do
       @inspect_str = "#{cl.name}: #{guard.formula}"
  
-      ssn = cl.shadow_struct.name
-      cont_state_ssn = cl.cont_state_class.shadow_struct.name
+      ssn = cl.shadow_struct_name
+      cont_state_ssn = cl.cont_state_class.shadow_struct_name
       
       # We need the struct
       shadow_library_source_file.include(cl.shadow_library_include_file)
@@ -35,7 +35,7 @@ module RedShift; class CexprGuard
         }
         setup :shadow => %{
           shadow = (#{ssn} *)comp_shdw;
-          cont_state = (#{cont_state_ssn} *)shadow->cont_state;
+          cont_state = (struct #{cont_state_ssn} *)shadow->cont_state;
         }
         declare :result => "int result"
         translation = guard.translate(self, "result", 0, cl) {|s| strict = s}
@@ -76,8 +76,8 @@ module RedShift; class Expr
     Component::ExprWrapper.make_subclass expr_name do
       @inspect_str = "#{cl.name}: #{expr.formula}"
 
-      ssn = cl.shadow_struct.name
-      cont_state_ssn = cl.cont_state_class.shadow_struct.name
+      ssn = cl.shadow_struct_name
+      cont_state_ssn = cl.cont_state_class.shadow_struct_name
       
       # We need the struct
       shadow_library_source_file.include(cl.shadow_library_include_file)
@@ -92,7 +92,7 @@ module RedShift; class Expr
         }
         setup :shadow => %{
           shadow = (#{ssn} *)comp_shdw;
-          cont_state = (#{cont_state_ssn} *)shadow->cont_state;
+          cont_state = (struct #{cont_state_ssn} *)shadow->cont_state;
         }
         declare :result => "#{expr.type} result"
         translation = expr.translate(self, "result", 0, cl)

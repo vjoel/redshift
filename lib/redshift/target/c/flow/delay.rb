@@ -10,8 +10,8 @@ module RedShift; class DelayFlow
         "#{cl.name}:#{state}: " +
         "#{var_name} = #{flow.formula} [delay: #{delay_by}]"
 
-      ssn = cl.shadow_struct.name
-      cont_state_ssn = cl.cont_state_class.shadow_struct.name
+      ssn = cl.shadow_struct_name
+      cont_state_ssn = cl.cont_state_class.shadow_struct_name
       
       require "redshift/target/c/flow/buffer"
       RedShift.library.define_buffer
@@ -53,7 +53,7 @@ module RedShift; class DelayFlow
         }
         setup :shadow => %{
           shadow = (#{ssn} *)comp_shdw;
-          cont_state = (#{cont_state_ssn} *)shadow->cont_state;
+          cont_state = (struct #{cont_state_ssn} *)shadow->cont_state;
           var = &cont_state->#{var_name};
         }
         setup :rk_level => %{

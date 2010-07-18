@@ -7,8 +7,8 @@ module RedShift; class AlgebraicFlow
     Component::FlowWrapper.make_subclass flow_name do
       @inspect_str = "#{cl.name}:#{state}: #{var_name} = #{flow.formula}"
 
-      ssn = cl.shadow_struct.name
-      cont_state_ssn = cl.cont_state_class.shadow_struct.name
+      ssn = cl.shadow_struct_name
+      cont_state_ssn = cl.cont_state_class.shadow_struct_name
       
       # We need the struct
       shadow_library_source_file.include(cl.shadow_library_include_file)
@@ -28,7 +28,7 @@ module RedShift; class AlgebraicFlow
         
         setup :shadow => %{
           shadow = (#{ssn} *)comp_shdw;
-          cont_state = (#{cont_state_ssn} *)shadow->cont_state;
+          cont_state = (struct #{cont_state_ssn} *)shadow->cont_state;
           var = &cont_state->#{var_name};
           assert(var->algebraic);
           if (shadow->world->alg_nest > 100) {

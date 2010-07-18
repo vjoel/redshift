@@ -43,7 +43,7 @@ module RedShift; class Flow
 
               ct_struct = make_ct_struct(flow_fn, cl)
 
-              link_type_ssn = link_type.shadow_struct.name
+              link_type_ssn = link_type.shadow_struct_name
               ct_struct.declare link_cname => "#{link_type_ssn} *#{link_cname}"
               flow_fn.setup  link_cname => "ct.#{link_cname} = shadow->#{link}"
             end
@@ -157,7 +157,7 @@ module RedShift; class Flow
     else
       ct_struct = sf.declare_struct(CT_STRUCT_NAME)
 
-      ct_struct.declare :shadow => "#{cl.shadow_struct.name} *shadow"
+      ct_struct.declare :shadow => "#{cl.shadow_struct_name} *shadow"
 
       flow_fn.declare :ct => "#{CT_STRUCT_NAME} ct"
       flow_fn.setup   :ct_shadow => "ct.shadow = shadow"
@@ -208,7 +208,7 @@ module RedShift; class Flow
     end
 
     if var_type == :continuous
-      link_cs_ssn = link_type.cont_state_class.shadow_struct.name
+      link_cs_ssn = link_type.cont_state_class.shadow_struct_name
       link_cs_cname = "link_cs_#{link}"
       ct_struct.declare link_cs_cname => "#{link_cs_ssn} *#{link_cs_cname}"
     end
@@ -218,7 +218,7 @@ module RedShift; class Flow
 
       unless translation[link]
         translation[link] = link_cname
-        link_type_ssn = link_type.shadow_struct.name
+        link_type_ssn = link_type.shadow_struct_name
         ct_struct.declare link_cname => "#{link_type_ssn} *#{link_cname}"
         flow_fn.setup     link_cname => "ct.#{link_cname} = shadow->#{link}"
       end ## same as below
@@ -270,7 +270,7 @@ module RedShift; class Flow
       translation[expr] = "#{get_var_cname}(&ct)"
     
     when :link
-      link_link_type_ssn = link_link_type.shadow_struct.name
+      link_link_type_ssn = link_link_type.shadow_struct_name
       sf.declare get_var_cname => %{
         inline static #{link_link_type_ssn} *#{get_var_cname}(#{CT_STRUCT_NAME} *ct) {
           if (!ct->#{link_cname})

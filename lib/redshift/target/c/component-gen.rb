@@ -135,10 +135,6 @@ module RedShift
           cl.shadow_library_file file_name
           clname = file_name.sub /^#{@tag}/i, @tag
           Object.const_set clname, cl ## maybe put in other namespace?
-          before_commit {cl.construct}
-            # this is deferred to commit time to resolve forward refs
-            ## this would be more elegant with defer.rb
-            ## maybe precommit should be used for this now?
           cl
         end
       end
@@ -549,6 +545,15 @@ module RedShift
 
         check_variables
       end
+      
+      def construct_wrappers
+        hs = [@flow_wrapper_hash, @guard_wrapper_hash, @expr_wrapper_hash]
+        hs.compact.each do |h|
+          h.values.sort_by{|c| c.name}.each do |wrapper|
+            wrapper.construct
+          end
+        end
+      end
     
       def define_events
         exported_events.own.each do |event, index|
@@ -755,7 +760,8 @@ module RedShift
       def define_syncs syncs
         after_commit do
           syncs.each do |sync_phase_item|
-            sync_phase_item.link_offset = offset_of_var(sync_phase_item.link_name)
+            sync_phase_item.link_offset =
+              offset_of_var(sync_phase_item.link_name)
           end
         end
       end

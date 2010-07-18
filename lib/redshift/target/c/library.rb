@@ -89,6 +89,7 @@ module RedShift
     def precommit
       ## no need to precommit Component? Other abstract classes?
       component_classes.each {|cl| cl.precommit}
+      component_classes.each {|cl| cl.construct_wrappers}
       ## optimization?
       ## check if changed
     end

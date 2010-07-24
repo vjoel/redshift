@@ -20,6 +20,7 @@ pat = pat ? Regexp.new(pat) : //
   formula
   half-strict
   inertness
+  linked-flows
   queues
 }.grep(pat).each do |name|
   bench_one(name)

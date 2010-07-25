@@ -57,10 +57,8 @@ module RedShift
         unsigned    ck_strict :  1; // should check strict at end of phase
         unsigned    reset     :  1; // var is being reset
         Flow        flow;           // cached flow function of current state
-        double      value_0;        // value during discrete step
-        double      value_1;        // value at steps of Runge-Kutta
-        double      value_2;
-        double      value_3;
+        double      value[4];       // [0] = value during discrete step
+                                    // [1..3] = value at steps of Runge-Kutta
       } ContVar;
       #ifdef WIN32
       #pragma pack(pop)
@@ -96,9 +94,9 @@ module RedShift
 
       def initialize(*args)
         super
-        # value_0 is the relevant state outside of continuous update
-        @dump = "rb_ary_push(result, rb_float_new(shadow->#{@cvar}.value_0))"
-        @load = "shadow->#{@cvar}.value_0 = NUM2DBL(rb_ary_shift(from_array))"
+        # value[0] is the relevant state outside of continuous update
+        @dump = "rb_ary_push(result, rb_float_new(shadow->#{@cvar}.value[0]))"
+        @load = "shadow->#{@cvar}.value[0] = NUM2DBL(rb_ary_shift(from_array))"
       end
     end
 
@@ -409,7 +407,7 @@ module RedShift
                 # later, so strictness will get checked at the end of any
                 # transitions (but only if someone has relied on it).
                 
-                returns "rb_float_new(cont_state->#{var_name}.value_0)"
+                returns "rb_float_new(cont_state->#{var_name}.value[0])"
               end
             }
             
@@ -425,7 +423,7 @@ module RedShift
                   declare :cont_state => "#{ssn} *cont_state"
                   body %{
                     cont_state = (#{ssn} *)shadow->cont_state;
-                    cont_state->#{var_name}.value_0 = NUM2DBL(value);
+                    cont_state->#{var_name}.value[0] = NUM2DBL(value);
                     if (shadow->world)
                       shadow->world->d_tick++;
                     if (cont_state->#{var_name}.algebraic)
@@ -444,7 +442,7 @@ module RedShift
                   declare :cont_state => "#{ssn} *cont_state"
                   body %{
                     cont_state = (#{ssn} *)shadow->cont_state;
-                    cont_state->#{var_name}.value_0 = NUM2DBL(value);
+                    cont_state->#{var_name}.value[0] = NUM2DBL(value);
                     if (shadow->world) 
                       shadow->world->d_tick++;
                     if (cont_state->#{var_name}.algebraic)
@@ -1166,7 +1164,7 @@ module RedShift
                 has_diff = 1;
               if (var->flow && var->algebraic && var->strict &&
                   var->d_tick > 0) { //# did anyone rely on the strictness?
-                var->value_1    = var->value_0;
+                var->value[1]    = var->value[0];
                 var->ck_strict  = 1;
               }
               else {
@@ -1288,7 +1286,7 @@ module RedShift
                 var->d_tick = sh->world->d_tick;
             }
 
-            result = (&var->value_0)[sh->world->rk_level];
+            result = var->value[sh->world->rk_level];
             break;
           }
 

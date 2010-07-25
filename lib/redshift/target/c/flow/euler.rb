@@ -43,15 +43,15 @@ module RedShift; class EulerDifferentialFlow
             #{flow.translate(self, "ddt_#{var_name}", 0, cl).join("
             ")};
 
-            var->value_1 = var->value_2 =
-              var->value_0 + ddt_#{var_name} * time_step/2;
-            var->value_3 =
-              var->value_0 + ddt_#{var_name} * time_step;
+            var->value[1] = var->value[2] =
+              var->value[0] + ddt_#{var_name} * time_step/2;
+            var->value[3] =
+              var->value[0] + ddt_#{var_name} * time_step;
             var->rk_level = 3;
             break;
           
           case 3:
-            var->value_0 = var->value_3;
+            var->value[0] = var->value[3];
             var->rk_level = 4;
             break;
           }

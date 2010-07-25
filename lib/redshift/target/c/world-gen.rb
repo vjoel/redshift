@@ -209,7 +209,7 @@ class World
           while (var < end_var) {
             var->rk_level = 0;
             if (!var->flow) {
-              var->value_1 = var->value_2 = var->value_3 = var->value_0;
+              var->value[1] = var->value[2] = var->value[3] = var->value[0];
             }
             var++;
           }
@@ -770,7 +770,7 @@ class World
               //%%   rb_funcall(comp_shdw->cont_state->self,//
               //%%              #{declare_symbol :var_at_index},1,INT2NUM(i)),
               //%%   rb_float_new(new_value));
-              var->value_1 = new_value;
+              var->value[1] = new_value;
               var->reset = 1;
             }
           }
@@ -937,7 +937,7 @@ class World
         for (i = len; i > 0; i--, var++) {
           if (var->reset) {
             var->reset = 0;
-            var->value_0 = var->value_1;
+            var->value[0] = var->value[1];
             did_reset = 1;
           }
         }
@@ -1024,10 +1024,10 @@ class World
           if (var->ck_strict) {
             var->ck_strict = 0;
             (*var->flow)(comp_shdw);
-            if (var->value_0 != var->value_1) {
+            if (var->value[0] != var->value[1]) {
               rb_funcall(comp_shdw->self,
                 #{declare_symbol :handle_strictness_error}, 3, INT2NUM(i),
-                rb_float_new(var->value_0), rb_float_new(var->value_1));
+                rb_float_new(var->value[0]), rb_float_new(var->value[1]));
             }
           }
         }

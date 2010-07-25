@@ -77,7 +77,7 @@ module RedShift; class Flow
               }
             }
             # The d_tick assignment is explained in component-gen.rb.
-            setup << "#{var_cname} = #{cont_var}.value_#{rk_level};"
+            setup << "#{var_cname} = #{cont_var}.value[#{rk_level}];"
           
           elsif (kind = cl.input_variables[varsym])
             # x ==> var_x
@@ -166,7 +166,7 @@ module RedShift; class Flow
     ct_struct
   end
   
-  # l.x  ==>  get_l__x()->value_n
+  # l.x  ==>  get_l__x()->value[n]
   def translate_link(link, var, translation, flow_fn, cl, expr, rk_level)
     link_type, link_strictness = cl.link_variables[link.intern]
     raise(NameError, "No such link, #{link}") unless link_type
@@ -256,7 +256,7 @@ module RedShift; class Flow
         }
       } ## algebraic test is same as above
 
-      translation[expr] = "#{get_var_cname}(&ct)->value_#{rk_level}"
+      translation[expr] = "#{get_var_cname}(&ct)->value[#{rk_level}]"
     
     when :constant
       sf.declare get_var_cname => %{

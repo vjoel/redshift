@@ -45,25 +45,25 @@ module RedShift; class AlgebraicFlow
         body %{
           switch (shadow->world->rk_level) {
           case 0:
-            #{flow.translate(self, "var->value_0", 0, cl).join("
+            #{flow.translate(self, "var->value[0]", 0, cl).join("
             ")};
             var->d_tick = shadow->world->d_tick;
             break;
             
           case 1:
-            #{flow.translate(self, "var->value_1", 1, cl).join("
+            #{flow.translate(self, "var->value[1]", 1, cl).join("
             ")};
             var->rk_level = shadow->world->rk_level;
             break;
             
           case 2:
-            #{flow.translate(self, "var->value_2", 2, cl).join("
+            #{flow.translate(self, "var->value[2]", 2, cl).join("
             ")};
             var->rk_level = shadow->world->rk_level;
             break;
             
           case 3:
-            #{flow.translate(self, "var->value_3", 3, cl){|strict|
+            #{flow.translate(self, "var->value[3]", 3, cl){|strict|
               flow.instance_eval {@strict = strict}
             }.join("
             ")};

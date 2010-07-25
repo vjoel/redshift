@@ -38,28 +38,28 @@ module RedShift; class RK4DifferentialFlow
           case 0:
             #{flow.translate(self, "ddt_#{var_name}", 0, cl).join("
             ")};
-            var->value_1 = var->value_0 + ddt_#{var_name} * time_step/2;
+            var->value[1] = var->value[0] + ddt_#{var_name} * time_step/2;
             break;
 
           case 1:
             #{flow.translate(self, "ddt_#{var_name}", 1, cl).join("
             ")};
-            var->value_2 = var->value_0 + ddt_#{var_name} * time_step/2;
+            var->value[2] = var->value[0] + ddt_#{var_name} * time_step/2;
             break;
 
           case 2:
             #{flow.translate(self, "ddt_#{var_name}", 2, cl).join("
             ")};
-            var->value_3 = var->value_0 + ddt_#{var_name} * time_step;
+            var->value[3] = var->value[0] + ddt_#{var_name} * time_step;
             break;
 
           case 3:
             #{flow.translate(self, "ddt_#{var_name}", 3, cl).join("
             ")};
-            value_4 = var->value_0 + ddt_#{var_name} * time_step;
-            var->value_0 = 
-              (-3*var->value_0 + 2*var->value_1 + 4*var->value_2 +
-                2*var->value_3 + value_4) / 6;
+            value_4 = var->value[0] + ddt_#{var_name} * time_step;
+            var->value[0] =
+              (-3*var->value[0] + 2*var->value[1] + 4*var->value[2] +
+                2*var->value[3] + value_4) / 6;
             break;
 
           default:

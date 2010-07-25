@@ -44,8 +44,8 @@ module RedShift; class DerivativeFlow
             case 0:
               #{flow.translate(self, "antiddt", 0, cl).join("
               ")};
-              var->value_0 = var->value_1 =
-              var->value_2 = var->value_3 =
+              var->value[0] = var->value[1] =
+              var->value[2] = var->value[3] =
               (antiddt - *scratch) / time_step;
               *scratch = antiddt;
             }
@@ -58,27 +58,27 @@ module RedShift; class DerivativeFlow
             case 0:
               #{flow.translate(self, "antiddt", 0, cl).join("
               ")};
-              var->value_1 = var->value_0;
+              var->value[1] = var->value[0];
               *scratch = antiddt;
               break;
 
             case 1:
               #{flow.translate(self, "antiddt", 1, cl).join("
               ")};
-              var->value_2 = (antiddt - *scratch) / (time_step/2);
+              var->value[2] = (antiddt - *scratch) / (time_step/2);
               *scratch = antiddt;
               break;
 
             case 2:
               #{flow.translate(self, "antiddt", 2, cl).join("
               ")};
-              var->value_3 = (antiddt - *scratch) / (time_step/2);
+              var->value[3] = (antiddt - *scratch) / (time_step/2);
               break;
 
             case 3:
               #{flow.translate(self, "antiddt", 3, cl).join("
               ")};
-              var->value_0 = (antiddt - *scratch) / (time_step/2);
+              var->value[0] = (antiddt - *scratch) / (time_step/2);
               break;
 
             default:

@@ -115,10 +115,10 @@ module RedShift; class DelayFlow
               offset = shadow->#{bufname}.offset;
             }
             
-            var->value_0 = ptr[offset];
-            var->value_1 = ptr[offset + 1];
-            var->value_2 = ptr[offset + 2];
-            var->value_3 = ptr[offset + 3];
+            var->value[0] = ptr[offset];
+            var->value[1] = ptr[offset + 1];
+            var->value[2] = ptr[offset + 2];
+            var->value[3] = ptr[offset + 3];
             
             #{flow.translate(self, "ptr[offset]", 0, cl).join("
             ")};
@@ -141,7 +141,7 @@ module RedShift; class DelayFlow
             ")};
 
             offset = (offset + 4) % len;
-            var->value_0 = ptr[offset];
+            var->value[0] = ptr[offset];
             shadow->#{bufname}.offset = offset;
             break;
             

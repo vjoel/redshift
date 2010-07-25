@@ -79,7 +79,8 @@ class World
       :zeno_limit   =>  100,
       :clock_start  =>  0.0,
       :clock_finish =>  Infinity,
-      :input_depth_limit => 100
+      :input_depth_limit => 100,
+      :alg_depth_limit => 100
     }
   end
 
@@ -112,6 +113,8 @@ class World
     self.clock_finish = options[:clock_finish]
     self.input_depth_limit =
                         options[:input_depth_limit]
+    self.alg_depth_limit =
+                        options[:alg_depth_limit]
     
     self.step_count = 0
     

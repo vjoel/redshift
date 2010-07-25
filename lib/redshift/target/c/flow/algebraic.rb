@@ -31,14 +31,12 @@ module RedShift; class AlgebraicFlow
           cont_state = (struct #{cont_state_ssn} *)shadow->cont_state;
           var = &cont_state->#{var_name};
           assert(var->algebraic);
-          if (shadow->world->alg_nest > 100) {
+          if (shadow->world->alg_nest > shadow->world->alg_depth_limit) {
             shadow->world->alg_nest = 0;
             rs_raise(#{exc}, shadow->self, #{msg.inspect});
           }
           shadow->world->alg_nest++;
         }
-        ## 100 not always enough, so could increase limit exponentially,
-        ## and look in subsequent iterations for repeats of this [var, obj].
         
         body %{
           #{flow.translate(self, "var->value[shadow->world->rk_level]", cl){|strict|

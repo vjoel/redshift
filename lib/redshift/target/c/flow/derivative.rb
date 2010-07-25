@@ -42,7 +42,7 @@ module RedShift; class DerivativeFlow
           body %{
             switch (shadow->world->rk_level) {
             case 0:
-              #{flow.translate(self, "antiddt", 0, cl).join("
+              #{flow.translate(self, "antiddt", cl, 0).join("
               ")};
               var->value[0] = var->value[1] =
               var->value[2] = var->value[3] =
@@ -54,30 +54,25 @@ module RedShift; class DerivativeFlow
           }
         else
           body %{
+            #{flow.translate(self, "antiddt", cl).join("
+            ")};
+
             switch (shadow->world->rk_level) {
             case 0:
-              #{flow.translate(self, "antiddt", 0, cl).join("
-              ")};
               var->value[1] = var->value[0];
               *scratch = antiddt;
               break;
 
             case 1:
-              #{flow.translate(self, "antiddt", 1, cl).join("
-              ")};
               var->value[2] = (antiddt - *scratch) / (time_step/2);
               *scratch = antiddt;
               break;
 
             case 2:
-              #{flow.translate(self, "antiddt", 2, cl).join("
-              ")};
               var->value[3] = (antiddt - *scratch) / (time_step/2);
               break;
 
             case 3:
-              #{flow.translate(self, "antiddt", 3, cl).join("
-              ")};
               var->value[0] = (antiddt - *scratch) / (time_step/2);
               break;
 

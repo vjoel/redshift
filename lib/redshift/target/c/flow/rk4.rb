@@ -34,28 +34,23 @@ module RedShift; class RK4DifferentialFlow
           shadow->world->rk_level--;
         } # has to happen before referenced alg flows are called in other setups
         body %{
+          #{flow.translate(self, "ddt_#{var_name}", cl).join("
+          ")};
+
           switch (shadow->world->rk_level) {
           case 0:
-            #{flow.translate(self, "ddt_#{var_name}", 0, cl).join("
-            ")};
             var->value[1] = var->value[0] + ddt_#{var_name} * time_step/2;
             break;
 
           case 1:
-            #{flow.translate(self, "ddt_#{var_name}", 1, cl).join("
-            ")};
             var->value[2] = var->value[0] + ddt_#{var_name} * time_step/2;
             break;
 
           case 2:
-            #{flow.translate(self, "ddt_#{var_name}", 2, cl).join("
-            ")};
             var->value[3] = var->value[0] + ddt_#{var_name} * time_step;
             break;
 
           case 3:
-            #{flow.translate(self, "ddt_#{var_name}", 3, cl).join("
-            ")};
             value_4 = var->value[0] + ddt_#{var_name} * time_step;
             var->value[0] =
               (-3*var->value[0] + 2*var->value[1] + 4*var->value[2] +

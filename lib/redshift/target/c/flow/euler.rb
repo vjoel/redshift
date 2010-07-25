@@ -40,7 +40,7 @@ module RedShift; class EulerDifferentialFlow
         body %{
           switch (shadow->world->rk_level) {
           case 0:
-            #{flow.translate(self, "ddt_#{var_name}", 0, cl).join("
+            #{flow.translate(self, "ddt_#{var_name}", cl, 0).join("
             ")};
 
             var->value[1] = var->value[2] =

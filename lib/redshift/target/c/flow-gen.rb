@@ -8,7 +8,7 @@ module RedShift
 end
 
 module RedShift; class Flow
-  def translate flow_fn, result_var, rk_level, cl, orig_formula = nil
+  def translate flow_fn, result_var, cl, rk_level = nil, orig_formula = nil
     translation = {}
     setup = []    ## should use accumulator
     
@@ -77,7 +77,8 @@ module RedShift; class Flow
               }
             }
             # The d_tick assignment is explained in component-gen.rb.
-            setup << "#{var_cname} = #{cont_var}.value[#{rk_level}];"
+            rk = rk_level || "shadow->world->rk_level"
+            setup << "#{var_cname} = #{cont_var}.value[#{rk}];"
           
           elsif (kind = cl.input_variables[varsym])
             # x ==> var_x
@@ -256,7 +257,8 @@ module RedShift; class Flow
         }
       } ## algebraic test is same as above
 
-      translation[expr] = "#{get_var_cname}(&ct)->value[#{rk_level}]"
+      rk = rk_level || "shadow->world->rk_level"
+      translation[expr] = "#{get_var_cname}(&ct)->value[#{rk}]"
     
     when :constant
       sf.declare get_var_cname => %{

@@ -38,7 +38,7 @@ module RedShift; class CexprGuard
           cont_state = (struct #{cont_state_ssn} *)shadow->cont_state;
         }
         declare :result => "int result"
-        translation = guard.translate(self, "result", 0, cl) {|s| strict = s}
+        translation = guard.translate(self, "result", cl, 0) {|s| strict = s}
         body %{
           #{translation.join("
           ")};
@@ -95,7 +95,7 @@ module RedShift; class Expr
           cont_state = (struct #{cont_state_ssn} *)shadow->cont_state;
         }
         declare :result => "#{expr.type} result"
-        translation = expr.translate(self, "result", 0, cl)
+        translation = expr.translate(self, "result", cl, 0)
         body %{
           #{translation.join("
           ")};

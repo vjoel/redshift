@@ -64,7 +64,7 @@ module RedShift; class DelayFlow
           begin
             "delay = #{Float(delay_by)}"
           rescue ArgumentError
-            flow.translate(self, "delay", 0, cl, delay_by)
+            flow.translate(self, "delay", cl, 0, delay_by)
           end
         
         include World.shadow_library_include_file
@@ -101,7 +101,7 @@ module RedShift; class DelayFlow
               len = steps*4;
 
               if (!ptr) {
-                #{flow.translate(self, "fill", 0, cl).join("
+                #{flow.translate(self, "fill", cl, 0).join("
                 ")};
 
                 rs_buffer_init(&shadow->#{bufname}, len, fill);
@@ -120,7 +120,7 @@ module RedShift; class DelayFlow
             var->value[2] = ptr[offset + 2];
             var->value[3] = ptr[offset + 3];
             
-            #{flow.translate(self, "ptr[offset]", 0, cl).join("
+            #{flow.translate(self, "ptr[offset]", cl, 0).join("
             ")};
             break;
             
@@ -133,11 +133,11 @@ module RedShift; class DelayFlow
             len = shadow->#{bufname}.len;
             offset = shadow->#{bufname}.offset;
 
-            #{flow.translate(self, "ptr[offset+1]", 1, cl).join("
+            #{flow.translate(self, "ptr[offset+1]", cl, 1).join("
             ")};
-            #{flow.translate(self, "ptr[offset+2]", 2, cl).join("
+            #{flow.translate(self, "ptr[offset+2]", cl, 2).join("
             ")};
-            #{flow.translate(self, "ptr[offset+3]", 3, cl).join("
+            #{flow.translate(self, "ptr[offset+3]", cl, 3).join("
             ")};
 
             offset = (offset + 4) % len;

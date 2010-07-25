@@ -40,33 +40,20 @@ module RedShift; class AlgebraicFlow
         ## 100 not always enough, so could increase limit exponentially,
         ## and look in subsequent iterations for repeats of this [var, obj].
         
-        ## optimization: it might be possible to translate once and
-        ## use gsub to make each of the four versions, or use a template.
         body %{
+          #{flow.translate(self, "var->value[shadow->world->rk_level]", cl){|strict|
+            flow.instance_eval {@strict = strict}
+          }.join("
+          ")};
+
           switch (shadow->world->rk_level) {
           case 0:
-            #{flow.translate(self, "var->value[0]", 0, cl).join("
-            ")};
             var->d_tick = shadow->world->d_tick;
             break;
             
           case 1:
-            #{flow.translate(self, "var->value[1]", 1, cl).join("
-            ")};
-            var->rk_level = shadow->world->rk_level;
-            break;
-            
           case 2:
-            #{flow.translate(self, "var->value[2]", 2, cl).join("
-            ")};
-            var->rk_level = shadow->world->rk_level;
-            break;
-            
           case 3:
-            #{flow.translate(self, "var->value[3]", 3, cl){|strict|
-              flow.instance_eval {@strict = strict}
-            }.join("
-            ")};
             var->rk_level = shadow->world->rk_level;
             break;
             

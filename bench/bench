@@ -15,6 +15,7 @@ pat = pat ? Regexp.new(pat) : //
 %w{
   alg-state
   algebraic
+  connect
   continuous
   discrete
   euler

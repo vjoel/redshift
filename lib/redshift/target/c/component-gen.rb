@@ -1296,7 +1296,7 @@ module RedShift
 
           case INPUT_INP_VAR:
             tgt = (struct target *)(tgt->psh + tgt->offset);
-            if (depth++ > 100) {
+            if (depth++ > sh->world->input_depth_limit) {
               size_t offset = psrc_comp - (char *)shadow;
               VALUE str = rb_funcall(shadow->self,
                 #{declare_symbol :get_varname_by_offset}, 1, INT2FIX(offset));

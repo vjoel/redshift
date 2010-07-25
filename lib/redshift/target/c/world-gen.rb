@@ -90,6 +90,8 @@ class World
   shadow_attr_accessor :rk_level      => "long     rk_level"
   shadow_attr_accessor :d_tick        => "long     d_tick"
   shadow_attr_accessor :alg_nest      => "long     alg_nest"
+  shadow_attr_accessor :input_depth_limit =>
+                                         "long     input_depth_limit"
   
   shadow_attr_accessor :base_clock    => "double   base_clock"
   shadow_attr_accessor :base_step_count =>

@@ -1,24 +1,24 @@
 module RedShift; class DelayFlow
-  def flow_wrapper cl, state
-    var_name = @var
-    flow = self
-    flow_name = "flow_#{CGenerator.make_c_name cl.name}_#{var_name}_#{state}"
+  def make_generator cl, state
     delay_by = @delay_by
-    
-    Component::FlowWrapper.make_subclass flow_name do
-      @inspect_str =
-        "#{cl.name}:#{state}: " +
-        "#{var_name} = #{flow.formula} [delay: #{delay_by}]"
+    @fname = "flow_#{CGenerator.make_c_name cl.name}_#{var}_#{state}"
+    @inspect_str =
+      "#{cl.name}:#{state}: " +
+      "#{var} = #{formula} [delay: #{delay_by}]"
 
+    @generator = proc do
+      sl = cl.shadow_library
       ssn = cl.shadow_struct_name
       cont_state_ssn = cl.cont_state_class.shadow_struct_name
+      fw_ssn = Component::FlowWrapper.shadow_struct_name
+      fw_cname = sl.declare_class Component::FlowWrapper
       
       require "redshift/target/c/flow/buffer"
       RedShift.library.define_buffer
 
-      bufname     = "#{var_name}_buffer_data"
-      delayname   = "#{var_name}_delay"
-      tsname      = "#{var_name}_time_step"
+      bufname     = "#{var}_buffer_data"
+      delayname   = "#{var}_delay"
+      tsname      = "#{var}_time_step"
       
       cl.class_eval do
         shadow_attr_accessor bufname    => "RSBuffer  #{bufname}"
@@ -37,11 +37,29 @@ module RedShift; class DelayFlow
         private :"#{delayname}="
       end
       
-      # We need the struct
-      shadow_library_source_file.include(cl.shadow_library_include_file)
+      sl.init_library_function.declare \
+        :flow_wrapper_shadow => "#{fw_ssn} *fw_shadow",
+        :flow_wrapper_value  => "VALUE fw"
       
-      shadow_library_source_file.define(flow_name).instance_eval do
+      sl.init_library_function.body %{
+        fw = rb_funcall(#{fw_cname}, #{sl.declare_symbol :new}, 1, rb_str_new2(#{inspect_str.inspect}));
+        Data_Get_Struct(fw, #{fw_ssn}, fw_shadow);
+        fw_shadow->flow = &#{fname};
+        fw_shadow->algebraic = 0;
+        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_flow}, 2,
+          rb_str_new2(#{fname.inspect}), fw);
+      }
+
+      include_file, source_file = sl.add_file fname
+      
+      # We need the struct
+      source_file.include(cl.shadow_library_include_file)
+      
+      flow = self
+      var_name = @var
+      source_file.define(fname).instance_eval do
         arguments "ComponentShadow *comp_shdw"
+        scope :extern
         declare :shadow => %{
           struct #{ssn} *shadow;
           struct #{cont_state_ssn} *cont_state;
@@ -153,10 +171,6 @@ module RedShift; class DelayFlow
           shadow->world->rk_level++;
           var->rk_level = shadow->world->rk_level;
         }
-      end
-
-      define_c_method :calc_function_pointer do
-        body "shadow->flow = &#{flow_name}"
       end
     end
   end

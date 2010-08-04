@@ -402,11 +402,19 @@ module TransitionSyntax
     end
     alias after post
     
-    # +h+ is a hash of :var => proc {value_expr_ruby} or "value_expr_c".
+    # +h+ is a hash of :var => proc {value_expr_ruby} or "value_expr_c" or a literal.
     def reset(h)
       badkeys = h.keys.reject {|k| k.is_a?(Symbol)}
       unless badkeys.empty?
         raise SyntaxError, "Keys #{badkeys.inspect} in reset must be symbols"
+      end
+      
+      h.keys.each do |k|
+        v = h[k]
+        case v
+        when String
+          h[k] = v.strip
+        end
       end
       
       @resets ||= Component::ResetPhase.new

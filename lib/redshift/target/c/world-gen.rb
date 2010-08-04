@@ -463,15 +463,6 @@ class World
               }
               break;
 
-            case T_CLASS:
-              assert(RTEST(rb_funcall(guard, #{declare_symbol "<"},
-                1, GuardWrapperClass)));
-              guard = rb_funcall(guard, #{declare_symbol :instance}, 0);
-              RARRAY(guards)->ptr[i] = guard;
-              if (!test_cexpr_guard(comp, guard))
-                return 0;
-              break;
-
             default:
               assert(0);
             }

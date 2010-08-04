@@ -99,42 +99,60 @@ module RedShift
         @load = "shadow->#{@cvar}.value[0] = NUM2DBL(rb_ary_shift(from_array))"
       end
     end
+    
+    ### maybe s/flow/function/ or wrapper ?
+    def Component.store_flow name, wrapper
+      raise unless self == Component
+      @flow_wrapper_by_name ||= {}
+      @flow_wrapper_by_name[name] = wrapper
+    end
 
-    # Useful way to represent an object that has compile time (pre-commit) and
-    # run-time (post-commit) bevahior. The compile time behavior is in the
-    # class, and the run time behavior is in the unique instance.
-    class SingletonShadowClass
-      include Singleton
-      include CShadow; shadow_library Component
-      persistent false
-      def inspect; self.class.inspect_str; end
-      class << self; attr_reader :inspect_str; end
+    def Component.fetch_flow name
+      raise unless self == Component
+      @flow_wrapper_by_name && @flow_wrapper_by_name[name]
     end
 
     # FunctionWrappers wrap function pointers for access from ruby.
-    class FunctionWrapper < SingletonShadowClass
-      def initialize
-        calc_function_pointer
-      end
+    class FunctionWrapper
+      include CShadow; shadow_library Component
+      persistent false
       
-      class << self
-        attr_accessor :constructor
+      class RedShift::Flow ### move this
+        # Function name and file name
+        attr_reader :fname
         
-        def construct
-          class_eval &constructor
+        attr_reader :inspect_str
+
+        # proc to build the function in the file
+        attr_reader :generator
+        
+        def generate
+          ## create the file?
+          generator.call unless @generated
+          @generated = true
         rescue => ex
-          ex.message << " While defining #{inspect_str}."
+          ex.message << " While defining #{inspect}."
           raise
         end
         
-        def make_subclass(file_name, &bl)
-          cl = Class.new(self)
-          cl.constructor = bl
-          cl.shadow_library_file file_name
-          clname = file_name.sub /^#{@tag}/i, @tag
-          Object.const_set clname, cl ## maybe put in other namespace?
-          cl
+        # Can be called only after commit.
+        def wrapper
+          raise unless Component.committed?
+          Component.fetch_flow(fname)
         end
+        
+        def inspect; inspect_str; end
+        
+        def become_generatable(*args)
+          make_generator(*args) unless generator
+          self
+        end
+      end
+      
+      def inspect; @inspect_str; end
+      
+      def initialize inspect_str
+        @inspect_str = inspect_str
       end
     end
 
@@ -336,10 +354,6 @@ module RedShift
         @flow_hash ||= {}
       end
 
-      def add_flow h      # [state, var] => flow_wrapper_subclass, ...
-        flow_hash.update h
-      end
-
       def flow_table
         unless @flow_table
           assert committed?
@@ -349,8 +363,8 @@ module RedShift
               ft[k] = v.dup
             end
           end
-          for (state, var), flow_class in flow_hash
-            (ft[state] ||= [])[var.index] = flow_class.instance
+          for (state, var), flow in flow_hash
+            (ft[state] ||= [])[var.index] = flow.wrapper
           end
           @flow_table = ft
         end
@@ -544,11 +558,11 @@ module RedShift
         check_variables
       end
       
-      def construct_wrappers
-        hs = [@flow_wrapper_hash, @guard_wrapper_hash, @expr_wrapper_hash]
+      def generate_wrappers
+        hs = [flow_hash, @guard_hash, @expr_hash]
         hs.compact.each do |h|
-          h.values.sort_by{|c| c.name}.each do |wrapper|
-            wrapper.construct
+          h.values.sort_by{|f| f.fname}.each do |flow|
+            flow.generate ### should rename Flow class to Function or such
           end
         end
       end
@@ -676,16 +690,18 @@ module RedShift
       def define_flows(state)
         own_flows = flows(state).own
         own_flows.keys.sort_by{|sym|sym.to_s}.each do |var|
-          flow = own_flows[var]
+          define_flow own_flows[var], state, var
+        end
+      end
 
-          cont_var = cont_state_class.vars[var]
-          unless cont_var
-            attach_continuous_variables(:permissive, [var])
-            cont_var = define_continuous(:permissive, [var])[0]
-          end
-          
-          add_flow([state, cont_var] => flow_wrapper(flow, state))
+      def define_flow flow, state, var
+        cont_var = cont_state_class.vars[var]
+        unless cont_var
+          attach_continuous_variables(:permissive, [var])
+          cont_var = define_continuous(:permissive, [var])[0]
+        end
 
+        flow_hash[ [state, cont_var] ] ||= begin
           after_commit do
             ## a pity to use after_commit, when "just_before_commit" would be ok
             ## use the defer mechanism from teja2hsif
@@ -695,19 +711,16 @@ module RedShift
                 "redefined with non-strict flow.", []
             end
           end
+
+          @flow_wrapper_hash ||= {}
+          @flow_wrapper_hash[ [flow.var, flow.formula] ] ||= flow.become_generatable(self, state)
         end
-      end
-      
-      def flow_wrapper flow, state
-        @flow_wrapper_hash ||= {}
-        @flow_wrapper_hash[ [flow.var, flow.formula] ] ||=
-          flow.flow_wrapper(self, state)
       end
 
       def define_guard(expr)
-        @guard_wrapper_hash ||= {} ## could be a superhash?
-        @guard_wrapper_hash[expr] ||=
-          CexprGuard.new(expr).guard_wrapper(self)
+        @guard_hash ||= {} ## could be a superhash?
+        @guard_hash[expr] ||=
+          CexprGuard.new(expr).become_generatable(self)
       end
 
       def make_guard_method_name
@@ -739,7 +752,7 @@ module RedShift
               g # a proc is slower than a method when called from step_discrete
             end
           
-          when Class
+          when Class ### is this still relevant?
             if g < GuardWrapper
               g
             else
@@ -751,6 +764,16 @@ module RedShift
           
           else
             raise "What is #{g.inspect}?"
+          end
+        end
+        after_commit do
+          guards.map! do |g|
+            case g
+            when CexprGuard
+              g.wrapper
+            else
+              g
+            end
           end
         end
       end
@@ -780,9 +803,9 @@ module RedShift
       end
       
       def define_reset(expr, type = "double")
-        @expr_wrapper_hash ||= {} ## could be a superhash?
-        @expr_wrapper_hash[expr] ||=
-          ResetExpr.new(expr, type).wrapper(self)
+        @expr_hash ||= {} ## could be a superhash?
+        @expr_hash[expr] ||=
+          ResetExpr.new(expr, type).become_generatable(self)
       end
       
       def define_resets(phase)
@@ -815,7 +838,7 @@ module RedShift
           reset = define_reset(expr)
 
           after_commit do
-            phase[cont_var.index] = reset.instance
+            phase[cont_var.index] = reset.wrapper
           end
         
         when Numeric
@@ -841,7 +864,7 @@ module RedShift
           reset = define_reset(expr)
 
           after_commit do
-            phase << [offset_of_var(var), reset.instance, var]
+            phase << [offset_of_var(var), reset.wrapper, var]
           end
 
         when Numeric
@@ -868,7 +891,7 @@ module RedShift
           reset = define_reset(expr, "ComponentShadow *")
 
           after_commit do
-            phase << [offset_of_var(var), reset.instance, var, type]
+            phase << [offset_of_var(var), reset.wrapper, var, type]
           end
 
         when Proc, NilClass
@@ -882,9 +905,9 @@ module RedShift
         phase.each do |item|
           case item.value
           when ExprEventValue
-            wrapper_mod = define_reset(item.value)
+            reset = define_reset(item.value)
             after_commit do
-              item.value = wrapper_mod.instance
+              item.value = reset.wrapper
             end
           end
         end

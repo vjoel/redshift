@@ -100,16 +100,15 @@ module RedShift
       end
     end
     
-    ### maybe s/flow/function/ or wrapper ?
-    def Component.store_flow name, wrapper
+    def Component.store_wrapper name, wrapper
       raise unless self == Component
-      @flow_wrapper_by_name ||= {}
-      @flow_wrapper_by_name[name] = wrapper
+      @fn_wrapper_by_name ||= {}
+      @fn_wrapper_by_name[name] = wrapper
     end
 
-    def Component.fetch_flow name
+    def Component.fetch_wrapper name
       raise unless self == Component
-      @flow_wrapper_by_name && @flow_wrapper_by_name[name]
+      @fn_wrapper_by_name && @fn_wrapper_by_name[name]
     end
 
     # FunctionWrappers wrap function pointers for access from ruby.
@@ -138,7 +137,7 @@ module RedShift
         # Can be called only after commit.
         def wrapper
           raise unless Component.committed?
-          Component.fetch_flow(fname)
+          Component.fetch_wrapper(fname)
         end
         
         def inspect; inspect_str; end

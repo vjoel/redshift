@@ -46,7 +46,7 @@ module RedShift; class DelayFlow
         Data_Get_Struct(fw, #{fw_ssn}, fw_shadow);
         fw_shadow->flow = &#{fname};
         fw_shadow->algebraic = 0;
-        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_flow}, 2,
+        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_wrapper}, 2,
           rb_str_new2(#{fname.inspect}), fw);
       }
 

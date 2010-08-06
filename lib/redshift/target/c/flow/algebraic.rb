@@ -19,7 +19,7 @@ module RedShift; class AlgebraicFlow
         Data_Get_Struct(fw, #{fw_ssn}, fw_shadow);
         fw_shadow->flow = &#{fname};
         fw_shadow->algebraic = 1;
-        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_flow}, 2,
+        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_wrapper}, 2,
           rb_str_new2(#{fname.inspect}), fw);
       }
 
@@ -57,7 +57,8 @@ module RedShift; class AlgebraicFlow
         }
         
         body %{
-          #{flow.translate(self, "var->value[shadow->world->rk_level]", cl){|strict|
+          #{flow.translate(self,
+              "var->value[shadow->world->rk_level]", cl) {|strict|
             flow.instance_eval {@strict = strict}
           }.join("
           ")};
@@ -80,8 +81,12 @@ module RedShift; class AlgebraicFlow
           
           shadow->world->alg_nest--;
         }
-      end # Case 0 applies during discrete update.
-          # alg flows are lazy
+      end
+      # Case 0 applies during discrete update.
+      # Alg flows are lazy.
+      # Note that @strict does not need to propagate to wrapper
+      # (as it does in CexprGuard) since checking is done statically
+      # in Component.define_flow.
     end
     
     return self

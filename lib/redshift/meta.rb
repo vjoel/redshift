@@ -108,8 +108,9 @@ class Component
       end
     end
 
-    ## should be called only after generating code, to get strict right
     def outgoing_transition_data s
+      raise unless committed?
+      
       ary = []
       all_strict = true
       seen = {}

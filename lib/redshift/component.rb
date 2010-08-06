@@ -88,8 +88,11 @@ class Flow    ## rename to equation? formula? put in meta?
   # steps of the discrete update. This can be false only for an AlgebraicFlow
   # which depends on non-strict variables. In the algebraic case, a flow is
   # strict iff the RHS of the eqn. has only strictly continuous variables.
+  # Guards are not flows (except by inheritance); CexprGuard instances may be
+  # non-strict. Reset expressions (Exprs) always evaluate, so strictness does
+  # not apply.
   attr_reader :strict
-  
+
   def initialize v, f
     @var, @formula = v, f
     @strict = true

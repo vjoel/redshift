@@ -25,7 +25,7 @@ module RedShift; class CexprGuard
         gw = rb_funcall(#{gw_cname}, #{sl.declare_symbol :new}, 1, rb_str_new2(#{inspect_str.inspect}));
         Data_Get_Struct(gw, #{gw_ssn}, gw_shadow);
         gw_shadow->guard = &#{fname};
-        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_flow}, 2,
+        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_wrapper}, 2,
           rb_str_new2(#{fname.inspect}), gw);
       }
 
@@ -97,7 +97,7 @@ module RedShift; class Expr
         ew = rb_funcall(#{ew_cname}, #{sl.declare_symbol :new}, 1, rb_str_new2(#{inspect_str.inspect}));
         Data_Get_Struct(ew, #{ew_ssn}, ew_shadow);
         ew_shadow->expr = &#{fname};
-        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_flow}, 2,
+        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_wrapper}, 2,
           rb_str_new2(#{fname.inspect}), ew);
       }
 

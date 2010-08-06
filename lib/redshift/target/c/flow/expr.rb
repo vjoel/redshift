@@ -60,7 +60,7 @@ module RedShift; class CexprGuard
       end
 
       sl.init_library_function.body %{
-        rb_ivar_set(gw_shadow->self, #{sl.declare_symbol :@strict}, #{strict ? "Qtrue" : "Qfalse"});
+        gw_shadow->strict = #{strict ? "1" : "0"};
       }
       @strict = strict
     end

@@ -163,10 +163,8 @@ module RedShift
 
     class GuardWrapper < FunctionWrapper
       shadow_attr :guard => "Guard guard"
+      shadow_attr_reader :strict => "boolean strict"
       @tag = "Guard"
-
-      def self.strict; @strict; end
-      def strict; @strict ||= self.class.strict; end
     end
     
     class ExprWrapper < FunctionWrapper
@@ -338,7 +336,7 @@ module RedShift
       unsigned    unused    : 11;
       union {
         struct {
-          unsigned idx      : 16; //# index of next transition after sync failure
+          unsigned idx      : 16; //# index of next trans after sync failure
         } trans;
       } tmp;
     }
@@ -712,7 +710,8 @@ module RedShift
           end
 
           @flow_wrapper_hash ||= {}
-          @flow_wrapper_hash[ [flow.var, flow.formula] ] ||= flow.become_generatable(self, state)
+          @flow_wrapper_hash[ [flow.var, flow.formula] ] ||=
+            flow.become_generatable(self, state)
         end
       end
 
@@ -751,13 +750,6 @@ module RedShift
               g # a proc is slower than a method when called from step_discrete
             end
           
-          when Class ### is this still relevant?
-            if g < GuardWrapper
-              g
-            else
-              raise "What is #{g.inspect}?"
-            end
-
           when String
             define_guard(g)
           

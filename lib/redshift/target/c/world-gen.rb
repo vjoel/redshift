@@ -404,7 +404,8 @@ class World
         ComponentShadow *(*fn)(ComponentShadow *);
         ComponentShadow *rslt;
         assert(rb_obj_is_kind_of(expr, ExprWrapperClass));
-        fn = ((#{RedShift::Component::ExprWrapper.shadow_struct_name} *)
+        fn = (ComponentShadow *(*)(ComponentShadow *))
+          ((#{RedShift::Component::ExprWrapper.shadow_struct_name} *)
                get_shadow(expr))->expr;
         rslt = (*fn)(get_shadow(comp));
         return rslt;

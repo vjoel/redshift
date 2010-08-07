@@ -1,22 +1,59 @@
 # Copyright (C) 2001-2010, Joel VanderWerf
 # Distributed under the Ruby license. See www.ruby-lang.org.
 
-# Read all environment variables related to RedShift and store in globals
-## see importenv.rb for a way to keep these in sync
+# RedShift has no command line interface, since it is a library. But it does
+# let you pass in options with any env var named REDSHIFT_*. The variable
+# is accessible as a global $REDSHIFT_*.
+#
+# Some standard env vars recognized by redshift itself:
+#
+# REDSHIFT_BUILD_TIMES  : boolean - show times of each build step
+# REDSHIFT_CGEN_VERBOSE : boolean - passed on to cgen via $CGEN_VERBOSE
+# REDSHIFT_CLIB_NAME    : string  - used as based for dir and .so names
+# REDSHIFT_DEBUG        : int     - debug level (false, 0, or empty to disable)
+# REDSHIFT_DEBUG_ZENO   : boolean - turn on Zeno debugging in zeno-debugger.rb
+# REDSHIFT_MAKE_ARGS    : string  - arguments passed on to make (-j is nice)
+# REDSHIFT_SKIP_BUILD   : boolean - just load .so and run program
+# REDSHIFT_TARGET       : string  - (future) which kind of build
+# REDSHIFT_WORK_DIR     : string  - where to build C lib (default is ./tmp/)
+
+convert_val = proc do |var, val|
+  case var
+  when /\AREDSHIFT_(?:BUILD_TIMES|CGEN_VERBOSE|DEBUG_ZENO|SKIP_BUILD)\z/
+    case val
+    when /\A\s*(false|off|nil|0*)\s*\z/i
+      false
+    else
+      true
+    end
+  when /\AREDSHIFT_DEBUG\z/
+    case val
+    when /\A\s*(false|off|nil|0*)\s*\z/i
+      false
+    when /\A\s*(true|on)\s*\z/i
+      1
+    else
+      val.to_i rescue 1
+    end
+  else
+    val
+  end
+end
+
 ENV.keys.grep(/RedShift/i) do |key|
+  next unless /\A[\w]+\z/ =~ key
   val = ENV[key] # make eval safe
+  val = convert_val[key, val]
   eval "$#{key} = val unless defined? $#{key}"
 end
 
 if $REDSHIFT_DEBUG
-  f = $stderr
-  f.puts "  ----------------------------------------------------------------- "
-  f.puts " |RedShift debugging information enabled by env var REDSHIFT_DEBUG.|"
-  f.puts " |    Please ignore error messages that do not halt the progam.    |"
-  f.puts "  ----------------------------------------------------------------- "
-  f.puts "\n   debug level = #{$REDSHIFT_DEBUG}\n\n" if $REDSHIFT_DEBUG != true
-  
-  $REDSHIFT_DEBUG = ($REDSHIFT_DEBUG.to_i rescue 1)
+  $stderr.puts <<-EOS
+   -----------------------------------------------------------------
+  |RedShift debugging information enabled by env var REDSHIFT_DEBUG.|
+   -----------------------------------------------------------------
+   REDSHIFT_DEBUG = #{$REDSHIFT_DEBUG}
+  EOS
 end
 
 class AssertionFailure < StandardError; end

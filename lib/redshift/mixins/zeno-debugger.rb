@@ -28,7 +28,7 @@ class RedShift::World
     attr_accessor :debug_zeno_limit
     
     def initialize
-      @debug_zeno       ||= $REDSHIFT_DEBUG_ZENO
+      @debug_zeno       ||= $REDSHIFT_DEBUG_ZENO ## why ||= ?
       @zeno_output      ||= $stderr
       super
     end

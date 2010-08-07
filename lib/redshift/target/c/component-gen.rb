@@ -753,8 +753,12 @@ module RedShift
           when String
             define_guard(g)
           
+          when CexprGuard
+            # already defined (shared guards)
+            g
+
           else
-            raise "What is #{g.inspect}?"
+            raise "Can't define guard for #{g.class} : #{g.inspect}"
           end
         end
         after_commit do

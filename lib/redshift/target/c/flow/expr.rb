@@ -21,14 +21,6 @@ module RedShift; class CexprGuard
         :guard_wrapper_shadow => "#{gw_ssn} *gw_shadow",
         :guard_wrapper_value  => "VALUE gw"
       
-      sl.init_library_function.body %{
-        gw = rb_funcall(#{gw_cname}, #{sl.declare_symbol :new}, 1, rb_str_new2(#{inspect_str.inspect}));
-        Data_Get_Struct(gw, #{gw_ssn}, gw_shadow);
-        gw_shadow->guard = &#{fname};
-        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_wrapper}, 2,
-          rb_str_new2(#{fname.inspect}), gw);
-      }
-
       include_file, source_file = sl.add_file fname
       
       # We need the struct
@@ -60,7 +52,12 @@ module RedShift; class CexprGuard
       end
 
       sl.init_library_function.body %{
+        gw = rb_funcall(#{gw_cname}, #{sl.declare_symbol :new}, 1, rb_str_new2(#{inspect_str.inspect}));
+        Data_Get_Struct(gw, #{gw_ssn}, gw_shadow);
+        gw_shadow->guard = &#{fname};
         gw_shadow->strict = #{strict ? "1" : "0"};
+        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_wrapper}, 2,
+          rb_str_new2(#{fname.inspect}), gw);
       }
       @strict = strict
     end

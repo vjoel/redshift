@@ -7,21 +7,9 @@ module RedShift; class RK4DifferentialFlow
       sl = cl.shadow_library
       ssn = cl.shadow_struct_name
       cont_state_ssn = cl.cont_state_class.shadow_struct_name
-      fw_ssn = Component::FlowWrapper.shadow_struct_name
-      fw_cname = sl.declare_class Component::FlowWrapper
-      
-      sl.init_library_function.declare \
-        :flow_wrapper_shadow => "#{fw_ssn} *fw_shadow",
-        :flow_wrapper_value  => "VALUE fw"
-      
-      sl.init_library_function.body %{
-        fw = rb_funcall(#{fw_cname}, #{sl.declare_symbol :new}, 1, rb_str_new2(#{inspect_str.inspect}));
-        Data_Get_Struct(fw, #{fw_ssn}, fw_shadow);
-        fw_shadow->flow = &#{fname};
-        fw_shadow->algebraic = 0;
-        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_wrapper}, 2,
-          rb_str_new2(#{fname.inspect}), fw);
-      }
+
+      sl.init_library_function.body \
+        "s_init_flow(#{fname}, #{fname.inspect}, #{inspect_str.inspect}, NONALGEBRAIC);"
 
       include_file, source_file = sl.add_file fname
       

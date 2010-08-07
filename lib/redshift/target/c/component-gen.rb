@@ -1072,9 +1072,11 @@ module RedShift
     end
     ## end # if need connect
 
-    library.source_file.declare :INIT_FLOW_DEFS => %{
+    library.source_file.declare :INIT_WRAPPER_DEFS => %{
       #define ALGEBRAIC 1
       #define NONALGEBRAIC 0
+      #define STRICT 1
+      #define NONSTRICT 0
     }
 
     library.define(:s_init_flow).instance_eval do
@@ -1096,7 +1098,50 @@ module RedShift
         fw_shadow->algebraic = alg;
         rb_funcall(#{comp_cname}, #{id_store_wrapper}, 2,
           rb_str_new2(fname), fw);
-      }
+      }.rstrip
+    end
+
+    library.define(:s_init_guard).instance_eval do
+      arguments "void (*fn)()", "char *fname", "char *inspect_str", "int strict"
+
+      gw_ssn = Component::GuardWrapper.shadow_struct_name
+      gw_cname = library.declare_class Component::GuardWrapper
+      comp_cname = library.declare_class Component
+      id_new = library.declare_symbol :new
+      id_store_wrapper = library.declare_symbol :store_wrapper
+
+      body %{\
+        #{gw_ssn} *gw_shadow;
+        VALUE gw;
+
+        gw = rb_funcall(#{gw_cname}, #{id_new}, 1, rb_str_new2(inspect_str));
+        Data_Get_Struct(gw, #{gw_ssn}, gw_shadow);
+        gw_shadow->guard = fn;
+        gw_shadow->strict = strict;
+        rb_funcall(#{comp_cname}, #{id_store_wrapper}, 2,
+          rb_str_new2(fname), gw);
+      }.rstrip
+    end
+
+    library.define(:s_init_expr).instance_eval do
+      arguments "void (*fn)()", "char *fname", "char *inspect_str"
+
+      ew_ssn = Component::ExprWrapper.shadow_struct_name
+      ew_cname = library.declare_class Component::ExprWrapper
+      comp_cname = library.declare_class Component
+      id_new = library.declare_symbol :new
+      id_store_wrapper = library.declare_symbol :store_wrapper
+
+      body %{\
+        #{ew_ssn} *ew_shadow;
+        VALUE ew;
+
+        ew = rb_funcall(#{ew_cname}, #{id_new}, 1, rb_str_new2(inspect_str));
+        Data_Get_Struct(ew, #{ew_ssn}, ew_shadow);
+        ew_shadow->expr = fn;
+        rb_funcall(#{comp_cname}, #{id_store_wrapper}, 2,
+          rb_str_new2(fname), ew);
+      }.rstrip
     end
 
     define_c_method :clear_ck_strict do

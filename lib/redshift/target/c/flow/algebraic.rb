@@ -9,9 +9,8 @@ module RedShift; class AlgebraicFlow
       cont_state_ssn = cl.cont_state_class.shadow_struct_name
       
       ## use an accumulator for these
-      sl.init_library_function.body %{
-        s_init_flow(#{fname}, #{fname.inspect}, #{inspect_str.inspect}, ALGEBRAIC);
-      }
+      sl.init_library_function.body \
+        "s_init_flow(#{fname}, #{fname.inspect}, #{inspect_str.inspect}, ALGEBRAIC);"
 
       include_file, source_file = sl.add_file fname
       

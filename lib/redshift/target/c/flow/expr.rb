@@ -14,12 +14,6 @@ module RedShift; class CexprGuard
       sl = cl.shadow_library
       ssn = cl.shadow_struct_name
       cont_state_ssn = cl.cont_state_class.shadow_struct_name
-      gw_ssn = Component::GuardWrapper.shadow_struct_name
-      gw_cname = sl.declare_class Component::GuardWrapper
-      
-      sl.init_library_function.declare \
-        :guard_wrapper_shadow => "#{gw_ssn} *gw_shadow",
-        :guard_wrapper_value  => "VALUE gw"
       
       include_file, source_file = sl.add_file fname
       
@@ -51,14 +45,9 @@ module RedShift; class CexprGuard
         }
       end
 
-      sl.init_library_function.body %{
-        gw = rb_funcall(#{gw_cname}, #{sl.declare_symbol :new}, 1, rb_str_new2(#{inspect_str.inspect}));
-        Data_Get_Struct(gw, #{gw_ssn}, gw_shadow);
-        gw_shadow->guard = &#{fname};
-        gw_shadow->strict = #{strict ? "1" : "0"};
-        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_wrapper}, 2,
-          rb_str_new2(#{fname.inspect}), gw);
-      }
+      s = strict ? "STRICT" : "NONSTRICT"
+      sl.init_library_function.body \
+        "s_init_guard(#{fname}, #{fname.inspect}, #{inspect_str.inspect}, #{s});"
       @strict = strict
     end
   end
@@ -83,20 +72,9 @@ module RedShift; class Expr
       sl = cl.shadow_library
       ssn = cl.shadow_struct_name
       cont_state_ssn = cl.cont_state_class.shadow_struct_name
-      ew_ssn = Component::ExprWrapper.shadow_struct_name
-      ew_cname = sl.declare_class Component::ExprWrapper
-      
-      sl.init_library_function.declare \
-        :expr_wrapper_shadow => "#{ew_ssn} *ew_shadow",
-        :expr_wrapper_value  => "VALUE ew"
-      
-      sl.init_library_function.body %{
-        ew = rb_funcall(#{ew_cname}, #{sl.declare_symbol :new}, 1, rb_str_new2(#{inspect_str.inspect}));
-        Data_Get_Struct(ew, #{ew_ssn}, ew_shadow);
-        ew_shadow->expr = &#{fname};
-        rb_funcall(#{sl.declare_class Component}, #{sl.declare_symbol :store_wrapper}, 2,
-          rb_str_new2(#{fname.inspect}), ew);
-      }
+
+      sl.init_library_function.body \
+        "s_init_expr(#{fname}, #{fname.inspect}, #{inspect_str.inspect});"
 
       include_file, source_file = sl.add_file fname
       

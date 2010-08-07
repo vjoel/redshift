@@ -1072,6 +1072,33 @@ module RedShift
     end
     ## end # if need connect
 
+    library.source_file.declare :INIT_FLOW_DEFS => %{
+      #define ALGEBRAIC 1
+      #define NONALGEBRAIC 0
+    }
+
+    library.define(:s_init_flow).instance_eval do
+      arguments "void (*fn)()", "char *fname", "char *inspect_str", "int alg"
+
+      fw_ssn = Component::FlowWrapper.shadow_struct_name
+      fw_cname = library.declare_class Component::FlowWrapper
+      comp_cname = library.declare_class Component
+      id_new = library.declare_symbol :new
+      id_store_wrapper = library.declare_symbol :store_wrapper
+
+      body %{\
+        #{fw_ssn} *fw_shadow;
+        VALUE fw;
+
+        fw = rb_funcall(#{fw_cname}, #{id_new}, 1, rb_str_new2(inspect_str));
+        Data_Get_Struct(fw, #{fw_ssn}, fw_shadow);
+        fw_shadow->flow = fn;
+        fw_shadow->algebraic = alg;
+        rb_funcall(#{comp_cname}, #{id_store_wrapper}, 2,
+          rb_str_new2(fname), fw);
+      }
+    end
+
     define_c_method :clear_ck_strict do
       declare :locals => %{
         ContVar    *vars;

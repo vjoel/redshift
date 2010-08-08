@@ -3,11 +3,11 @@ module RedShift; class CexprGuard
     super nil, f
   end
   
-  @@serial = 0
+  @@serial = Hash.new(0)
   
   def make_generator cl
-    @fname = "guard_#{CGenerator.make_c_name cl.name}_#{@@serial}"
-    @@serial += 1
+    @fname = "guard_#{CGenerator.make_c_name cl.name}_#{@@serial[cl]}"
+    @@serial[cl] += 1
     @inspect_str = "#{cl.name}: #{formula}"
  
     @generator = proc do
@@ -61,11 +61,11 @@ module RedShift; class Expr
     @type = type
   end
   
-  @@serial = 0
+  @@serial = Hash.new(0)
   
   def make_generator cl
-    @fname = "expr_#{CGenerator.make_c_name cl.name}_#{@@serial}"
-    @@serial += 1
+    @fname = "expr_#{CGenerator.make_c_name cl.name}_#{@@serial[cl]}"
+    @@serial[cl] += 1
     @inspect_str = "#{cl.name}: #{formula}"
     
     @generator = proc do

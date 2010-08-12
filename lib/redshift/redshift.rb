@@ -70,7 +70,7 @@ end
 module RedShift
   include Math
   
-  VERSION = '1.3.21'
+  VERSION = '1.3.22'
 
   Infinity = Math::Infinity
 

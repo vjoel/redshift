@@ -14,7 +14,7 @@ module RedShift; end
 
 class RedShift::DVector
   include Enumerable
-  require 'dvector.so'
+  require 'redshift/dvector/dvector.so'
   
   def self.[](*elts)
     new elts

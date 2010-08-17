@@ -1,4 +1,4 @@
-require './dvector'
+require 'redshift/dvector/dvector'
 require 'test/unit'
 
 DVector = RedShift::DVector

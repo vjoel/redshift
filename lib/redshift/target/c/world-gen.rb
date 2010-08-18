@@ -1294,7 +1294,8 @@ class World
 
   hook = /\bhook_\w+/
   world_classes = World.subclasses + [World]
-  hooks = Hash.new {|h,cl| h[cl] = cl.instance_methods(true).grep(hook).sort}
+  hooks = Hash.new {|h,cl| h[cl] =
+    cl.instance_methods(true).grep(hook).sort.map{|s|s.to_sym} }
   hooks[World.superclass] = nil
   known_hooks = nil
   

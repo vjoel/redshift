@@ -110,7 +110,7 @@ module RedShift; class Flow
               VALUE event_values, event_val;
               event_values = shadow->event_values;
               assert(event_values != Qnil);
-              event_val = RARRAY(event_values)->ptr[#{event_idx}];
+              event_val = RARRAY_PTR(event_values)[#{event_idx}];
               #{var_cname} = NUM2DBL(event_val);
             }
           
@@ -311,7 +311,7 @@ module RedShift; class Flow
             rs_raise(#{exc_nil}, ct->shadow->self, #{msg_nil.inspect});
           event_values = ct->#{link_cname}->event_values;
           assert(event_values != Qnil);
-          event_val = RARRAY(event_values)->ptr[#{event_idx}];
+          event_val = RARRAY_PTR(event_values)[#{event_idx}];
           return NUM2DBL(event_val);
         }
       }

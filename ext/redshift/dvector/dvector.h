@@ -12,6 +12,11 @@ typedef struct {
 extern void rs_dv_grow(RS_DVector *dv);
 extern void rs_dv_shrink(RS_DVector *dv);
 
+inline static RS_DVector *rs_dv(VALUE obj)
+{
+    return (RS_DVector *)DATA_PTR(obj);
+}
+
 inline static void rs_dv_push(RS_DVector *dv, VALUE val)
 {
     if (dv->len == dv->capa) {

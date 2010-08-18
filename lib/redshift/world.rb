@@ -1,4 +1,5 @@
 require 'pstore'
+require 'redshift/dvector/dvector'
 
 module RedShift
 
@@ -94,12 +95,16 @@ class World
   # Can override the options using assignments in the block.
   # Note that clock_start should not be assigned after the block.
   def initialize # :yields: world
-    self.curr_A = []; self.curr_P = []; self.curr_CR = []
-    self.curr_S = []; self.next_S = []; self.curr_T = []
-    self.active_E = []; self.prev_active_E = []
-    self.awake = []; self.prev_awake = []
-    self.strict_sleep = []; self.inert = []
-    self.diff_list = []; self.queue_sleep = {}
+    dv_vars = %w{
+      curr_A curr_P curr_CR curr_S next_S curr_T
+      active_E prev_active_E awake prev_awake
+      strict_sleep inert diff_list
+    }
+    dv_vars.each do |var|
+      send "#{var}=", DVector[]
+    end
+    
+    self.queue_sleep = {}
     @components = ComponentList.new  \
       awake, prev_awake, curr_T, strict_sleep, inert # _not_ diff_list
 

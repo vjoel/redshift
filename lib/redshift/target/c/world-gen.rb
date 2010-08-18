@@ -5,14 +5,15 @@ class World
   shadow_library RedShift.library
   shadow_library_file "World"
   shadow_library_source_file.include(Component.shadow_library_include_file)
+  shadow_library_source_file.include("dvector/dvector.h")
 
   shadow_library_include_file.declare :step_discrete_macros => '
     #define INT2BOOL(i)  (i ? Qtrue : Qfalse)
 
     #define SWAP_VALUE(v, w) {VALUE ___tmp = v; v = w; w = ___tmp;}
 
-    #define EACH_COMP_DO(lc)                          \\
-    for (list = RARRAY(lc), list_i = list->len - 1;   \\
+    #define EACH_COMP_DO(lc)                           \\
+    for (list = rs_dv(lc), list_i = list->len - 1;     \\
           list_i >= 0 && (                             \\
             comp = list->ptr[list_i],                  \\
             comp_shdw = get_shadow(comp),              \\
@@ -23,7 +24,7 @@ class World
   '.tabto(0)
   # Note: EACH_COMP_DO(lc) block may use move_comp and remove_comp
   # but it should (re)move none or all. Must have declarations for comp
-  # comp_shdw, list, and list_i in scope.
+  # comp_shdw, list, and list_i in scope. lc must be a DVector.
 
   shadow_library_include_file.declare :cv_cache_entry => %{
     typedef struct {
@@ -60,19 +61,19 @@ class World
     sub.shadow_library_file file_name
   end
 
-  shadow_attr_accessor :curr_A => Array
-  shadow_attr_accessor :curr_P => Array
-  shadow_attr_accessor :curr_CR => Array
-  shadow_attr_accessor :curr_S => Array
-  shadow_attr_accessor :next_S => Array
-  shadow_attr_accessor :curr_T => Array
-  shadow_attr_accessor :active_E => Array
-  shadow_attr_accessor :prev_active_E => Array
-  shadow_attr_accessor :awake => Array
-  shadow_attr_accessor :prev_awake => Array
-  shadow_attr_accessor :strict_sleep => Array
-  shadow_attr_accessor :inert => Array
-  shadow_attr_accessor :diff_list => Array
+  shadow_attr_accessor :curr_A => DVector
+  shadow_attr_accessor :curr_P => DVector
+  shadow_attr_accessor :curr_CR => DVector
+  shadow_attr_accessor :curr_S => DVector
+  shadow_attr_accessor :next_S => DVector
+  shadow_attr_accessor :curr_T => DVector
+  shadow_attr_accessor :active_E => DVector
+  shadow_attr_accessor :prev_active_E => DVector
+  shadow_attr_accessor :awake => DVector
+  shadow_attr_accessor :prev_awake => DVector
+  shadow_attr_accessor :strict_sleep => DVector
+  shadow_attr_accessor :inert => DVector
+  shadow_attr_accessor :diff_list => DVector
   shadow_attr_accessor :queue_sleep => Hash
   protected \
     :curr_A, :curr_P, :curr_CR, :curr_T,
@@ -191,7 +192,7 @@ class World
 
   define_c_method :step_continuous do
     declare :locals => %{
-      VALUE             comp_rb_ary[2], *comp_ary;
+      VALUE             comp_dvector[2], *comp_ary;
       long              len;
       long              var_count;
       ContVar          *var, *end_var;
@@ -199,11 +200,11 @@ class World
       ComponentShadow  *comp_shdw;
     }.tabto(0)
     body %{
-      comp_rb_ary[0] = shadow->awake;
-      comp_rb_ary[1] = shadow->inert;
+      comp_dvector[0] = shadow->awake;
+      comp_dvector[1] = shadow->inert;
       for (li = 0; li < 2; li++) {
-        len = RARRAY(comp_rb_ary[li])->len;
-        comp_ary = RARRAY(comp_rb_ary[li])->ptr;
+        len = rs_dv(comp_dvector[li])->len;
+        comp_ary = rs_dv(comp_dvector[li])->ptr;
         for (ci = 0; ci < len; ci++) {
           Data_Get_Struct(comp_ary[ci], ComponentShadow, comp_shdw);
           var_count = comp_shdw->var_count;
@@ -221,8 +222,8 @@ class World
       }
       
       for (shadow->rk_level = 1; shadow->rk_level <= 3; shadow->rk_level++) {
-        len = RARRAY(shadow->diff_list)->len;
-        comp_ary = RARRAY(shadow->diff_list)->ptr;
+        len = rs_dv(shadow->diff_list)->len;
+        comp_ary = rs_dv(shadow->diff_list)->ptr;
         for (ci = 0; ci < len; ci++) {
           Data_Get_Struct(comp_ary[ci], ComponentShadow, comp_shdw);
           
@@ -231,7 +232,7 @@ class World
               comp_ary[ci] = comp_ary[len-1];
               ci--;
             }
-            len = RARRAY(shadow->diff_list)->len = len-1;
+            len = rs_dv(shadow->diff_list)->len = len-1;
             comp_shdw->diff_list = 0;
           }
           else {
@@ -252,8 +253,8 @@ class World
       
       shadow->rk_level = 4;
       for (li = 0; li < 2; li++) {
-        len = RARRAY(comp_rb_ary[li])->len;
-        comp_ary = RARRAY(comp_rb_ary[li])->ptr;
+        len = rs_dv(comp_dvector[li])->len;
+        comp_ary = rs_dv(comp_dvector[li])->ptr;
         for (ci = 0; ci < len; ci++) {
           Data_Get_Struct(comp_ary[ci], ComponentShadow, comp_shdw);
           var_count = comp_shdw->var_count;
@@ -310,84 +311,80 @@ class World
       VALUE            *ptr;
       long              len;
       long              i;
-      struct RArray    *list;
+      RS_DVector       *list;
       int               list_i;
       int               did_reset;
     }.tabto(0)
     
     insteval_proc = declare_symbol :insteval_proc
-    capa = RUBY_VERSION.to_f >= 1.7 ? "aux.capa" : "capa"
     epi = Component::EventPhaseItem
     spi = Component::SyncPhaseItem
     
     parent.declare :step_discrete_subs => %{
       inline static VALUE cur_syncs(ComponentShadow *comp_shdw)
       {
-        VALUE syncs = RARRAY(comp_shdw->trans)->ptr[#{Transition::S_IDX}];
+        VALUE syncs = RARRAY_PTR(comp_shdw->trans)[#{Transition::S_IDX}];
         assert(syncs == Qnil || RBASIC(syncs)->klass == SyncClass);
         return syncs;
       }
       inline static VALUE cur_actions(ComponentShadow *comp_shdw)
       {
-        VALUE actions = RARRAY(comp_shdw->trans)->ptr[#{Transition::A_IDX}];
+        VALUE actions = RARRAY_PTR(comp_shdw->trans)[#{Transition::A_IDX}];
         assert(actions == Qnil || RBASIC(actions)->klass == ActionClass);
         return actions;
       }
       inline static VALUE cur_posts(ComponentShadow *comp_shdw)
       {
-        VALUE posts = RARRAY(comp_shdw->trans)->ptr[#{Transition::P_IDX}];
+        VALUE posts = RARRAY_PTR(comp_shdw->trans)[#{Transition::P_IDX}];
         assert(posts == Qnil || RBASIC(posts)->klass == PostClass);
         return posts;
       }
       inline static VALUE cur_events(ComponentShadow *comp_shdw)
       {
-        VALUE events = RARRAY(comp_shdw->trans)->ptr[#{Transition::E_IDX}];
+        VALUE events = RARRAY_PTR(comp_shdw->trans)[#{Transition::E_IDX}];
         assert(events == Qnil || RBASIC(events)->klass == EventClass);
         return events;
       }
       inline static VALUE cur_resets(ComponentShadow *comp_shdw)
       {
-        VALUE resets = RARRAY(comp_shdw->trans)->ptr[#{Transition::R_IDX}];
+        VALUE resets = RARRAY_PTR(comp_shdw->trans)[#{Transition::R_IDX}];
         assert(resets == Qnil || RBASIC(resets)->klass == ResetClass);
         return resets;
       }
       inline static VALUE cur_connects(ComponentShadow *comp_shdw)
       {
-        VALUE connects = RARRAY(comp_shdw->trans)->ptr[#{Transition::C_IDX}];
+        VALUE connects = RARRAY_PTR(comp_shdw->trans)[#{Transition::C_IDX}];
         assert(connects == Qnil || RBASIC(connects)->klass == ConnectClass);
         return connects;
       }
       inline static void move_comp(VALUE comp, VALUE list, VALUE next_list)
       {
-        struct RArray *nl = RARRAY(next_list);
-        assert(RARRAY(list)->ptr[RARRAY(list)->len-1] == comp);
-        if (nl->len == nl->#{capa})
-          rb_ary_store(next_list, nl->len, comp);
-        else
-          nl->ptr[nl->len++] = comp;
-        --RARRAY(list)->len;
+        RS_DVector *dv = rs_dv(next_list);
+        assert(rs_dv(list)->ptr[rs_dv(list)->len-1] == comp);
+        rs_dv_push(dv, comp);
+        --rs_dv(list)->len;
       }
       inline static void move_comp_to_hash(VALUE comp, VALUE list, VALUE hash)
       {
-        struct RArray *l = RARRAY(list);
-        assert(l->ptr[l->len-1] == comp);
+        RS_DVector *dv = rs_dv(list);
+        assert(dv->ptr[dv->len-1] == comp);
         rb_hash_aset(hash, comp, Qtrue);
-        --l->len;
+        --dv->len;
       }
       inline static void move_all_comps(VALUE list, VALUE next_list)
       { //## this could be faster using memcpy
-        struct RArray *l = RARRAY(list);
-        while (l->len)
-          move_comp(l->ptr[l->len-1], list, next_list);
+        RS_DVector *dv = rs_dv(list);
+        while (dv->len)
+          move_comp(dv->ptr[dv->len-1], list, next_list);
       }
       inline static void remove_comp(VALUE comp, VALUE list,
                                    #{World.shadow_struct_name} *shadow)
       {
         ComponentShadow *comp_shdw = get_shadow(comp);
-        assert(RARRAY(list)->ptr[RARRAY(list)->len-1] == comp);
+        assert(rs_dv(list)->ptr[rs_dv(list)->len-1] == comp);
         assert(comp_shdw->world == shadow);
         comp_shdw->world = 0;
-        --RARRAY(list)->len;
+        --rs_dv(list)->len;
         //%% hook_remove_comp(comp_shdw->self);
       }
       inline static double eval_expr(VALUE comp, VALUE expr)
@@ -425,8 +422,8 @@ class World
         int i;
         VALUE kl;
         assert(BUILTIN_TYPE(guards) == T_ARRAY);
-        for (i = 0; i < RARRAY(guards)->len; i++) {
-          VALUE guard = RARRAY(guards)->ptr[i];
+        for (i = 0; i < RARRAY_LEN(guards); i++) {
+          VALUE guard = RARRAY_PTR(guards)[i];
 
           if (SYMBOL_P(guard)) {
             if (!RTEST(rb_funcall(comp, SYM2ID(guard), 0)))
@@ -449,8 +446,8 @@ class World
             case T_ARRAY:
               kl = RBASIC(guard)->klass;
               if (kl == QMatchClass) {
-                int len = RARRAY(guard)->len;
-                VALUE *ptr = RARRAY(guard)->ptr;
+                int len = RARRAY_LEN(guard);
+                VALUE *ptr = RARRAY_PTR(guard);
                 assert(len > 0);
                 VALUE queue_name = ptr[0];
                 VALUE queue = rb_funcall(comp, SYM2ID(queue_name), 0);
@@ -480,11 +477,11 @@ class World
         VALUE syncs = cur_syncs(comp_shdw);
         assert(RTEST(syncs));
         
-        for (i = RARRAY(syncs)->len - 1; i >= 0; i--) {
-          VALUE sync = RARRAY(syncs)->ptr[i];
-          assert(RARRAY(sync)->len == 3);
-          int link_offset = FIX2INT(RARRAY(sync)->ptr[#{spi::LINK_OFFSET_IDX}]);
-          VALUE event = RARRAY(sync)->ptr[#{spi::EVENT_IDX}];
+        for (i = RARRAY_LEN(syncs) - 1; i >= 0; i--) {
+          VALUE sync = RARRAY_PTR(syncs)[i];
+          assert(RARRAY_LEN(sync) == 3);
+          int link_offset = FIX2INT(RARRAY_PTR(sync)[#{spi::LINK_OFFSET_IDX}]);
+          VALUE event = RARRAY_PTR(sync)[#{spi::EVENT_IDX}];
           ComponentShadow *link_shdw =
             *(ComponentShadow **)(((char *)comp_shdw) + link_offset);
           
@@ -496,11 +493,11 @@ class World
           int found = 0;
           VALUE link_events = cur_events(link_shdw);
           if (RTEST(link_events)) {
-            VALUE  *ptr   = RARRAY(link_events)->ptr;
-            long    len   = RARRAY(link_events)->len;
+            VALUE  *ptr   = RARRAY_PTR(link_events);
+            long    len   = RARRAY_LEN(link_events);
       
             for (j = len; j > 0; j--, ptr++) {
-              VALUE link_event = RARRAY(*ptr)->ptr[#{epi::E_IDX}];
+              VALUE link_event = RARRAY_PTR(*ptr)[#{epi::E_IDX}];
               if (link_event == event) {
                 found = 1;
                 break;
@@ -525,14 +522,14 @@ class World
         int has_events = RTEST(events);
         
         if (has_events) {
-          VALUE  *ptr   = RARRAY(events)->ptr;
-          long    len   = RARRAY(events)->len;
+          VALUE  *ptr   = RARRAY_PTR(events);
+          long    len   = RARRAY_LEN(events);
           int     i;
           VALUE   comp  = comp_shdw->self;
 
           for (i = len; i > 0; i--, ptr++) {
-            int   event_idx = FIX2INT(RARRAY(*ptr)->ptr[#{epi::I_IDX}]);
-            VALUE event_val = RARRAY(*ptr)->ptr[#{epi::V_IDX}];
+            int   event_idx = FIX2INT(RARRAY_PTR(*ptr)[#{epi::I_IDX}]);
+            VALUE event_val = RARRAY_PTR(*ptr)[#{epi::V_IDX}];
 
             //## maybe this distinction should be made clear in the array
             //## itself, with a numeric switch, say.
@@ -542,9 +539,9 @@ class World
             else if (rb_obj_is_kind_of(event_val, ExprWrapperClass))
               event_val = rb_float_new(eval_expr(comp, event_val));
 
-            //%% hook_eval_event(comp, RARRAY(*ptr)->ptr[#{epi::E_IDX}],
+            //%% hook_eval_event(comp, RARRAY_PTR(*ptr)[#{epi::E_IDX}],
             //%%   event_val);
-            RARRAY(comp_shdw->next_event_values)->ptr[event_idx] = event_val;
+            RARRAY_PTR(comp_shdw->next_event_values)[event_idx] = event_val;
           }
         }
 
@@ -711,12 +708,12 @@ class World
         if (!RTEST(resets))
           return 0;
 
-        cont_resets     = RARRAY(resets)->ptr[0];
+        cont_resets     = RARRAY_PTR(resets)[0];
         has_cont_resets = RTEST(cont_resets);
 
         if (has_cont_resets) {
-          VALUE   *ptr = RARRAY(cont_resets)->ptr;
-          long    len  = RARRAY(cont_resets)->len;
+          VALUE   *ptr = RARRAY_PTR(cont_resets);
+          long    len  = RARRAY_LEN(cont_resets);
           int     i;
           VALUE   comp = comp_shdw->self;
           ContVar *var = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
@@ -789,20 +786,20 @@ class World
         if (!RTEST(resets))
           return 0;
 
-        const_resets      = RARRAY(resets)->ptr[1];
-        link_resets       = RARRAY(resets)->ptr[2];
+        const_resets      = RARRAY_PTR(resets)[1];
+        link_resets       = RARRAY_PTR(resets)[2];
         has_const_resets  = RTEST(const_resets);
         has_link_resets   = RTEST(link_resets);
         comp              = comp_shdw->self;
 
         if (has_const_resets) {
-          VALUE   *ptr = RARRAY(const_resets)->ptr;
-          long    len  = RARRAY(const_resets)->len;
+          VALUE   *ptr = RARRAY_PTR(const_resets);
+          long    len  = RARRAY_LEN(const_resets);
 
           for (i = 0; i < len; i++) {
             VALUE   pair    = ptr[i];
-            int     offset  = NUM2INT(RARRAY(pair)->ptr[0]);
-            VALUE   reset   = RARRAY(pair)->ptr[1];
+            int     offset  = NUM2INT(RARRAY_PTR(pair)[0]);
+            VALUE   reset   = RARRAY_PTR(pair)[1];
             double new_value;
 
             switch(TYPE(reset)) {
@@ -818,7 +815,7 @@ class World
             }
 
             //%% hook_eval_reset_constant(comp,
-            //%%     RARRAY(pair)->ptr[2], rb_float_new(new_value));
+            //%%     RARRAY_PTR(pair)[2], rb_float_new(new_value));
             cache_new_constant_value(
               (double *)((char *)comp_shdw + offset),
               new_value, shadow);
@@ -826,13 +823,13 @@ class World
         }
         
         if (has_link_resets) {
-          VALUE   *ptr = RARRAY(link_resets)->ptr;
-          long    len  = RARRAY(link_resets)->len;
+          VALUE   *ptr = RARRAY_PTR(link_resets);
+          long    len  = RARRAY_LEN(link_resets);
           
           for (i = 0; i < len; i++) {
             VALUE   pair    = ptr[i];
-            int     offset  = NUM2INT(RARRAY(pair)->ptr[0]);
-            VALUE   reset   = RARRAY(pair)->ptr[1];
+            int     offset  = NUM2INT(RARRAY_PTR(pair)[0]);
+            VALUE   reset   = RARRAY_PTR(pair)[1];
             VALUE   new_value;
 
             if (rb_obj_is_kind_of(reset, ExprWrapperClass)) {
@@ -852,19 +849,19 @@ class World
             }
 
             if (!NIL_P(new_value) &&
-                rb_obj_is_kind_of(new_value, RARRAY(pair)->ptr[3]) != Qtrue) {
+                rb_obj_is_kind_of(new_value, RARRAY_PTR(pair)[3]) != Qtrue) {
               VALUE to_s = #{declare_symbol :to_s};
               rs_raise(#{declare_class LinkTypeError}, comp_shdw->self,
                 "tried to reset %s, which is declared %s, with %s.",
-                STR2CSTR(rb_funcall(RARRAY(pair)->ptr[2], to_s, 0)),
-                STR2CSTR(rb_funcall(RARRAY(pair)->ptr[3], to_s, 0)),
+                STR2CSTR(rb_funcall(RARRAY_PTR(pair)[2], to_s, 0)),
+                STR2CSTR(rb_funcall(RARRAY_PTR(pair)[3], to_s, 0)),
                 STR2CSTR(rb_funcall(
                   rb_funcall(new_value, #{declare_symbol :class}, 0), to_s, 0))
                 );
             }
 
             //%% hook_eval_reset_link(comp,
-            //%%     RARRAY(pair)->ptr[2], (VALUE)new_value);
+            //%%     RARRAY_PTR(pair)[2], (VALUE)new_value);
             cache_new_link(
               (ComponentShadow **)((char *)comp_shdw + offset),
               new_value, shadow);
@@ -884,13 +881,13 @@ class World
         else {
           int     i;
           VALUE   comp = comp_shdw->self;
-          VALUE   *ptr = RARRAY(connects)->ptr;
-          long    len  = RARRAY(connects)->len;
+          VALUE   *ptr = RARRAY_PTR(connects);
+          long    len  = RARRAY_LEN(connects);
 
           for (i = 0; i < len; i++) {
             VALUE   pair      = ptr[i];
-            VALUE   input_var = RARRAY(pair)->ptr[0];
-            VALUE   connect_spec = RARRAY(pair)->ptr[1];
+            VALUE   input_var = RARRAY_PTR(pair)[0];
+            VALUE   connect_spec = RARRAY_PTR(pair)[1];
             VALUE   input_port;
             VALUE   other_port;
             
@@ -925,11 +922,11 @@ class World
         if (!RTEST(resets))
           return 0;
 
-        cont_resets   = RARRAY(resets)->ptr[0];
+        cont_resets   = RARRAY_PTR(resets)[0];
         var           = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
         did_reset     = 0;
 
-        len = RARRAY(cont_resets)->len;
+        len = RARRAY_LEN(cont_resets);
         for (i = len; i > 0; i--, var++) {
           if (var->reset) {
             var->reset = 0;
@@ -948,8 +945,8 @@ class World
         
         assert(RTEST(actions));
 
-        for (i = 0; i < RARRAY(actions)->len; i++) {
-          VALUE val = RARRAY(actions)->ptr[i];
+        for (i = 0; i < RARRAY_LEN(actions); i++) {
+          VALUE val = RARRAY_PTR(actions)[i];
           //%% hook_call_action(comp, val);
 
           if (SYMBOL_P(val))
@@ -959,8 +956,8 @@ class World
           //## this tech. could be applied in EVENT and RESET.
           //## also, component-gen can make use of this optimization
           //## for procs, using code similar to that for guards.
-//#            rb_obj_instance_eval(1, &RARRAY(actions)->ptr[i], comp);
-//# rb_iterate(my_instance_eval, comp, call_block, RARRAY(actions)->ptr[i]);
+//#            rb_obj_instance_eval(1, &RARRAY_PTR(actions)[i], comp);
+//# rb_iterate(my_instance_eval, comp, call_block, RARRAY_PTR(actions)[i]);
         }
       }
 
@@ -1034,7 +1031,7 @@ class World
       {
         VALUE             comp;
         ComponentShadow  *comp_shdw;
-        struct RArray    *list;
+        RS_DVector       *list;
         int               list_i;
         VALUE            *ptr;
         long              len, cur;
@@ -1045,7 +1042,7 @@ class World
           if (shadow->discrete_step == 0)
             comp_shdw->checked = 0;
           
-          len = RARRAY(comp_shdw->outgoing)->len - 1; //# last is flags
+          len = RARRAY_LEN(comp_shdw->outgoing) - 1; //# last is flags
           cur = len;
 
           if (len == 0) {
@@ -1053,7 +1050,7 @@ class World
             continue;
           }
 
-          ptr = RARRAY(comp_shdw->outgoing)->ptr;
+          ptr = RARRAY_PTR(comp_shdw->outgoing);
           if (sync_retry)
             cur -= 4 * comp_shdw->tmp.trans.idx;
           else
@@ -1102,14 +1099,14 @@ class World
             comp_shdw->checked = 1;
           }
         }
-        assert(RARRAY(shadow->prev_awake)->len == 0);
+        assert(rs_dv(shadow->prev_awake)->len == 0);
       }
       
       inline static void do_sync_phase(#{World.shadow_struct_name} *shadow)
       {
         VALUE             comp;
         ComponentShadow  *comp_shdw;
-        struct RArray    *list;
+        RS_DVector       *list;
         int               list_i;
         int               changed;
         
@@ -1126,7 +1123,7 @@ class World
             }
           }
           
-          assert(RARRAY(shadow->curr_S)->len == 0);
+          assert(rs_dv(shadow->curr_S)->len == 0);
           SWAP_VALUE(shadow->curr_S, shadow->next_S);
           //%% hook_sync_step(shadow->curr_S, INT2BOOL(changed));
         } while (changed);
@@ -1163,7 +1160,7 @@ class World
         
         SWAP_VALUE(shadow->prev_awake, shadow->awake);
         
-        while (RARRAY(shadow->prev_awake)->len) {
+        while (rs_dv(shadow->prev_awake)->len) {
           //%% hook_enter_guard_phase();
           check_guards(shadow, sync_retry);
           //%% hook_leave_guard_phase();
@@ -1174,7 +1171,7 @@ class World
           sync_retry = 1;
         }
         
-        if (!RARRAY(shadow->curr_T)->len) {
+        if (!rs_dv(shadow->curr_T)->len) {
           //%% hook_end_step();
           break; //# out of main loop
         }
@@ -1182,7 +1179,7 @@ class World
         EACH_COMP_DO(shadow->curr_T) {
           //%% hook_begin_eval_events(comp);
           if (eval_events(comp_shdw, shadow))
-            rb_ary_push(shadow->active_E, comp);
+            rs_dv_push(rs_dv(shadow->active_E), comp);
           //%% hook_end_eval_events(comp);
         }
         
@@ -1192,22 +1189,22 @@ class World
           //%% hook_export_events(comp, comp_shdw->event_values);
         }
         SWAP_VALUE(shadow->active_E, shadow->prev_active_E);
-        assert(RARRAY(shadow->active_E)->len == 0);
+        assert(rs_dv(shadow->active_E)->len == 0);
         
         //%% hook_enter_eval_phase();
         EACH_COMP_DO(shadow->curr_T) {
           //%% hook_begin_eval_resets(comp);
           if (eval_continuous_resets(comp_shdw, shadow))
-            rb_ary_push(shadow->curr_CR, comp);
+            rs_dv_push(rs_dv(shadow->curr_CR), comp);
           eval_constant_resets(comp_shdw, shadow);
           eval_port_connects(comp_shdw, shadow);
           //%% hook_end_eval_resets(comp);
           
           if (RTEST(cur_actions(comp_shdw)))
-            rb_ary_push(shadow->curr_A, comp);
+            rs_dv_push(rs_dv(shadow->curr_A), comp);
           
           if (RTEST(cur_posts(comp_shdw)))
-            rb_ary_push(shadow->curr_P, comp);
+            rs_dv_push(rs_dv(shadow->curr_P), comp);
         }
         //%% hook_leave_eval_phase();
 
@@ -1215,7 +1212,7 @@ class World
         EACH_COMP_DO(shadow->curr_A) {
           do_actions(comp_shdw, cur_actions(comp_shdw), shadow);
         }
-        RARRAY(shadow->curr_A)->len = 0;
+        rs_dv(shadow->curr_A)->len = 0;
         //%% hook_leave_action_phase();
 
         //%% hook_begin_parallel_assign();
@@ -1223,7 +1220,7 @@ class World
         EACH_COMP_DO(shadow->curr_CR) {
           did_reset = assign_new_cont_values(comp_shdw) || did_reset;
         }
-        RARRAY(shadow->curr_CR)->len = 0;
+        rs_dv(shadow->curr_CR)->len = 0;
         did_reset = assign_new_constant_values(shadow) || did_reset;
         did_reset = assign_new_links(shadow) || did_reset;
         did_reset = assign_new_ports(shadow) || did_reset;
@@ -1233,7 +1230,7 @@ class World
         EACH_COMP_DO(shadow->curr_P) {
           do_actions(comp_shdw, cur_posts(comp_shdw), shadow);
         }
-        RARRAY(shadow->curr_P)->len = 0;
+        rs_dv(shadow->curr_P)->len = 0;
         //%% hook_leave_post_phase();
         
         EACH_COMP_DO(shadow->curr_T) {
@@ -1264,15 +1261,15 @@ class World
           else
             move_comp(comp, shadow->curr_T, shadow->awake);
         }
-        assert(RARRAY(shadow->curr_T)->len == 0);
-        assert(RARRAY(shadow->prev_awake)->len == 0);
+        assert(rs_dv(shadow->curr_T)->len == 0);
+        assert(rs_dv(shadow->prev_awake)->len == 0);
 
         //# Clear event values.
         EACH_COMP_DO(shadow->prev_active_E) {
-          rb_mem_clear(RARRAY(comp_shdw->event_values)->ptr,
-                       RARRAY(comp_shdw->event_values)->len);
+          rb_mem_clear(RARRAY_PTR(comp_shdw->event_values),
+                       RARRAY_LEN(comp_shdw->event_values));
         }
-        RARRAY(shadow->prev_active_E)->len = 0;
+        rs_dv(shadow->prev_active_E)->len = 0;
         
         //%% hook_end_step();
       }
@@ -1302,6 +1299,7 @@ class World
     
     cl.class_eval do
       shadow_library_source_file.include(Component.shadow_library_include_file)
+      shadow_library_source_file.include("dvector/dvector.h")
       
       if (instance_methods(false) + protected_instance_methods(false) +
           private_instance_methods(false)).include?("step_discrete")

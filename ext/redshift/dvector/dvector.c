@@ -220,6 +220,7 @@ Init_dvector(void)
     rb_define_alloc_func(rs_cDVector, dv_alloc);
     rb_define_method(rs_cDVector, "push", dv_method_push, -1);
     rb_define_method(rs_cDVector, "pop", dv_method_pop, 0);
+    rb_define_alias(rs_cDVector,  "<<", "push");
 
     rb_define_method(rs_cDVector, "each", dv_method_each, 0);
     rb_define_method(rs_cDVector, "to_a", dv_method_to_a, 0);

@@ -22,9 +22,14 @@ module RedShift
       end
 
       include_file.include '<math.h>'
+      
+      base = File.expand_path("../../../..", __FILE__)
+      ext_rs = File.join(base, "ext/redshift")
+      include_dirs << ext_rs
     end
     
     # Call this to link with external libraries. See examples/external-lib.rb.
+    # Note also include_dirs array.
     def link_with *libs
       (@link_libs ||= []) << libs
     end

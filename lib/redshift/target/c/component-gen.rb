@@ -944,8 +944,8 @@ module RedShift
         idx_ary = rb_funcall(shadow->cont_state->self, #{svi}, 0);
         Check_Type(idx_ary, T_ARRAY); //## debug only
 
-        count = RARRAY(idx_ary)->len;
-        indexes = RARRAY(idx_ary)->ptr;
+        count = RARRAY_LEN(idx_ary);
+        indexes = RARRAY_PTR(idx_ary);
         
         for (i = 0; i < count; i++) {
           idx = NUM2INT(indexes[i]);
@@ -1210,9 +1210,10 @@ module RedShift
         long        count;
         VALUE      *flows;
         int         has_diff;
-        struct RArray *ary;
         int         flags;
       }.tabto(0)
+
+      include("dvector/dvector.h")
 
       body %{
         var_count = shadow->var_count;
@@ -1222,8 +1223,7 @@ module RedShift
         shadow->outgoing = rb_funcall(shadow->self,
                            #{declare_symbol :outgoing_transition_data}, 0);
 
-        ary = RARRAY(shadow->outgoing);
-        flags = FIX2INT(ary->ptr[ary->len-1]);
+        flags = FIX2INT(RARRAY_PTR(shadow->outgoing)[RARRAY_LEN(shadow->outgoing)-1]);
         shadow->strict = flags & 0x01;
         shadow->sleepable = !!(flags & 0x02);
 
@@ -1236,8 +1236,8 @@ module RedShift
 
         if (flow_array != Qnil) {
           #{"Check_Type(flow_array, T_ARRAY);\n" if $REDSHIFT_DEBUG}
-          count = RARRAY(flow_array)->len;
-          flows = RARRAY(flow_array)->ptr;
+          count = RARRAY_LEN(flow_array);
+          flows = RARRAY_PTR(flow_array);
 
           if (count > var_count)
             rs_raise(#{declare_class IndexError}, shadow->self,
@@ -1287,7 +1287,7 @@ module RedShift
         if (has_diff && !shadow->has_diff) {
           if (!shadow->diff_list) {
             if (shadow->world->diff_list) { //# 0 if loading
-              rb_ary_push(shadow->world->diff_list, shadow->self);
+              rs_dv_push(rs_dv(shadow->world->diff_list), shadow->self);
             }
             shadow->diff_list = 1;
           }

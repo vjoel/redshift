@@ -733,14 +733,14 @@ class World
 
               switch(TYPE(reset)) {
                 case T_FLOAT:
-                  new_value = RFLOAT(reset)->value;
+                  new_value = RFLOAT_VALUE(reset);
                   break;
                 default:
                   if (RBASIC(reset)->klass == rb_cProc) {
                     VALUE val = rb_funcall(comp, #{insteval_proc}, 1, reset);
                     switch(TYPE(val)) {
                       case T_FLOAT:
-                        new_value = RFLOAT(val)->value;
+                        new_value = RFLOAT_VALUE(val);
                         break;
                       case T_FIXNUM:
                         new_value = FIX2INT(val);
@@ -804,7 +804,7 @@ class World
 
             switch(TYPE(reset)) {
               case T_FLOAT:
-                new_value = RFLOAT(reset)->value;
+                new_value = RFLOAT_VALUE(reset);
                 break;
               default:
                 if (RBASIC(reset)->klass == rb_cProc)

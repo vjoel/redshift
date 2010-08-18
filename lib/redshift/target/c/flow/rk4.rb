@@ -64,7 +64,7 @@ module RedShift; class RK4DifferentialFlow
 
           default:
             rb_raise(#{declare_class RuntimeError},
-              "Bad rk_level, %d!", shadow->world->rk_level);
+              "Bad rk_level, %ld!", shadow->world->rk_level);
           }
           
           shadow->world->rk_level++;

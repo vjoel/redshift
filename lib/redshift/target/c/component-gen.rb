@@ -1084,7 +1084,7 @@ module RedShift
     }
 
     library.define(:s_init_flow).instance_eval do
-      arguments "void (*fn)()", "char *fname", "char *inspect_str", "int alg"
+      arguments "void (*fn)()", "const char *fname", "const char *inspect_str", "int alg"
 
       fw_ssn = Component::FlowWrapper.shadow_struct_name
       fw_cname = library.declare_class Component::FlowWrapper
@@ -1106,7 +1106,7 @@ module RedShift
     end
 
     library.define(:s_init_guard).instance_eval do
-      arguments "void (*fn)()", "char *fname", "char *inspect_str", "int strict"
+      arguments "int (*fn)()", "const char *fname", "const char *inspect_str", "int strict"
 
       gw_ssn = Component::GuardWrapper.shadow_struct_name
       gw_cname = library.declare_class Component::GuardWrapper
@@ -1128,7 +1128,7 @@ module RedShift
     end
 
     library.define(:s_init_expr).instance_eval do
-      arguments "void (*fn)()", "char *fname", "char *inspect_str"
+      arguments "double (*fn)()", "const char *fname", "const char *inspect_str"
 
       ew_ssn = Component::ExprWrapper.shadow_struct_name
       ew_cname = library.declare_class Component::ExprWrapper

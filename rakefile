@@ -40,6 +40,19 @@ task 'test' do
   end
 end
 
+desc "build extensions for current ruby: #{RUBY_VERSION}"
+task 'ex' do
+  Find.find('ext/redshift') do |f|
+    next unless File.basename(f) == "extconf.rb"
+    d = File.dirname(f)
+    Dir.chdir d do
+      sh "make distclean"
+      ruby "extconf.rb"
+      sh "make"
+    end
+  end
+end
+
 ENV["VERSION"] = RedShift::VERSION ## why isn't this automatic?
 
 task 'gem:release' => 'rubyforge:release' # to release to rubyforge as well

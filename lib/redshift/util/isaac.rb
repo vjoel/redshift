@@ -6,8 +6,8 @@ class ISAACGenerator < ISAAC
   def initialize(*seeds)
     super()
     if seeds.compact.empty?
-      if defined?(Random::Sequence.random_seed)
-        seeds = [Random::Sequence.random_seed]
+      if defined?(RandomDistribution::Sequence.random_seed)
+        seeds = [RandomDistribution::Sequence.random_seed]
       else
         seeds = [rand]
       end

@@ -53,12 +53,12 @@ class Flow_Transition < FlowTestComponent
   setup do
     self.x = 0
     @alarm_time = 0
-    @alarm_seq = Random::Exponential.new(
+    @alarm_seq = RandomDistribution::Exponential.new(
       :generator => ISAACGenerator,
       :seed => 614822716,
       :mean => 0.5
     )
-    @state_seq = Random::Discrete.new(
+    @state_seq = RandomDistribution::Discrete.new(
       :generator => ISAACGenerator,
       :seed => 3871653669, ## doesn't make sense to re-seed the same global gen
       :distrib =>
@@ -249,7 +249,7 @@ class TestFlow < Test::Unit::TestCase
     testers = []
     ObjectSpace.each_object(Class) do |cl|
       if cl <= FlowTestComponent and
-         cl.instance_methods.include? "assert_consistent"
+         cl.instance_methods.grep(/^assert_consistent$/).size > 0
         testers << @world.create(cl)
       end
     end

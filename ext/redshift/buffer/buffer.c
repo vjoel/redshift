@@ -85,7 +85,9 @@ VALUE rs_buffer_exhale_array(RSBuffer *buf)
     
     size = buf->len;
     ary = rb_ary_new2(size);
-    rb_ary_store(ary, size-1, Qnil);
+    if (size > 0) {
+        rb_ary_store(ary, size-1, Qnil);
+    }
     for (i = buf->offset, j=0; i < size; i++, j++) {
       RARRAY_PTR(ary)[j] = rb_float_new(buf->ptr[i]);
     }

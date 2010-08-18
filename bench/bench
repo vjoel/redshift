@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+require 'rbconfig'
+
 def bench_one(name)
   lib = File.join(File.dirname(__FILE__), name)
   cmd = %{
@@ -7,7 +9,8 @@ def bench_one(name)
     puts "#{name}:"
     #{name.split(/[-_]/).map {|w|w.capitalize}.join}.do_bench {|l| puts l}
   }
-  system "ruby", "-r" , "./bench", "-r", lib, "-e", cmd
+  ruby = Config::CONFIG["RUBY_INSTALL_NAME"]
+  system ruby, "-r" , "./bench", "-r", lib, "-e", cmd
 end
 
 pat = ARGV.pop

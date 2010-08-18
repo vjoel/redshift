@@ -721,6 +721,7 @@ class World
 
           for (i = 0; i < len; i++, var++, ptr++) {
             VALUE reset = *ptr;
+            VALUE class_name;
             if (reset == Qnil) {
               var->reset = 0;
             }
@@ -746,12 +747,12 @@ class World
                         new_value = FIX2INT(val);
                         break;
                       default:
+                        class_name = rb_funcall(
+                          rb_funcall(val, #{declare_symbol :class}, 0),
+                          #{declare_symbol :to_s}, 0);
                         rs_raise(#{declare_class VarTypeError}, comp,
                           "tried to reset cont var with %s.",
-                          STR2CSTR(rb_funcall(
-                            rb_funcall(val, #{declare_symbol :class}, 0),
-                            #{declare_symbol :to_s},
-                            0))
+                          StringValuePtr(class_name)
                         );
                     }
                   }
@@ -851,12 +852,16 @@ class World
             if (!NIL_P(new_value) &&
                 rb_obj_is_kind_of(new_value, RARRAY_PTR(pair)[3]) != Qtrue) {
               VALUE to_s = #{declare_symbol :to_s};
+              VALUE s1 = rb_funcall(RARRAY_PTR(pair)[2], to_s, 0);
+              VALUE s2 = rb_funcall(RARRAY_PTR(pair)[3], to_s, 0);
+              VALUE s3 = rb_funcall(
+                  rb_funcall(new_value, #{declare_symbol :class}, 0), to_s, 0);
+
               rs_raise(#{declare_class LinkTypeError}, comp_shdw->self,
                 "tried to reset %s, which is declared %s, with %s.",
-                STR2CSTR(rb_funcall(RARRAY_PTR(pair)[2], to_s, 0)),
-                STR2CSTR(rb_funcall(RARRAY_PTR(pair)[3], to_s, 0)),
-                STR2CSTR(rb_funcall(
-                  rb_funcall(new_value, #{declare_symbol :class}, 0), to_s, 0))
+                StringValuePtr(s1),
+                StringValuePtr(s2),
+                StringValuePtr(s3)
                 );
             }
 
@@ -1302,7 +1307,7 @@ class World
       shadow_library_source_file.include("dvector/dvector.h")
       
       if (instance_methods(false) + protected_instance_methods(false) +
-          private_instance_methods(false)).include?("step_discrete")
+          private_instance_methods(false)).grep(/^step_discrete$/).size > 0
         warn "Redefining step_discrete in #{self}"
       end
       
@@ -1313,7 +1318,7 @@ class World
         # at this point, we know the file is complete
         file_str = meth.parent.to_s
         
-        known_hooks ||= file_str.scan(hook)
+        known_hooks ||= file_str.scan(hook).map {|s|s.to_sym}
         unknown_hooks = cl_hooks - known_hooks
 
         unless unknown_hooks.empty?

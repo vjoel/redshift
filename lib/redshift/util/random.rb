@@ -1,4 +1,4 @@
-module Random
+module RandomDistribution
 
   # Base class for sequences that sample different kinds of distributions.
   # The actual PRNG must be plugged in at initialization, or else ruby's

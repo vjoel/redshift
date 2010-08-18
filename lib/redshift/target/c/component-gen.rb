@@ -4,8 +4,6 @@ module RedShift
     # just so we can call shadow_struct_name on it
   end
 
-  HAVE_DEFINE_METHOD = Module.private_instance_methods.include?("define_method")
-  
   class Component
     include CShadow
     shadow_library RedShift.library
@@ -738,17 +736,13 @@ module RedShift
             g
           
           when Proc
-            if HAVE_DEFINE_METHOD
-              meth = Component.make_guard_method_name
-              class_eval do
-                define_method(meth, &g)
-              end
-              ## Currently, methods defined with define_method are a little
-              ## slower to invoke in ruby.
-              meth
-            else
-              g # a proc is slower than a method when called from step_discrete
+            meth = Component.make_guard_method_name
+            class_eval do
+              define_method(meth, &g)
             end
+            ## Currently, methods defined with define_method are a little
+            ## slower to invoke in ruby.
+            meth
           
           when String
             define_guard(g)

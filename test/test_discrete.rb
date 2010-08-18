@@ -578,7 +578,7 @@ class TestDiscrete < Test::Unit::TestCase
     testers = []
     ObjectSpace.each_object(Class) do |cl|
       if cl <= DiscreteTestComponent and
-         cl.instance_methods.include? "assert_consistent"
+         cl.instance_methods.grep(/^assert_consistent$/).size > 0
         testers << @world.create(cl)
       end
     end

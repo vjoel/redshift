@@ -94,7 +94,7 @@ end
 # test create and remove
 
 puts "World#remove TEST DISABLED **************************"
-if false && World.instance_methods.include?("remove")
+if false && World.instance_methods.grep(/^remove$/).size > 0
   class World_3 < World
     setup do @x = create(Component) end
     def run
@@ -292,9 +292,9 @@ class TestWorld < Test::Unit::TestCase
   def test_world
     testers = []
     ObjectSpace.each_object(Class) do |cl|
-      if cl <= World and ## cl.instance_methods.grep /\Aassert_consistent/
-         (cl.instance_methods.include? "assert_consistent_before" or
-          cl.instance_methods.include? "assert_consistent_after")
+      if cl <= World and
+         cl.instance_methods.grep(
+           /^assert_consistent_(?:before|after)$/).size > 0
         testers << cl.new
       end
     end

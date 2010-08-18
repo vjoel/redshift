@@ -46,7 +46,7 @@ task 'ex' do
     next unless File.basename(f) == "extconf.rb"
     d = File.dirname(f)
     Dir.chdir d do
-      sh "make distclean"
+      sh "make distclean || true"
       ruby "extconf.rb"
       sh "make"
     end

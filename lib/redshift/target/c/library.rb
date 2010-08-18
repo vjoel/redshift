@@ -23,7 +23,7 @@ module RedShift
 
       include_file.include '<math.h>'
       
-      base = File.expand_path("../../../..", __FILE__)
+      base = File.expand_path("../../../../..", __FILE__)
       ext_rs = File.join(base, "ext/redshift")
       include_dirs << ext_rs
     end

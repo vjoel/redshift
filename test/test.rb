@@ -37,7 +37,7 @@ tests.sort!
 #end
 
 require 'rbconfig'
-ruby = Config::CONFIG["RUBY_INSTALL_NAME"]
+ruby = RbConfig::CONFIG["RUBY_INSTALL_NAME"]
 
 pending = tests.dup
 failed = []

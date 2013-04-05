@@ -9,7 +9,7 @@ def bench_one(name)
     puts "#{name}:"
     #{name.split(/[-_]/).map {|w|w.capitalize}.join}.do_bench {|l| puts l}
   }
-  ruby = Config::CONFIG["RUBY_INSTALL_NAME"]
+  ruby = RbConfig::CONFIG["RUBY_INSTALL_NAME"]
   system ruby, "-r" , "./bench", "-r", lib, "-e", cmd
 end
 

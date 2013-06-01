@@ -1,10 +1,12 @@
+require 'redshift'
+
 Gem::Specification.new do |s|
   s.name = "redshift"
-  s.version = "1.3.26"
+  s.version = RedShift::VERSION
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0")
   s.authors = ["Joel VanderWerf"]
-  s.date = "2013-04-05"
+  s.date = "2013-06-01"
   s.description = "A framework for simulation of networks of hybrid automata, similar to SHIFT and Lambda-SHIFT. Includes ruby-based DSL for defining simulation components, and ruby/C code generation and runtime."
   s.email = "vjoel@users.sourceforge.net"
   s.extensions = ["ext/redshift/buffer/extconf.rb", "ext/redshift/dvector/extconf.rb", "ext/redshift/util/isaac/extconf.rb"]
@@ -25,6 +27,5 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--quiet", "--line-numbers", "--inline-source", "--title", "CGenerator", "--main", "README.md"]
   s.require_paths = ["lib", "ext"]
   s.rubyforge_project = "redshift"
-  s.rubygems_version = "2.0.3"
   s.summary = "Simulation of hybrid automata"
 end

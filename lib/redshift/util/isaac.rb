@@ -1,8 +1,8 @@
-require 'redshift/util/isaac/isaac.so'
+require 'isaac'
 
 # Adaptor class to use ISAAC with redshift/util/random distributions.
 # See test/test_flow_trans.rb for an example.
-class ISAACGenerator < ISAAC
+class ISAACGenerator < PRNG::ISAAC
   def initialize(*seeds)
     super()
     if seeds.compact.empty?

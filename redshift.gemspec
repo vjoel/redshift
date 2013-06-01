@@ -7,11 +7,12 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0")
   s.add_dependency('cgen')
   s.add_dependency('tkar')
+  s.add_dependency('prng-isaac')
   s.authors = ["Joel VanderWerf"]
   s.date = "2013-06-01"
   s.description = "A framework for simulation of networks of hybrid automata, similar to SHIFT and Lambda-SHIFT. Includes ruby-based DSL for defining simulation components, and ruby/C code generation and runtime."
   s.email = "vjoel@users.sourceforge.net"
-  s.extensions = ["ext/redshift/buffer/extconf.rb", "ext/redshift/dvector/extconf.rb", "ext/redshift/util/isaac/extconf.rb"]
+  s.extensions = ["ext/redshift/buffer/extconf.rb", "ext/redshift/dvector/extconf.rb"]
   s.extra_rdoc_files = ["README.md", "RELEASE-NOTES"]
   s.files = Dir[
     "Rakefile",

@@ -1,14 +1,12 @@
-#!/usr/bin/env ruby
-
 require 'redshift'
 
 include RedShift
 
-require 'test/unit'
+require 'minitest/autorun'
 
 # See also test_strict_continuity.rb.
 
-class TestStrictnessError < Test::Unit::TestCase
+class TestStrictnessError < Minitest::Test
 
   class T < Component
 

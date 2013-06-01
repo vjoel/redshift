@@ -27,9 +27,9 @@ class DerivativeTestComponent < Component
   end
 end
 
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestDerivative < Test::Unit::TestCase
+class TestDerivative < Minitest::Test
   
   def setup
     @world = World.new

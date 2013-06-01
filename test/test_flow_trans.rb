@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 require 'redshift'
 require 'redshift/util/random'
 require 'redshift/util/isaac'
@@ -231,9 +229,9 @@ end
 
 #-----#
 
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestFlow < Test::Unit::TestCase
+class TestFlow < Minitest::Test
   
   def setup
     @world = World.new

@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 require 'redshift'
 
 include RedShift
@@ -347,9 +345,9 @@ end
 
 #-----#
 
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestStrictContinuity < Test::Unit::TestCase
+class TestStrictContinuity < Minitest::Test
   
   def setup
     @world = SCWorld.new

@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 require 'redshift'
 
 include RedShift
@@ -44,9 +42,9 @@ end
 
 #-----#
 
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestInheritEvent < Test::Unit::TestCase
+class TestInheritEvent < Minitest::Test
   def setup
     @world = World.new
     @world.time_step = 0.1

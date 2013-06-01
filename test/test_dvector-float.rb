@@ -1,14 +1,13 @@
 require 'redshift/dvector-float/dvector-float'
-require 'test/unit'
+require 'minitest/autorun'
 
 DVectorFloat = RedShift::DVectorFloat
 
-class TestDVectorFloat < Test::Unit::TestCase
+class TestDVectorFloat < Minitest::Test
   def make_dvs n
-    assert_nothing_thrown do
-      n.times do
-        DVectorFloat.new
-      end
+    #assert_nothing_thrown do
+    n.times do
+      DVectorFloat.new
     end
   end
 
@@ -16,9 +15,8 @@ class TestDVectorFloat < Test::Unit::TestCase
     GC.start
     n = ObjectSpace.each_object(DVectorFloat){}
 
-    assert_nothing_thrown do
-      make_dvs 100
-    end
+    #assert_nothing_thrown
+    make_dvs 100
     
     GC.start
     n2 = ObjectSpace.each_object(DVectorFloat){}
@@ -28,20 +26,19 @@ class TestDVectorFloat < Test::Unit::TestCase
   
   def test_gc_stress
     GC.stress = true
-    assert_nothing_thrown do
-      make_dvs 10
-    end
+    #assert_nothing_thrown
+    make_dvs 10
   ensure
     GC.stress = false
   end
   
   def test_push_pop
     dv = DVectorFloat.new
-    assert_nothing_thrown do
-      dv.push(1)
-      dv.push(2.567)
-      dv.push(3)
-    end
+    #assert_nothing_thrown
+    dv.push(1)
+    dv.push(2.567)
+    dv.push(3)
+
     assert_equal(3, dv.pop)
     assert_in_delta(2.567, dv.pop, 0.01)
     assert_equal(1, dv.pop)

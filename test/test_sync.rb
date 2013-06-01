@@ -4,7 +4,7 @@
 # test chains of symmetric sync
 
 require 'redshift'
-require 'test/unit'
+require 'minitest/autorun'
 
 class DebugSyncWorld #< RedShift::World
   def hook_begin
@@ -25,7 +25,7 @@ class DebugSyncWorld #< RedShift::World
   end
 end
 
-class TestSync < Test::Unit::TestCase
+class TestSync < Minitest::Test
   class Relay < RedShift::Component
     link :next
     

@@ -1,8 +1,6 @@
-#!/usr/bin/env ruby
-
 require 'mathn' # Use rationals for 1/2 etc.
 
-require 'test/unit'
+require 'minitest/autorun'
 
 require 'redshift'
 
@@ -13,7 +11,7 @@ class Timer < Component
   flow { diff " x' = 1 " }
 end
 
-class TestNumerics < Test::Unit::TestCase
+class TestNumerics < Minitest::Test
   
   def setup
     @world = World.new

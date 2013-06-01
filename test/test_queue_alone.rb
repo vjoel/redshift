@@ -1,9 +1,9 @@
 require 'redshift/queue'
-require 'test/unit'
+require 'minitest/autorun'
 
 # Test queue class outside of simulation using mocked World and
 # Component classes.
-class TestQueueAlone < Test::Unit::TestCase
+class TestQueueAlone < Minitest::Test
   class World
     attr_accessor :step_count, :discrete_step
   end

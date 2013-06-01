@@ -102,9 +102,9 @@ class StateChanger < Component
   end
 end
 
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestDelay < Test::Unit::TestCase
+class TestDelay < Minitest::Test
   
   def setup
     @world = World.new

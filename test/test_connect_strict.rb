@@ -56,9 +56,9 @@ end
 
 #-----#
 
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestConnectStrict < Test::Unit::TestCase
+class TestConnectStrict < Minitest::Test
 
   def setup
     @world = SCWorld.new
@@ -114,9 +114,8 @@ class TestConnectStrict < Test::Unit::TestCase
       a.x = a.k = 12.34
     end
     @b.port(:y) << a.port(:x)
-    assert_nothing_raised do
-      @b.port(:y) << a.port(:k)
-    end
+    #assert_nothing_raised
+    @b.port(:y) << a.port(:k)
   end
   
   # One check per step, despite the Dummy

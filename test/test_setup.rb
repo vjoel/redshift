@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 require 'redshift'
 
 include RedShift
@@ -90,9 +88,9 @@ end
 
 #-----#
 
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestSetup < Test::Unit::TestCase
+class TestSetup < Minitest::Test
   
   def setup
     @world = World.new

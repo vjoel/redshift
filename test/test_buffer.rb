@@ -7,9 +7,9 @@ RedShift.with_library do |library|
   library.define_buffer
 end
 
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestBuffer < Test::Unit::TestCase
+class TestBuffer < Minitest::Test
 
   class T < Component
     RedShift.with_library do

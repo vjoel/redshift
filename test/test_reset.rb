@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 require 'redshift'
 
 include RedShift
@@ -111,9 +109,9 @@ class Receiver < Component
   end
 end
 
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestReset < Test::Unit::TestCase
+class TestReset < Minitest::Test
   
   def setup
     @world = World.new

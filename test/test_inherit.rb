@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 require 'redshift'
 
 include RedShift
@@ -89,9 +87,9 @@ class Z < Component
 end
 
 
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestInherit < Test::Unit::TestCase
+class TestInherit < Minitest::Test
   
   def setup
     @world = World.new

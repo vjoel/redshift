@@ -1,7 +1,7 @@
 require 'redshift'
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestQueue < Test::Unit::TestCase
+class TestQueue < Minitest::Test
   class Receiver < RedShift::Component
     queue :q
     transition Enter => Exit do
@@ -37,7 +37,7 @@ class TestQueue < Test::Unit::TestCase
   end
 end
 
-class TestQueueAndStrict < Test::Unit::TestCase
+class TestQueueAndStrict < Minitest::Test
   class Receiver < RedShift::Component
     queue :q
     strictly_continuous :x

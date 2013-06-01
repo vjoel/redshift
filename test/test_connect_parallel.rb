@@ -20,9 +20,9 @@ end
 
 #-----#
 
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestConnect < Test::Unit::TestCase
+class TestConnect < Minitest::Test
 
   def setup
     @world = World.new

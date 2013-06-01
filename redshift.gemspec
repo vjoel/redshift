@@ -12,6 +12,7 @@ Gem::Specification.new do |s|
   s.extensions = ["ext/redshift/buffer/extconf.rb", "ext/redshift/dvector/extconf.rb", "ext/redshift/util/isaac/extconf.rb"]
   s.extra_rdoc_files = ["README.md", "RELEASE-NOTES"]
   s.files = Dir[
+    "Rakefile",
     "README.md", "RELEASE-NOTES",
     "bench/{bench,diff-bench,run,*.rb}",
     "examples/*.rb",

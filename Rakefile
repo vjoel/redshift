@@ -12,3 +12,17 @@ Rake::TestTask.new :test do |t|
   t.libs << "ext"
   t.test_files = FileList["test/test_*.rb"]
 end
+
+desc "build extensions for current ruby: #{RUBY_VERSION}"
+task :build_ext do
+  Find.find('ext/redshift') do |f|
+    next unless File.basename(f) == "extconf.rb"
+    d = File.dirname(f)
+    Dir.chdir d do
+      sh "make distclean || true"
+      ruby "extconf.rb"
+      sh "make"
+    end
+  end
+end
+

@@ -27,7 +27,7 @@ Gem::Specification.new do |s|
     "test/*.rb"
   ]
   s.homepage = "http://rubyforge.org/projects/redshift"
-  s.rdoc_options = ["--quiet", "--line-numbers", "--inline-source", "--title", "CGenerator", "--main", "README.md"]
+  s.rdoc_options = ["--quiet", "--line-numbers", "--inline-source", "--title", "CGenerator", "--main", "README.md", "--output", "rdoc"]
   s.require_paths = ["lib", "ext"]
   s.rubyforge_project = "redshift"
   s.summary = "Simulation of hybrid automata"

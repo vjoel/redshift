@@ -1,5 +1,4 @@
 require 'rake'
-require 'rake/testtask'
 
 def cur_ruby
   require 'rbconfig'
@@ -7,14 +6,13 @@ def cur_ruby
 end
 
 desc "Run unit tests"
-Rake::TestTask.new :test do |t|
-  t.libs << "lib"
-  t.libs << "ext"
-  t.test_files = FileList["test/test_*.rb"]
+task :test do |t|
+  sh "cd test && RUBYLIB=../lib:../ext:$RUBYLIB ./test.rb"
 end
 
 desc "build extensions for current ruby: #{RUBY_VERSION}"
 task :build_ext do
+  require 'find'
   Find.find('ext/redshift') do |f|
     next unless File.basename(f) == "extconf.rb"
     d = File.dirname(f)

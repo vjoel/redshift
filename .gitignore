@@ -7,3 +7,4 @@ tmp
 /ext/*/*/Makefile
 /ext/*/*/*/Makefile
 /rdoc/*
+*.gem

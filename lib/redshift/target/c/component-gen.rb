@@ -1207,7 +1207,7 @@ module RedShift
         int         flags;
       }.tabto(0)
 
-      include("dvector/dvector.h")
+      library.include("dvector/dvector.h")
 
       body %{
         var_count = shadow->var_count;

@@ -173,7 +173,7 @@ module RedShift; class Flow
     raise(NameError, "No such link, #{link}") unless link_type
     strict = (link_strictness == :strict)
     
-    flow_fn.include link_type.shadow_library_include_file
+    flow_fn.file.include link_type.shadow_library_include_file
     
     link_cname = "link_#{link}"
     get_var_cname = "get_#{link}__#{var}"

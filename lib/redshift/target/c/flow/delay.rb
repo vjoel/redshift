@@ -73,7 +73,7 @@ module RedShift; class DelayFlow
             flow.translate(self, "delay", cl, 0, delay_by)
           end
         
-        include World.shadow_library_include_file
+        source_file.include World.shadow_library_include_file
 
         # Note: cases 1,2 must proceed to allow alg deps to be computed,
         # since their values are used later.

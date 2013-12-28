@@ -125,7 +125,8 @@ static VALUE dvf_method_hash(VALUE self)
 
     h = dvf->len;
     for (i=0; i < dvf->len; i++) {
-        int hash, j;
+        int hash;
+        unsigned int j;
         char *c;
         float f;
         

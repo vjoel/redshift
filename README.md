@@ -20,6 +20,6 @@ or some variation. You'll find that rebuilds of your simulation code go faster.
 
 ----
 
-Copyright (C) 2001-2013, Joel VanderWerf, mailto:vjoel@users.sourceforge.net
+Copyright (C) 2001-2014, Joel VanderWerf, mailto:vjoel@users.sourceforge.net
 Distributed under the Ruby license. See www.ruby-lang.org.
 

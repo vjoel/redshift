@@ -2,7 +2,7 @@
 # Depends on:
 #   gem install tkar
 # See also:
-#   http://tkar.rubyforge.org
+#   https://github.com/vjoel/tkar
 class TkarDriver
   # +dragger+ is a callable object that takes (id, x, y) and should
   # move object id to (x,y)

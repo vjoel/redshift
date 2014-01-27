@@ -34,7 +34,7 @@ module ShellWorld
 
     loop do
       evolve 100000000 do
-        puts "clock: #{clock}"
+        printf "clock: %10.3f\n" % clock
         #sleep 0.01
       end
     end

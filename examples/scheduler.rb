@@ -18,10 +18,14 @@ class Scheduler < RedShift::Component
   
   class Request
     include Comparable
+
     attr_accessor :time, :queue, :message
+
     def <=>(other)
       self.time <=> other.time
     end
+
+    # Scheduled request: at given +time+, send +message+ to +queue+.
     def initialize time, queue, message
       @time, @queue, @message = time, queue, message
     end
@@ -29,6 +33,7 @@ class Scheduler < RedShift::Component
   
   EPSILON = 1E-12 # float fuzziness, if timestep is 0.1, for example
   
+  # Schedule the sending of +message+ to +queue+, after +delta_t+ elapses.
   # Returns the request object for use with unschedule
   def schedule_message delta_t, queue, message
     req = Request.new(time + delta_t - EPSILON, queue, message)
@@ -82,7 +87,7 @@ class Client < RedShift::Component
   
   transition Enter => Waiting do
     action do
-      puts "scheduling message at #{world.clock} sec"
+      puts "scheduling message at #{world.clock} sec to run after #{delay} sec"
       scheduler.schedule_message delay, wakeup, "Time to wake up, snoozebrain!"
     end
   end

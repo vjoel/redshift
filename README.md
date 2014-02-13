@@ -2,13 +2,19 @@
 
 A framework for simulation of networks of hybrid automata, similar to SHIFT and Lambda-SHIFT. Includes ruby-based DSL for defining simulation components, and ruby/C code generation and runtime.
 
-There's no documentation yet. For now, start with the examples.
+There's not much [documentation](doc) yet, but plenty of [examples](examples). Some of the original SHIFT papers are available: [Shift: A Formalism and a Programming Language for Dynamic Networks of Hybrid Automata]( http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.32.5913&rep=rep1&type=pdf).
 
 ## Requirements ##
 
-RedShift needs ruby 1.8.x and a compatible C compiler. If you can build native gems, you're all set.
+RedShift needs ruby (1.8, 1.9, 2.0, 2.1) and a compatible C compiler. If you can build native gems, you're all set.
 
 Some of the examples also use Ruby/Tk and the tkar gem.
+
+## Installation ##
+
+Install as gem:
+
+    gem install ruby
 
 ## Env vars ##
 

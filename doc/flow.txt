@@ -1,6 +1,6 @@
 =begin
 
-RedShift, like SHIFT, uses a _dataflow_ model, rather than a Von Neumann model, of computation of continuous values. Order of computation is not specified by the programmer, but it does obey the dependencies specifed by the programmer.
+RedShift, like SHIFT, uses a _dataflow_ model, rather than a Von Neumann model, of computation of continuous values. Order of computation is not specified by the programmer, but it does obey the dependencies specified by the programmer.
 
 Flow syntax:
 

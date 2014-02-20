@@ -9,7 +9,8 @@ Gem::Specification.new do |s|
   s.add_dependency('tkar')
   s.add_dependency('prng-isaac')
   s.authors = ["Joel VanderWerf"]
-  s.date = "2013-06-01"
+  s.date = Time.now.strftime "%Y-%m-%d"
+  s.summary = "Simulation of hybrid automata"
   s.description = "A framework for simulation of networks of hybrid automata, similar to SHIFT and Lambda-SHIFT. Includes ruby-based DSL for defining simulation components, and ruby/C code generation and runtime."
   s.email = "vjoel@users.sourceforge.net"
   s.extensions = ["ext/redshift/buffer/extconf.rb", "ext/redshift/dvector/extconf.rb"]
@@ -27,9 +28,7 @@ Gem::Specification.new do |s|
     "lib/**/*.rb",
     "test/*.rb"
   ]
-  s.homepage = "http://rubyforge.org/projects/redshift"
-  s.rdoc_options = ["--quiet", "--line-numbers", "--inline-source", "--title", "CGenerator", "--main", "README.md", "--output", "rdoc"]
+  s.homepage = "https://github.com/vjoel/redshift"
+  s.rdoc_options = ["--quiet", "--line-numbers", "--inline-source", "--title", "RedShift", "--main", "README.md", "--output", "rdoc"]
   s.require_paths = ["lib", "ext"]
-  s.rubyforge_project = "redshift"
-  s.summary = "Simulation of hybrid automata"
 end

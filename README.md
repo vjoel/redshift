@@ -14,7 +14,7 @@ Some of the examples also use Ruby/Tk and the tkar gem.
 
 Install as gem:
 
-    gem install ruby
+    gem install redshift
 
 ## Env vars ##
 

@@ -26,6 +26,12 @@ If you have a multicore system and are using the gnu toolchain, set
 
 or some variation. You'll find that rebuilds of your simulation code go faster.
 
+
+What is RedShift?
+-----------------
+
+RedShift combines *dataflow* programming (for continuous variables) with *actor*-based programming (for discrete events, states, and variables, and also for continuous variables).
+
 Examples
 --------
 

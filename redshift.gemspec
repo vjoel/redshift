@@ -5,9 +5,9 @@ Gem::Specification.new do |s|
   s.version = RedShift::VERSION
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0")
-  s.add_dependency('cgen')
-  s.add_dependency('tkar')
-  s.add_dependency('prng-isaac')
+  s.add_dependency('cgen', '~> 0')
+  s.add_dependency('tkar', '~> 0')
+  s.add_dependency('prng-isaac', '~> 0')
   s.authors = ["Joel VanderWerf"]
   s.date = Time.now.strftime "%Y-%m-%d"
   s.summary = "Simulation of hybrid automata"

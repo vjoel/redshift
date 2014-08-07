@@ -1,5 +1,9 @@
 redshift 1.3.28
 
+- gemspec specifies dvector-float extension
+
+redshift 1.3.28
+
 - update .gitignore
 - fixes for ruby 2.1
 - modernize rakefile: release tasks
@@ -34,7 +38,7 @@ redshift 1.3.23
 - compatible with ruby-1.9.2
 
 - renamed Random module to RandomDistribution to avoid conflict
-    
+
 redshift 1.3.22
 
 - handling of env vars is more consistent
@@ -127,7 +131,7 @@ redshift 1.3.13
 
 redshift 1.3.12
 
-- Fixed bug with explicitly assigning an array to a 
+- Fixed bug with explicitly assigning an array to a
   delay buffer.
 
 - Raise if time_step changes while using delay.
@@ -212,7 +216,7 @@ redshift 1.2.41
 - Improved message for reset type error.
 
 - Link vars can now be declared without a type (defaults to Component).
- 
+
 - Fixed Queue behavior when #unpop called with SimultaneousQueueEntries.
 
 - Added examples and tests.

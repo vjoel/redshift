@@ -9,14 +9,14 @@ srand(12345)
 # Variable with discrete and continuous perturbation.
 class Plant < Component
   continuous :x => 0, :t => 1
-  
+
   link :control => :Control # fwd ref to undefined class Control
-  
+
   flow do
     diff " x' = control.output + sin(t) "
     diff " t' = -1 "
   end
-  
+
   transition do
     guard "t <= 0"
     action do
@@ -30,14 +30,14 @@ end
 class Control < Component
   continuous :set_point => 2.0
   continuous :p_out, :i_out, :d_out, :output
-  
+
   # Gains
   constant :k_p => 1.0,
            :k_i => 1.0,
            :k_d => 1.0
-  
+
   link :plant => Plant
-  
+
   flow do
     algebraic     " error   = set_point - plant.x "
     algebraic     " p_out   = k_p * error "

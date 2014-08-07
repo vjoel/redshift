@@ -69,8 +69,8 @@ end
 
 module RedShift
   include Math
-  
-  VERSION = '1.3.28'
+
+  VERSION = '1.3.29'
 
   Infinity = Math::Infinity
 
@@ -87,7 +87,7 @@ module RedShift
       $REDSHIFT_DEBUG = setting
     end
   end
-  
+
   # Returns a list of all worlds (instances of RedShift::World and subclasses),
   # or just those descending from +world_class+.
   # Not very efficient, since it uses <tt>ObjectSpace.each_object</tt>, but
@@ -99,7 +99,7 @@ module RedShift
   end
 
 #  class Warning < Exception; end
-#  
+#
 #  # Warn with string str and skipping n stack frames.
 #  def warn str, n = 0
 #    warning = sprintf "\nWarning: #{str}\n\t#{caller(n).join("\n\t")}\n"
@@ -112,7 +112,7 @@ module RedShift
 #  module_function :warn
 
   @library_calls = []
-  
+
   # Defer a block until just after the library ruby code is loaded, but before
   # commit. Necessary for defining inline C functions or shadow_attrs. Note that
   # a whole require statement could be placed inside the with_library block.

@@ -1,4 +1,4 @@
-= Robots
+# Robots
 
 An example covering some of the basic language features plus some techniques for interactive simulation and for animating simulation output.
 
@@ -16,15 +16,15 @@ You can also move the objects interactively in the Tk visualization.
 
 Currently, the robots move around and the missles track and hit them.
 
-= To do
+# To do
 
-== robots physics
+## robots physics
 
 - collision detection and effect on robot health
 
 - walls and obstacles
 
-== robot control
+## robot control
 
 - command language to evade attackers and launch missiles based on radar
 
@@ -32,18 +32,18 @@ Currently, the robots move around and the missles track and hit them.
 
 - multirobot coordination using comm channels
 
-== game mechanics
+## game mechanics
 
 - robot shop
 
 - tournaments
 
-== dev tools
+## dev tools
 
 - debugger
 
 - plotter
 
-== visualization
+## visualization
 
 - for each sensor, show nearest robot by drawing arrow

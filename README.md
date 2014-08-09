@@ -6,6 +6,8 @@ RedShift is for simulating digital devices operating in an analog world. It's al
 
 There's not much [documentation](doc) yet, but plenty of [examples](examples). Some of the original SHIFT papers are available: [Shift: A Formalism and a Programming Language for Dynamic Networks of Hybrid Automata]( http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.32.5913&rep=rep1&type=pdf).
 
+My [2009 rubyconf talk](http://confreaks.com/videos/165-rubyconf2009-dsls-code-generation-and-new-domains-for-ruby) discusses RedShift.
+
 ## Requirements ##
 
 RedShift needs ruby (1.8, 1.9, 2.0, 2.1) and a compatible C compiler. If you can build native gems, you're all set.

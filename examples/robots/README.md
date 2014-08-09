@@ -4,8 +4,8 @@ An example covering some of the basic language features plus some techniques for
 
 To run the example:
 
-  ruby robots.rb
-  
+    ruby robots.rb
+
 Press ^C to break into a command shell, and then ^D to continue the simulation run. The "help" command in the shell shows you the commands beyond the basic irb.
 
 Use -h from the command line to see the switches.

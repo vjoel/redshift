@@ -19,7 +19,7 @@ class Flow_Transition_Alg_To_Other < FlowTestComponent
     alg "x=42"
   end
   transition A => B
-  
+
   def assert_consistent test
     if state == B
       test.assert_equal(42, x)
@@ -31,23 +31,23 @@ end
 
 class Flow_Transition < FlowTestComponent
   state :Alg, :Diff, :Euler, :Empty, :Switch
-  
+
   flow Alg, Diff, Euler, Empty do
     diff "t' = 1"
   end
-  
+
   flow Alg do
     alg "x = 10*t"
   end
-  
+
   flow Diff do
     diff "x' = 10"
   end
-  
+
   flow Euler do
     euler "x' = 10"
   end
-  
+
   setup do
     self.x = 0
     @alarm_time = 0
@@ -71,7 +71,7 @@ class Flow_Transition < FlowTestComponent
     puts "  alarm seed = #{@alarm_seq.generator.seeds rescue @alarm_seq.generator.seed}"
     puts "  state seed = #{@state_seq.generator.seeds rescue @state_seq.generator.seed}"
   end
-  
+
   transition Enter => Switch,
              Alg   => Switch, Diff  => Switch,
              Euler => Switch, Empty => Switch do
@@ -89,7 +89,7 @@ class Flow_Transition < FlowTestComponent
       end
     }
   end
-  
+
   transition Switch => Alg do
     guard { @current == Alg }
   end
@@ -102,7 +102,7 @@ class Flow_Transition < FlowTestComponent
   transition Switch => Empty do
     guard { @current == Empty }
   end
-  
+
   transition Empty => Empty do
     guard { t > (@last_empty_t || 0) }
     action {
@@ -110,7 +110,7 @@ class Flow_Transition < FlowTestComponent
       self.x = 10 * t   # manually update x
     }
   end
-  
+
   def assert_consistent test
     # In the alg case, calling the accessor invokes the update method. We want
     # to test that alg flows work even if the update method isn't called.
@@ -122,7 +122,7 @@ class Flow_Transition < FlowTestComponent
         "in #{state.name} after #{t} sec,\n")
     end
   end
-  
+
   def finish test
 #    puts "At finish: t = #{t}, alarm_time = #{@alarm_time}"
   end
@@ -191,9 +191,9 @@ class Flow_AlgebraicAction < FlowTestComponent
   constant :k
   link :other => self
   flow {alg " x = other.y + k "}
-  
+
   @@first = true
-  
+
   setup do
     self.other = self
     if @@first
@@ -201,21 +201,21 @@ class Flow_AlgebraicAction < FlowTestComponent
       @other = create(Flow_AlgebraicAction) {|c| c.y = 5}
     end
   end
-  
+
   transition Enter => Exit do
     action do
       next unless @other
-      
+
       @x_values = []
       @x_values << x
       other.y = 1
       @x_values << x
       other.y = 2
       @x_values << x
-      
+
       self.other = @other
       @x_values << x
-      
+
       self.k = 10
       @x_values << x
     end
@@ -232,17 +232,17 @@ end
 require 'minitest/autorun'
 
 class TestFlow < Minitest::Test
-  
+
   def setup
     @world = World.new
     @world.time_step = 0.01
     @world.zeno_limit = 100
   end
-  
+
   def teardown
     @world = nil
   end
-  
+
   def test_flow
     testers = []
     ObjectSpace.each_object(Class) do |cl|
@@ -251,7 +251,7 @@ class TestFlow < Minitest::Test
         testers << @world.create(cl)
       end
     end
-    
+
     testers.each { |t| t.assert_consistent self }
     @world.run 1000 do
       testers.each { |t| t.assert_consistent self }

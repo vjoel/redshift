@@ -20,7 +20,6 @@ class World
             1);                                        \\
           list_i--)
 
-    int dummy;
   '.tabto(0)
   # Note: EACH_COMP_DO(lc) block may use move_comp and remove_comp
   # but it should (re)move none or all. Must have declarations for comp
@@ -32,30 +31,30 @@ class World
       double value;
     } CVCacheEntry;
   }
-  
+
   shadow_library_include_file.declare :link_cache_entry => %{
     typedef struct {
       ComponentShadow **link_ptr;
       VALUE           value;
     } LinkCacheEntry;
   }
-  
+
   shadow_library_include_file.declare :port_cache_entry => %{
     typedef struct {
       VALUE           input_port;
       VALUE           other_port;
     } PortCacheEntry;
   }
-  
+
   # Initial size for the constant value cache.
   CV_CACHE_SIZE = 64
 
   # Initial size for the link cache.
   LINK_CACHE_SIZE = 64
-  
+
   # Initial size for the port cache.
   PORT_CACHE_SIZE = 64
-  
+
   World.subclasses.each do |sub|
     file_name = CGenerator.make_c_name(sub.name).to_s
     sub.shadow_library_file file_name
@@ -80,7 +79,7 @@ class World
     :active_E=, :prev_active_E=, :awake=,
     :strict_sleep=, :inert=, :diff_list=,
     :queue_sleep=
-  
+
   shadow_attr_reader   :time_step     => "double   time_step"
   shadow_attr_accessor :zeno_limit    => "long     zeno_limit"
   shadow_attr_accessor :step_count    => "long     step_count"
@@ -95,7 +94,7 @@ class World
                                          "long     input_depth_limit"
   shadow_attr_accessor :alg_depth_limit =>
                                          "long     alg_depth_limit"
-  
+
   shadow_attr_accessor :base_clock    => "double   base_clock"
   shadow_attr_accessor :base_step_count =>
                                          "long     base_step_count"
@@ -118,7 +117,7 @@ class World
     shadow->cv_cache_used = 0;
   }
   free_function.free "free(shadow->constant_value_cache)"
-  
+
   shadow_struct.declare :link_cache => %{
     LinkCacheEntry *link_cache;
     int link_cache_size;
@@ -131,7 +130,7 @@ class World
     shadow->link_cache_used = 0;
   }
   free_function.free "free(shadow->link_cache)"
-  
+
   shadow_struct.declare :port_cache => %{
     PortCacheEntry *port_cache;
     int port_cache_size;
@@ -143,15 +142,15 @@ class World
     shadow->port_cache_used = 0;
   }
   free_function.free "free(shadow->port_cache)"
-  
+
   class << self
     # Redefines World#new so that a library commit happens first.
     def new(*args, &block)
-      commit              # redefines World.new  
+      commit              # redefines World.new
       new(*args, &block)  # which is what this line calls
     end
   end
-  
+
   define_c_method :time_step= do
     arguments :time_step
     body %{
@@ -163,7 +162,7 @@ class World
     }
     returns "shadow->time_step" ## needed?
   end
-  
+
   define_c_method :clock do
     returns %{
       rb_float_new(
@@ -171,8 +170,8 @@ class World
        (shadow->step_count - shadow->base_step_count) * shadow->time_step)
     }
   end
-  
-# This is for when Component#world is nonpersistent  
+
+# This is for when Component#world is nonpersistent
 #  _load_data_method.post_code %{
 #    rb_funcall(shadow->self, #{shadow_library_include_file.declare_symbol "__restore__world__refs"}, 0);
 #  }
@@ -180,7 +179,7 @@ class World
   define_c_method :bump_d_tick do
     body "shadow->d_tick++"
   end
-  
+
   slif = shadow_library_include_file
   slif.declare :get_shadow => %{
     inline static ComponentShadow *get_shadow(VALUE comp)
@@ -220,13 +219,13 @@ class World
           }
         }
       }
-      
+
       for (shadow->rk_level = 1; shadow->rk_level <= 3; shadow->rk_level++) {
         len = rs_dv(shadow->diff_list)->len;
         comp_ary = rs_dv(shadow->diff_list)->ptr;
         for (ci = 0; ci < len; ci++) {
           Data_Get_Struct(comp_ary[ci], ComponentShadow, comp_shdw);
-          
+
           if (shadow->rk_level == 1 && !comp_shdw->has_diff) {
             if (ci < len-1) {
               comp_ary[ci] = comp_ary[len-1];
@@ -250,7 +249,7 @@ class World
           }
         }
       }
-      
+
       shadow->rk_level = 4;
       for (li = 0; li < 2; li++) {
         len = rs_dv(comp_dvector[li])->len;
@@ -266,7 +265,7 @@ class World
                 var->rk_level < shadow->rk_level &&
                 !var->algebraic)
               (*var->flow)((ComponentShadow *)comp_shdw);
-            
+
             if (var->rk_level == 4)
               var->d_tick = 1; //# var will be current in discrete_step
             else
@@ -289,14 +288,14 @@ class World
 #    scope :static
 #    returns "rb_obj_instance_eval(0, 0, comp)"
 #  end
-#  
+#
 #  shadow_library_source_file.define(:call_block).instance_eval do
 #    arguments "VALUE arg1", "VALUE block"
 #    return_type "VALUE"
 #    scope :static
 #    returns "rb_funcall(block, #{declare_symbol :call}, 0)"
 #  end
-  
+
   discrete_step_definer = proc do
     parent.declare :static_locals => %{
       static VALUE      ExitState, GuardWrapperClass, ExprWrapperClass;
@@ -304,7 +303,7 @@ class World
       static VALUE      QMatchClass, ConnectClass;
       static VALUE      PostClass, DynamicEventClass, SyncClass;
     }.tabto(0)
-    
+
     declare :locals => %{
       VALUE             comp;
       ComponentShadow  *comp_shdw;
@@ -315,11 +314,11 @@ class World
       int               list_i;
       int               did_reset;
     }.tabto(0)
-    
+
     insteval_proc = declare_symbol :insteval_proc
     epi = Component::EventPhaseItem
     spi = Component::SyncPhaseItem
-    
+
     parent.declare :step_discrete_subs => %{
       inline static VALUE cur_syncs(ComponentShadow *comp_shdw)
       {
@@ -468,7 +467,7 @@ class World
         }
         return 1;
       }
-      
+
       inline static int comp_can_sync(ComponentShadow *comp_shdw,
                #{World.shadow_struct_name} *shadow)
       {
@@ -476,7 +475,7 @@ class World
         int can_sync = 1;
         VALUE syncs = cur_syncs(comp_shdw);
         assert(RTEST(syncs));
-        
+
         for (i = RARRAY_LEN(syncs) - 1; i >= 0; i--) {
           VALUE sync = RARRAY_PTR(syncs)[i];
           assert(RARRAY_LEN(sync) == 3);
@@ -484,18 +483,18 @@ class World
           VALUE event = RARRAY_PTR(sync)[#{spi::EVENT_IDX}];
           ComponentShadow *link_shdw =
             *(ComponentShadow **)(((char *)comp_shdw) + link_offset);
-          
+
           if (!link_shdw || !RTEST(link_shdw->trans)) {
             can_sync = 0;
             break;
           }
-          
+
           int found = 0;
           VALUE link_events = cur_events(link_shdw);
           if (RTEST(link_events)) {
             VALUE  *ptr   = RARRAY_PTR(link_events);
             long    len   = RARRAY_LEN(link_events);
-      
+
             for (j = len; j > 0; j--, ptr++) {
               VALUE link_event = RARRAY_PTR(*ptr)[#{epi::E_IDX}];
               if (link_event == event) {
@@ -504,23 +503,23 @@ class World
               }
             }
           }
-          
+
           if (!found) {
             can_sync = 0;
             break;
           }
         }
-        
+
         //%% hook_can_sync(comp_shdw->self, INT2BOOL(can_sync));
         return can_sync;
       }
-      
+
       inline static int eval_events(ComponentShadow *comp_shdw,
                #{World.shadow_struct_name} *shadow)
       {
         VALUE events = cur_events(comp_shdw);
         int has_events = RTEST(events);
-        
+
         if (has_events) {
           VALUE  *ptr   = RARRAY_PTR(events);
           long    len   = RARRAY_LEN(events);
@@ -547,13 +546,13 @@ class World
 
         return has_events;
       }
-      
+
       inline static void cache_new_constant_value(
         double *dbl_ptr, double value,
                #{World.shadow_struct_name} *shadow)
       {
         CVCacheEntry *entry;
-        
+
         if (!shadow->constant_value_cache) {
           int n = #{CV_CACHE_SIZE};
           shadow->constant_value_cache = malloc(n*sizeof(CVCacheEntry));
@@ -577,7 +576,7 @@ class World
         entry->value = value;
         shadow->cv_cache_used += 1;
       }
-      
+
       inline static int assign_new_constant_values(
         #{World.shadow_struct_name} *shadow)
       {
@@ -593,16 +592,16 @@ class World
           }
           shadow->cv_cache_used = 0;
         }
-        
+
         return did_reset;
       }
-      
+
       inline static void cache_new_link(
         ComponentShadow **link_ptr, VALUE value,
                #{World.shadow_struct_name} *shadow)
       {
         LinkCacheEntry *entry;
-        
+
         if (!shadow->link_cache) {
           int n = #{LINK_CACHE_SIZE};
           shadow->link_cache = malloc(n*sizeof(LinkCacheEntry));
@@ -625,12 +624,12 @@ class World
         entry->value = value;
         shadow->link_cache_used += 1;
       }
-      
+
       inline static int assign_new_links(
         #{World.shadow_struct_name} *shadow)
       {
         int did_reset = shadow->link_cache_used;
-        
+
         if (shadow->link_cache_used) {
           int i;
           LinkCacheEntry *entry;
@@ -646,15 +645,15 @@ class World
           }
           shadow->link_cache_used = 0;
         }
-        
+
         return did_reset;
       }
-      
+
       inline static void cache_new_port(VALUE input_port, VALUE other_port,
                #{World.shadow_struct_name} *shadow)
       {
         PortCacheEntry *entry;
-        
+
         if (!shadow->port_cache) {
           int n = #{PORT_CACHE_SIZE};
           shadow->port_cache = malloc(n*sizeof(PortCacheEntry));
@@ -677,12 +676,12 @@ class World
         entry->other_port = other_port;
         shadow->port_cache_used += 1;
       }
-      
+
       inline static int assign_new_ports(
         #{World.shadow_struct_name} *shadow)
       {
         int did_reset = shadow->port_cache_used;
-        
+
         if (shadow->port_cache_used) {
           int i;
           PortCacheEntry *entry;
@@ -694,10 +693,10 @@ class World
           }
           shadow->port_cache_used = 0;
         }
-        
+
         return did_reset;
       }
-      
+
       inline static int eval_continuous_resets(ComponentShadow *comp_shdw,
                               #{World.shadow_struct_name} *shadow)
       {
@@ -769,7 +768,7 @@ class World
             }
           }
         }
-        
+
         return has_cont_resets;
       }
 
@@ -822,11 +821,11 @@ class World
               new_value, shadow);
           }
         }
-        
+
         if (has_link_resets) {
           VALUE   *ptr = RARRAY_PTR(link_resets);
           long    len  = RARRAY_LEN(link_resets);
-          
+
           for (i = 0; i < len; i++) {
             VALUE   pair    = ptr[i];
             int     offset  = NUM2INT(RARRAY_PTR(pair)[0]);
@@ -872,10 +871,10 @@ class World
               new_value, shadow);
           }
         }
-        
+
         return has_const_resets || has_link_resets;
       }
-      
+
       inline static int eval_port_connects(ComponentShadow *comp_shdw,
                #{World.shadow_struct_name} *shadow)
       {
@@ -895,7 +894,7 @@ class World
             VALUE   connect_spec = RARRAY_PTR(pair)[1];
             VALUE   input_port;
             VALUE   other_port;
-            
+
             input_port = rb_funcall(comp, #{declare_symbol :port}, 1, input_var);
             if (connect_spec == Qnil) {
               other_port = Qnil;
@@ -914,7 +913,7 @@ class World
           return 1;
         }
       }
-      
+
       inline static int assign_new_cont_values(ComponentShadow *comp_shdw)
       {
         VALUE     resets        = cur_resets(comp_shdw);
@@ -947,7 +946,7 @@ class World
       {
         long  i;
         VALUE comp    = comp_shdw->self;
-        
+
         assert(RTEST(actions));
 
         for (i = 0; i < RARRAY_LEN(actions); i++) {
@@ -981,7 +980,7 @@ class World
           }
         }
       }
-      
+
       inline static void start_trans(ComponentShadow *comp_shdw,
                               #{World.shadow_struct_name} *shadow,
                               VALUE trans, VALUE dest)
@@ -990,7 +989,7 @@ class World
         comp_shdw->dest   = dest;
         //%% hook_start_transition(comp_shdw->self, trans, dest);
       }
-      
+
       inline static void finish_trans(ComponentShadow *comp_shdw,
                                #{World.shadow_struct_name} *shadow)
       { //%% hook_finish_transition(comp_shdw->self, comp_shdw->trans,
@@ -1004,19 +1003,19 @@ class World
         comp_shdw->trans    = Qnil;
         comp_shdw->dest     = Qnil;
       }
-      
+
       inline static void abort_trans(ComponentShadow *comp_shdw)
       {
         comp_shdw->trans    = Qnil;
         comp_shdw->dest     = Qnil;
       }
-      
+
       inline static void check_strict(ComponentShadow *comp_shdw)
       {
         ContVar    *vars = (ContVar *)&FIRST_CONT_VAR(comp_shdw);
         long        count = comp_shdw->var_count;
         long        i;
-        
+
         for(i = 0; i < count; i++) {
           ContVar *var = &vars[i];
           if (var->ck_strict) {
@@ -1030,7 +1029,7 @@ class World
           }
         }
       }
-      
+
       inline static void check_guards(#{World.shadow_struct_name} *shadow,
             int sync_retry)
       {
@@ -1040,13 +1039,13 @@ class World
         int               list_i;
         VALUE            *ptr;
         long              len, cur;
-        
+
         EACH_COMP_DO(shadow->prev_awake) {
           int enabled = 0;
-          
+
           if (shadow->discrete_step == 0)
             comp_shdw->checked = 0;
-          
+
           len = RARRAY_LEN(comp_shdw->outgoing) - 1; //# last is flags
           cur = len;
 
@@ -1060,20 +1059,20 @@ class World
             cur -= 4 * comp_shdw->tmp.trans.idx;
           else
             comp_shdw->tmp.trans.idx = 0;
-          
+
           while (cur >= 4) {
             VALUE trans, dest, guard, strict;
-            
+
             strict = ptr[--cur];
             guard = ptr[--cur];
-            
+
             enabled = !RTEST(guard) ||
               ((comp_shdw->checked && RTEST(strict)) ? 0 :
                guard_enabled(comp, guard, shadow->discrete_step));
-            
+
             //%% hook_eval_guard(comp, guard, INT2BOOL(enabled),
             //%%                 ptr[cur-2], ptr[cur-1]);
-            
+
             if (enabled) {
               dest    = ptr[--cur];
               trans   = ptr[--cur];
@@ -1089,7 +1088,7 @@ class World
             else
               cur -= 2;
           }
-          
+
           if (!enabled) {
             VALUE qrc;
             if (comp_shdw->strict)
@@ -1106,7 +1105,7 @@ class World
         }
         assert(rs_dv(shadow->prev_awake)->len == 0);
       }
-      
+
       inline static void do_sync_phase(#{World.shadow_struct_name} *shadow)
       {
         VALUE             comp;
@@ -1114,7 +1113,7 @@ class World
         RS_DVector       *list;
         int               list_i;
         int               changed;
-        
+
         do {
           changed = 0;
           EACH_COMP_DO(shadow->curr_S) {
@@ -1127,17 +1126,17 @@ class World
               move_comp(comp, shadow->curr_S, shadow->prev_awake);
             }
           }
-          
+
           assert(rs_dv(shadow->curr_S)->len == 0);
           SWAP_VALUE(shadow->curr_S, shadow->next_S);
           //%% hook_sync_step(shadow->curr_S, INT2BOOL(changed));
         } while (changed);
-      
+
         move_all_comps(shadow->curr_S, shadow->curr_T);
       }
-    
+
     }.tabto(0)
-    
+
     comp_id = declare_class RedShift::Component
     get_const = proc {|k| "rb_const_get(#{comp_id}, #{declare_symbol k})"}
     init %{
@@ -1154,7 +1153,7 @@ class World
       ExprWrapperClass  = #{get_const[:ExprWrapper]};
       DynamicEventClass = #{get_const[:DynamicEventValue]};
     }
-    
+
     body %{
       //%% hook_begin();
       shadow->zeno_counter = 0;
@@ -1162,9 +1161,9 @@ class World
       for (shadow->discrete_step = 0 ;; shadow->discrete_step++) {
         //%% hook_begin_step();
         int sync_retry = 0;
-        
+
         SWAP_VALUE(shadow->prev_awake, shadow->awake);
-        
+
         while (rs_dv(shadow->prev_awake)->len) {
           //%% hook_enter_guard_phase();
           check_guards(shadow, sync_retry);
@@ -1175,7 +1174,7 @@ class World
           //%% hook_leave_sync_phase();
           sync_retry = 1;
         }
-        
+
         if (!rs_dv(shadow->curr_T)->len) {
           //%% hook_end_step();
           break; //# out of main loop
@@ -1187,7 +1186,7 @@ class World
             rs_dv_push(rs_dv(shadow->active_E), comp);
           //%% hook_end_eval_events(comp);
         }
-        
+
         //# Export new event values.
         EACH_COMP_DO(shadow->active_E) {
           SWAP_VALUE(comp_shdw->event_values, comp_shdw->next_event_values);
@@ -1195,7 +1194,7 @@ class World
         }
         SWAP_VALUE(shadow->active_E, shadow->prev_active_E);
         assert(rs_dv(shadow->active_E)->len == 0);
-        
+
         //%% hook_enter_eval_phase();
         EACH_COMP_DO(shadow->curr_T) {
           //%% hook_begin_eval_resets(comp);
@@ -1204,10 +1203,10 @@ class World
           eval_constant_resets(comp_shdw, shadow);
           eval_port_connects(comp_shdw, shadow);
           //%% hook_end_eval_resets(comp);
-          
+
           if (RTEST(cur_actions(comp_shdw)))
             rs_dv_push(rs_dv(shadow->curr_A), comp);
-          
+
           if (RTEST(cur_posts(comp_shdw)))
             rs_dv_push(rs_dv(shadow->curr_P), comp);
         }
@@ -1237,7 +1236,7 @@ class World
         }
         rs_dv(shadow->curr_P)->len = 0;
         //%% hook_leave_post_phase();
-        
+
         EACH_COMP_DO(shadow->curr_T) {
           finish_trans(comp_shdw, shadow);
         }
@@ -1246,20 +1245,20 @@ class World
           shadow->d_tick++;
           //## replace "1" with "some comp entered new
           //## state with new alg. eqs"
-        
+
         EACH_COMP_DO(shadow->curr_T) {
           check_strict(comp_shdw);
           //## optimize: only keep comps with var->ck_strict on this list
           //## option to skip this check
         }
-        
+
         //# Check for zeno problem.
         if (shadow->zeno_limit >= 0) {
           shadow->zeno_counter++;
           if (shadow->zeno_counter > shadow->zeno_limit)
             rb_funcall(shadow->self, #{declare_symbol :step_zeno}, 0);
         }
-        
+
         EACH_COMP_DO(shadow->curr_T) {
           if (comp_shdw->state == ExitState)
             remove_comp(comp, shadow->curr_T, shadow);
@@ -1275,17 +1274,17 @@ class World
                        RARRAY_LEN(comp_shdw->event_values));
         }
         rs_dv(shadow->prev_active_E)->len = 0;
-        
+
         //%% hook_end_step();
       }
-      
+
       move_all_comps(shadow->strict_sleep, shadow->awake);
 
       //%% hook_end();
       shadow->discrete_step = 0;
       shadow->zeno_counter = 0;
     }
-    
+
     # only call this when all defs have been added
     def parent.to_s
       @cached_output ||= super
@@ -1298,27 +1297,27 @@ class World
     cl.instance_methods(true).grep(hook).sort.map{|s|s.to_sym} }
   hooks[World.superclass] = nil
   known_hooks = nil
-  
+
   world_classes.each do |cl|
     cl_hooks = hooks[cl]
     next if hooks[cl.superclass] == hooks[cl]
-    
+
     cl.class_eval do
       shadow_library_source_file.include(Component.shadow_library_include_file)
       shadow_library_source_file.include("dvector/dvector.h")
-      
+
       if (instance_methods(false) + protected_instance_methods(false) +
           private_instance_methods(false)).grep(/^step_discrete$/).size > 0
         warn "Redefining step_discrete in #{self}"
       end
-      
+
       meth = define_c_method(:step_discrete, &discrete_step_definer)
       private :step_discrete
-      
+
       before_commit do
         # at this point, we know the file is complete
         file_str = meth.parent.to_s
-        
+
         known_hooks ||= file_str.scan(hook).map {|s|s.to_sym}
         unknown_hooks = cl_hooks - known_hooks
 
